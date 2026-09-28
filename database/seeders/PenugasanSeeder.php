@@ -15,31 +15,43 @@ class PenugasanSeeder extends Seeder
         $kapus = User::where('email', 'kapus@pu.go.id')->first();
         $kabagTU = User::where('email', 'kabag.tu@pu.go.id')->first();
         $stafRina = User::where('email', 'rina.staf@pu.go.id')->first();
+        $stafDwi = User::where('email', 'dwi.staf@pu.go.id')->first();
+        $stafFauzi = User::where('email', 'fauzi.staf@pu.go.id')->first();
 
-        // Ambil salah satu sub-menu sebagai contoh (Manajemen Risiko)
+        // Ambil sub-menu Manajemen Risiko
         $subMenuManajemenRisiko = SubMenu::where('nama_sub_menu', 'Manajemen Risiko')->first();
 
         if ($subMenuManajemenRisiko) {
-            // 1. Assign Pemilik Risiko (Kepala Pusat)
-            PenugasanCrmc::create([
-                'sub_menu_id' => $subMenuManajemenRisiko->id,
-                'user_id' => $kapus->id,
-                'peran' => 'pemilik_risiko',
-            ]);
+            // Bersihkan data lama jika ada
+            PenugasanCrmc::where('sub_menu_id', $subMenuManajemenRisiko->id)->delete();
 
-            // 2. Assign Pengendali Mutu (Kepala Bagian TU)
-            PenugasanCrmc::create([
-                'sub_menu_id' => $subMenuManajemenRisiko->id,
-                'user_id' => $kabagTU->id,
-                'peran' => 'pengendali_mutu',
-            ]);
+            // 1. Assign Pemilik Risiko (1 Orang - Kepala Pusat)
+            if ($kapus) {
+                PenugasanCrmc::create([
+                    'sub_menu_id' => $subMenuManajemenRisiko->id,
+                    'user_id' => $kapus->id,
+                    'peran' => 'pemilik_risiko',
+                ]);
+            }
 
-            // 3. Assign Pengendali Risiko (Staf Teknis)
-            PenugasanCrmc::create([
-                'sub_menu_id' => $subMenuManajemenRisiko->id,
-                'user_id' => $stafRina->id,
-                'peran' => 'pengendali_risiko',
-            ]);
+            // 2. Assign Pengendali Mutu (1 Orang - Kepala Bagian TU)
+            if ($kabagTU) {
+                PenugasanCrmc::create([
+                    'sub_menu_id' => $subMenuManajemenRisiko->id,
+                    'user_id' => $kabagTU->id,
+                    'peran' => 'pengendali_mutu',
+                ]);
+            }
+
+            // 3. Assign Pengendali Risiko (Bisa Banyak Orang - Tim Pelaksana Staf)
+            $stafPengendali = array_filter([$stafRina, $stafDwi, $stafFauzi]);
+            foreach ($stafPengendali as $staf) {
+                PenugasanCrmc::create([
+                    'sub_menu_id' => $subMenuManajemenRisiko->id,
+                    'user_id' => $staf->id,
+                    'peran' => 'pengendali_risiko',
+                ]);
+            }
         }
     }
 }

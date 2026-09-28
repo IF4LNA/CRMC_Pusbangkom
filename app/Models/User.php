@@ -15,8 +15,12 @@ class User extends Authenticatable
 
     protected $fillable = [
         'name',
+        'nip',
+        'jabatan',
         'email',
         'password',
+        'foto_profil',
+        'role',
     ];
 
     protected $hidden = [
@@ -28,7 +32,40 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
-            'password' => 'hash',
+            'password' => 'hashed',
         ];
+    }
+
+    public function getFotoUrlAttribute(): string
+    {
+        if (!empty($this->foto_profil)) {
+            if (str_starts_with($this->foto_profil, 'http://') || str_starts_with($this->foto_profil, 'https://')) {
+                return $this->foto_profil;
+            }
+            if (file_exists(public_path('storage/' . $this->foto_profil))) {
+                return asset('storage/' . $this->foto_profil);
+            }
+            if (file_exists(public_path($this->foto_profil))) {
+                return asset($this->foto_profil);
+            }
+        }
+
+        // Fallback modern avatar dengan inisial dan palet PUPR (Navy & Amber)
+        return 'https://ui-avatars.com/api/?name=' . urlencode($this->name) . '&background=0f172a&color=f59e0b&bold=true&size=160';
+    }
+
+    public function isAdmin(): bool
+    {
+        return $this->role === 'admin';
+    }
+
+    public function isPegawai(): bool
+    {
+        return $this->role === 'pegawai';
+    }
+
+    public function penugasan()
+    {
+        return $this->hasMany(PenugasanCrmc::class, 'user_id');
     }
 }

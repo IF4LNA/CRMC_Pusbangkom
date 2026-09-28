@@ -59,54 +59,68 @@
 <script>
     function renderBentoGrids() {
         document.getElementById('grid-umum-tu').innerHTML = umumTuItems.map((item, idx) => `
-            <div onclick="openCRMCModal('${item}', 'Bagian Umum & Tata Usaha')" class="bento-card cursor-pointer bg-white p-4 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md hover:border-amber-400 transition flex flex-col justify-between group">
+            <div onclick="navigateToCRMC('${item}')" class="bento-card cursor-pointer bg-white p-4 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md hover:border-amber-400 transition flex flex-col justify-between group">
                 <div>
                     <div class="flex items-center justify-between mb-2">
                         <span class="text-[10px] font-bold text-slate-400 group-hover:text-amber-600">SUB #${idx + 1}</span>
-                        <i data-lucide="folder-check" class="w-4 h-4 text-blue-900 group-hover:text-amber-500 transition"></i>
+                        <button onclick="event.stopPropagation(); openCRMCModal('${item}', 'Bagian Umum & Tata Usaha')" title="Form Input / Edit" class="p-1 text-slate-400 hover:text-amber-600 rounded-lg hover:bg-amber-50 transition">
+                            <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+                        </button>
                     </div>
                     <h4 class="font-bold text-slate-900 text-xs sm:text-sm group-hover:text-blue-900 transition leading-snug">${item}</h4>
                 </div>
                 <div class="mt-4 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
-                    <span class="bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded font-medium">8 Komponen</span>
-                    <i data-lucide="arrow-up-right" class="w-3.5 h-3.5 group-hover:translate-x-0.5 transition"></i>
+                    <span class="bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded font-semibold flex items-center gap-1">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> 8 Komponen
+                    </span>
+                    <span class="inline-flex items-center gap-0.5 text-blue-900 font-bold group-hover:translate-x-0.5 transition">
+                        Buka <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+                    </span>
                 </div>
             </div>
         `).join('');
 
         document.getElementById('grid-sda').innerHTML = sdaItems.map((item, idx) => `
-            <div onclick="openCRMCModal('${item}', 'Bidang SDA')" class="bento-card cursor-pointer bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md hover:border-cyan-400 transition flex flex-col justify-between group">
+            <div onclick="navigateToCRMC('${item}')" class="bento-card cursor-pointer bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md hover:border-cyan-400 transition flex flex-col justify-between group">
                 <div>
                     <div class="flex items-center justify-between mb-3">
                         <span class="text-[10px] font-bold text-cyan-700 bg-cyan-50 px-2 py-0.5 rounded">SDA #${idx + 1}</span>
-                        <i data-lucide="waves" class="w-4 h-4 text-cyan-800"></i>
+                        <button onclick="event.stopPropagation(); openCRMCModal('${item}', 'Bidang SDA')" title="Form Input / Edit" class="p-1 text-slate-400 hover:text-cyan-600 rounded-lg hover:bg-cyan-50 transition">
+                            <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+                        </button>
                     </div>
                     <h4 class="font-bold text-slate-900 text-sm group-hover:text-cyan-900 transition leading-snug">${item}</h4>
                 </div>
                 <div class="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-                    <span>Kelola 8 Komponen</span>
-                    <i data-lucide="chevron-right" class="w-4 h-4 text-cyan-800 group-hover:translate-x-1 transition"></i>
+                    <span class="bg-cyan-50 text-cyan-800 px-2 py-0.5 rounded font-semibold">8 Komponen</span>
+                    <span class="inline-flex items-center gap-0.5 text-cyan-800 font-bold group-hover:translate-x-0.5 transition">
+                        Buka <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                    </span>
                 </div>
             </div>
         `).join('');
 
         document.getElementById('grid-ckps').innerHTML = ckpsItems.map((item, idx) => `
-            <div onclick="openCRMCModal('${item}', 'Bidang CKPS')" class="bento-card cursor-pointer bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md hover:border-indigo-400 transition flex flex-col justify-between group">
+            <div onclick="navigateToCRMC('${item}')" class="bento-card cursor-pointer bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md hover:border-indigo-400 transition flex flex-col justify-between group">
                 <div>
                     <div class="flex items-center justify-between mb-3">
                         <span class="text-[10px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded">CKPS #${idx + 1}</span>
-                        <i data-lucide="building-2" class="w-4 h-4 text-indigo-800"></i>
+                        <button onclick="event.stopPropagation(); openCRMCModal('${item}', 'Bidang CKPS')" title="Form Input / Edit" class="p-1 text-slate-400 hover:text-indigo-600 rounded-lg hover:bg-indigo-50 transition">
+                            <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+                        </button>
                     </div>
                     <h4 class="font-bold text-slate-900 text-sm group-hover:text-indigo-900 transition leading-snug">${item}</h4>
                 </div>
                 <div class="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-                    <span>Kelola 8 Komponen</span>
-                    <i data-lucide="chevron-right" class="w-4 h-4 text-indigo-800 group-hover:translate-x-1 transition"></i>
+                    <span class="bg-indigo-50 text-indigo-800 px-2 py-0.5 rounded font-semibold">8 Komponen</span>
+                    <span class="inline-flex items-center gap-0.5 text-indigo-800 font-bold group-hover:translate-x-0.5 transition">
+                        Buka <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                    </span>
                 </div>
             </div>
         `).join('');
 
-        lucide.createIcons();
+        if (typeof lucide !== 'undefined') lucide.createIcons();
     }
 </script>
 @endpush
