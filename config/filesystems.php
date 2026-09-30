@@ -11,9 +11,14 @@ return [
     | by the framework. The "local" disk, as well as a variety of cloud
     | based disks are available to your application for file storage.
     |
+    | Aplikasi ini menyimpan foto pegawai dan dokumen CRMC yang harus dapat
+    | diakses publik melalui symlink "public/storage", sehingga default
+    | memakai disk "public". Jangan diubah ke "local": file akan tersimpan
+    | di storage/app/private dan tidak bisa ditampilkan di halaman.
+    |
     */
 
-    'default' => env('FILESYSTEM_DISK', 'local'),
+    'default' => env('FILESYSTEM_DISK', 'public'),
 
     /*
     |--------------------------------------------------------------------------

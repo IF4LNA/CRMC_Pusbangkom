@@ -3,10 +3,14 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\CrmcController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\HomeController;
 
 Route::get('/', function () {
     return view('crmc.index');
 })->name('home');
+
+// Halaman Beranda: penjelasan CRMC, struktur organisasi, galeri, dan peta
+Route::get('/home', [HomeController::class, 'index'])->name('beranda');
 
 // Autentikasi Pengguna (Login & Logout)
 Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
@@ -39,4 +43,24 @@ Route::middleware('auth')->group(function () {
     Route::post('/admin/pegawai', [CrmcController::class, 'simpanAkun'])->name('admin.pegawai.store');
     Route::put('/admin/pegawai/{id}', [CrmcController::class, 'updateAkun'])->name('admin.pegawai.update');
     Route::delete('/admin/pegawai/{id}', [CrmcController::class, 'hapusAkun'])->name('admin.pegawai.delete');
+});
+
+// ========================
+// ADMIN: Kelola Isi Halaman Beranda
+// ========================
+// Rute tetap memakai middleware 'auth' supaya pengguna tak dikenal tetap
+// diarahkan ke form login. Otorisasi admin ditegur ulang di dalam
+// HomeController::wajibAdmin() pada setiap aksi ubah/hapus.
+Route::middleware('auth')->prefix('admin/beranda')->name('admin.beranda.')->group(function () {
+    // Struktur Organisasi
+    Route::post('/struktur', [HomeController::class, 'simpanStruktur'])->name('struktur.simpan');
+    Route::put('/struktur/{id}', [HomeController::class, 'ubahStruktur'])->name('struktur.ubah');
+    Route::delete('/struktur/{id}', [HomeController::class, 'hapusStruktur'])->name('struktur.hapus');
+    Route::post('/struktur/urutan', [HomeController::class, 'urutkanStruktur'])->name('struktur.urutan');
+
+    // Galeri Sarana dan Prasarana
+    Route::post('/galeri', [HomeController::class, 'simpanGaleri'])->name('galeri.simpan');
+    Route::put('/galeri/{id}', [HomeController::class, 'ubahGaleri'])->name('galeri.ubah');
+    Route::delete('/galeri/{id}', [HomeController::class, 'hapusGaleri'])->name('galeri.hapus');
+    Route::post('/galeri/urutan', [HomeController::class, 'urutkanGaleri'])->name('galeri.urutan');
 });

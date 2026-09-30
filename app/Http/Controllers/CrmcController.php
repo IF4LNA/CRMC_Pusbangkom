@@ -8,9 +8,11 @@ use App\Models\DokumenCrmc;
 use App\Models\LampiranCrmc;
 use App\Models\PenugasanCrmc;
 use App\Models\User;
+use App\Support\PenyimpananGambar;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 
@@ -49,34 +51,26 @@ class CrmcController extends Controller
             }
         }
 
-        // 1. Pemilik Risiko: HANYA ADA 1 ORANG
-        $pemilikRisiko = $subMenu?->penugasan?->where('peran', 'pemilik_risiko')->first()?->user;
-        if (!$pemilikRisiko) {
-            $pemilikRisiko = User::where('email', 'kapus@pu.go.id')->first();
-        }
+        // 1. Pemilik Risiko: HANYA ADA 1 ORANG untuk seluruh CRMC.
+        //    Penugasan sudah disalin ke setiap sub-bidang saat disimpan
+        //    (lihat updatePenugasan), jadi cukup ambil yang pertama di sini.
+        $pemilikRisiko = $subMenu?->penugasan?->firstWhere('peran', 'pemilik_risiko')?->user;
 
-        // 2. Pengendali Mutu: HANYA ADA 1 ORANG di tiap bidang & sub bidang
-        $pengendaliMutu = $subMenu?->penugasan?->where('peran', 'pengendali_mutu')->first()?->user;
-        if (!$pengendaliMutu) {
-            $pengendaliMutu = User::where('email', 'kabag.tu@pu.go.id')->first();
-        }
+        // 2. Pengendali Mutu: HANYA ADA 1 ORANG per bidang, berlaku untuk
+        //    semua sub-bidang di bawah bidang tersebut.
+        $pengendaliMutu = $subMenu?->penugasan?->firstWhere('peran', 'pengendali_mutu')?->user;
 
         // 3. Pengendali Risiko: BISA BANYAK ORANG (Multiple Risk Controllers)
+        // Hanya menampilkan yang benar-benar ditugaskan. Tanpa penugasan -> kosong,
+        // dan view menampilkan empty state (bukan daftar semua pegawai).
         $pengendaliRisikoList = collect();
         if ($subMenu && $subMenu->penugasan) {
             $pengendaliRisikoList = $subMenu->penugasan
                 ->where('peran', 'pengendali_risiko')
                 ->map(fn($p) => $p->user)
                 ->filter()
+                ->unique('id')
                 ->values();
-        }
-
-        // Fallback jika belum ada penugasan pengendali risiko
-        if ($pengendaliRisikoList->isEmpty()) {
-            $pengendaliRisikoList = User::whereIn('email', ['rina.staf@pu.go.id', 'dwi.staf@pu.go.id', 'fauzi.staf@pu.go.id'])->get();
-            if ($pengendaliRisikoList->isEmpty()) {
-                $pengendaliRisikoList = User::where('role', 'pegawai')->get();
-            }
         }
 
         // === TAHUN FILTER: Default tahun terbaru, bisa melihat tahun sebelumnya ===
@@ -118,12 +112,13 @@ class CrmcController extends Controller
 
         // Data 8 Komponen CRMC
         $firstPengendali = $pengendaliRisikoList->first();
+        $picCadangan = new User(['name' => 'PIC CRMC', 'nip' => '-', 'jabatan' => '-']);
         $crmcData = [
             // Metadata PIC utama
-            'pegawai' => $firstPengendali?->name ?? 'Muhammad Fajar Syaffiqri',
-            'pegawai_nip' => $firstPengendali?->nip ?? '199001012026011001',
-            'pegawai_jabatan' => $firstPengendali?->jabatan ?? 'System Administrator & PIC Pengendalian',
-            'pegawai_foto' => $firstPengendali?->foto_url ?? 'https://ui-avatars.com/api/?name=Fajar+Syaffiqri&background=0f172a&color=f59e0b&bold=true&size=160',
+            'pegawai' => $firstPengendali?->name ?? 'PIC CRMC',
+            'pegawai_nip' => $firstPengendali?->nip ?? '-',
+            'pegawai_jabatan' => $firstPengendali?->jabatan ?? '-',
+            'pegawai_foto' => ($firstPengendali ?? $picCadangan)->foto_url,
 
             // 2. Risk Register Spesifik Acuan
             'risk_register' => 'RR-CRMC-' . strtoupper(substr(md5($subBidangName), 0, 4)) . '-2026-V1',
@@ -265,15 +260,16 @@ class CrmcController extends Controller
             $extension = $file->getClientOriginalExtension();
             
             $path = $file->storeAs(
-                "public/crmc/{$tahun}/{$subMenu->id}/{$kategori}",
-                time() . '_' . Str::slug(pathinfo($originalName, PATHINFO_FILENAME)) . '.' . $extension
+                "crmc/{$tahun}/{$subMenu->id}/{$kategori}",
+                time() . '_' . Str::slug(pathinfo($originalName, PATHINFO_FILENAME)) . '.' . $extension,
+                'public'
             );
 
             LampiranCrmc::create([
                 'dokumen_crmc_id' => $dokumen->id,
                 'kategori_komponen' => $kategori,
                 'nama_file' => $originalName,
-                'file_path' => Storage::url($path),
+                'file_path' => Storage::disk('public')->url($path),
                 'tipe_file' => strtolower($extension),
             ]);
         }
@@ -294,9 +290,9 @@ class CrmcController extends Controller
         $lampiran = LampiranCrmc::findOrFail($id);
 
         // Hapus file fisik dari storage
-        $relativePath = str_replace('/storage/', 'public/', $lampiran->file_path);
-        if (Storage::exists($relativePath)) {
-            Storage::delete($relativePath);
+        $relativePath = $lampiran->storage_path;
+        if ($relativePath && Storage::disk('public')->exists($relativePath)) {
+            Storage::disk('public')->delete($relativePath);
         }
 
         $lampiran->delete();
@@ -379,33 +375,73 @@ class CrmcController extends Controller
             ]);
         }
 
-        // 1. Bersihkan penugasan lama untuk sub_menu ini
-        PenugasanCrmc::where('sub_menu_id', $subMenu->id)->delete();
+        // Hierarki penugasan (lihat CrmcController::show):
+        //   - Pemilik Risiko    : 1 orang, berlaku untuk SELURUH sub-bidang.
+        //   - Pengendali Mutu   : 1 orang per BIDANG, berlaku untuk semua
+        //                         sub-bidang di bawah bidang tersebut.
+        //   - Pengendali Risiko : per sub-bidang.
+        //
+        // Diimplementasikan dengan menulis peran ke seluruh sub_menu_id
+        // yang relevan, sehingga pembacaan di `show()` tetap sederhana
+        // (cukup query satu sub-bidang).
+        DB::transaction(function () use ($subMenu, $request) {
+            $semuaSubMenu = SubMenu::pluck('id');
+            $subMenuBidangIni = SubMenu::where('bidang_id', $subMenu->bidang_id)->pluck('id');
 
-        // 2. Simpan Pemilik Risiko (Hanya 1 Orang)
-        PenugasanCrmc::create([
-            'sub_menu_id' => $subMenu->id,
-            'user_id' => $request->input('pemilik_risiko_id'),
-            'peran' => 'pemilik_risiko',
-        ]);
+            // 1. Bersihkan penugasan lama pada tiga cakupannya, supaya
+            //    tidak ada data lama yang tertinggal setelah diganti.
+            //    a. pemilik_risiko  -> seluruh CRMC, bukan hanya sub-bidang ini
+            //    b. pengendali_mutu -> bidang ini saja, jangan ganggu bidang lain
+            //    c. peran lainnya   -> sub-bidang ini saja
+            PenugasanCrmc::where('peran', 'pemilik_risiko')->delete();
+            PenugasanCrmc::whereIn('sub_menu_id', $subMenuBidangIni)
+                ->where('peran', 'pengendali_mutu')
+                ->delete();
+            PenugasanCrmc::where('sub_menu_id', $subMenu->id)
+                ->whereNotIn('peran', ['pemilik_risiko', 'pengendali_mutu'])
+                ->delete();
 
-        // 3. Simpan Pengendali Mutu (Hanya 1 Orang di tiap bidang & sub bidang)
-        PenugasanCrmc::create([
-            'sub_menu_id' => $subMenu->id,
-            'user_id' => $request->input('pengendali_mutu_id'),
-            'peran' => 'pengendali_mutu',
-        ]);
+            // 2. Pemilik Risiko: satu orang untuk semua sub-bidang
+            $pemilikId = (int) $request->input('pemilik_risiko_id');
+            foreach ($semuaSubMenu as $id) {
+                PenugasanCrmc::create([
+                    'sub_menu_id' => $id,
+                    'user_id' => $pemilikId,
+                    'peran' => 'pemilik_risiko',
+                ]);
+            }
 
-        // 4. Simpan Pengendali Risiko (Bisa Banyak Orang)
-        foreach ($request->input('pengendali_risiko_ids', []) as $stafId) {
-            PenugasanCrmc::create([
-                'sub_menu_id' => $subMenu->id,
-                'user_id' => $stafId,
-                'peran' => 'pengendali_risiko',
-            ]);
-        }
+            // 3. Pengendali Mutu: satu orang untuk semua sub-bidang di bidang ini
+            $mutuId = (int) $request->input('pengendali_mutu_id');
+            foreach ($subMenuBidangIni as $id) {
+                PenugasanCrmc::create([
+                    'sub_menu_id' => $id,
+                    'user_id' => $mutuId,
+                    'peran' => 'pengendali_mutu',
+                ]);
+            }
 
-        return redirect()->route('crmc.show', $slug)->with('success', 'Penugasan identitas pegawai di Komponen 1 berhasil diperbarui oleh Administrator!');
+            // 4. Pengendali Risiko: khusus sub-bidang ini saja
+            foreach (array_unique($request->input('pengendali_risiko_ids', [])) as $stafId) {
+                PenugasanCrmc::create([
+                    'sub_menu_id' => $subMenu->id,
+                    'user_id' => $stafId,
+                    'peran' => 'pengendali_risiko',
+                ]);
+            }
+        });
+
+        $ringkasan = sprintf(
+            'Penanggung jawab identitas pegawai Komponen 1 diperbarui. Pemilik Risiko (%s) berlaku untuk seluruh %d sub-bidang; Pengendali Mutu (%s) berlaku untuk %d sub-bidang bidang "%s"; Tim Pengendali Risiko (%d orang) khusus sub-bidang ini.',
+            User::find($request->input('pemilik_risiko_id'))?->name ?? '-',
+            SubMenu::count(),
+            User::find($request->input('pengendali_mutu_id'))?->name ?? '-',
+            SubMenu::where('bidang_id', $subMenu->bidang_id)->count(),
+            $subMenu->bidang?->nama_bidang ?? '-',
+            count(array_unique($request->input('pengendali_risiko_ids', [])))
+        );
+
+        return redirect()->route('crmc.show', $slug)->with('success', $ringkasan);
     }
 
     // ========================
@@ -441,15 +477,14 @@ class CrmcController extends Controller
             'email' => 'required|email|unique:users,email',
             'password' => 'required|string|min:6',
             'role' => 'required|in:admin,pegawai',
-            'foto_profil' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
-        ]);
+            'foto_profil' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:4096',
+        ], self::pesanValidasiAkun());
 
         $data = $request->only(['name', 'nip', 'jabatan', 'email', 'role']);
         $data['password'] = Hash::make($request->input('password'));
 
         if ($request->hasFile('foto_profil')) {
-            $data['foto_profil'] = $request->file('foto_profil')->store('public/foto-pegawai');
-            $data['foto_profil'] = str_replace('public/', '', $data['foto_profil']);
+            $data['foto_profil'] = PenyimpananGambar::simpan($request->file('foto_profil'), 'foto-pegawai');
         }
 
         User::create($data);
@@ -475,8 +510,8 @@ class CrmcController extends Controller
             'email' => 'required|email|unique:users,email,' . $user->id,
             'password' => 'nullable|string|min:6',
             'role' => 'required|in:admin,pegawai',
-            'foto_profil' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
-        ]);
+            'foto_profil' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:4096',
+        ], self::pesanValidasiAkun());
 
         $data = $request->only(['name', 'nip', 'jabatan', 'email', 'role']);
         
@@ -484,18 +519,26 @@ class CrmcController extends Controller
             $data['password'] = Hash::make($request->input('password'));
         }
 
+        $fotoLama = $user->getRawOriginal('foto_profil');
+
         if ($request->hasFile('foto_profil')) {
-            // Hapus foto lama jika ada
-            if ($user->foto_profil && Storage::exists('public/' . $user->foto_profil)) {
-                Storage::delete('public/' . $user->foto_profil);
-            }
-            $data['foto_profil'] = $request->file('foto_profil')->store('public/foto-pegawai');
-            $data['foto_profil'] = str_replace('public/', '', $data['foto_profil']);
+            // Simpan foto baru DULU, baru hapus foto lama.
+            // Kalau dibalik, kegagalan saat menyimpan membuat foto lama hilang.
+            $data['foto_profil'] = PenyimpananGambar::simpan($request->file('foto_profil'), 'foto-pegawai');
         }
 
         $user->update($data);
 
-        return redirect()->route('admin.pegawai.index')->with('success', 'Data pegawai "' . $data['name'] . '" berhasil diperbarui.');
+        if ($request->hasFile('foto_profil') && !empty($fotoLama) && $fotoLama !== $data['foto_profil']) {
+            $this->hapusFotoPegawai($user, $fotoLama);
+        }
+
+        $pesan = 'Data pegawai "' . $data['name'] . '" berhasil diperbarui.';
+        if ($request->hasFile('foto_profil')) {
+            $pesan .= ' Foto profil baru telah disimpan.';
+        }
+
+        return redirect()->route('admin.pegawai.index')->with('success', $pesan);
     }
 
     /**
@@ -517,12 +560,68 @@ class CrmcController extends Controller
         $name = $user->name;
 
         // Hapus foto jika ada
-        if ($user->foto_profil && Storage::exists('public/' . $user->foto_profil)) {
-            Storage::delete('public/' . $user->foto_profil);
-        }
+        $this->hapusFotoPegawai($user);
 
         $user->delete();
 
         return redirect()->route('admin.pegawai.index')->with('success', 'Akun pegawai "' . $name . '" berhasil dihapus.');
+    }
+
+    /**
+     * Pesan validasi berbahasa Indonesia untuk form akun pegawai.
+     *
+     * Tanpa pesan ini, kegagalan validasi (mis. foto bukan gambar / NIP
+     * sudah dipakai) hanya diam-diam mengarahkan browser kembali ke
+     * halaman daftar tanpa penjelasan apa pun.
+     */
+    private static function pesanValidasiAkun(): array
+    {
+        return [
+            'name.required' => 'Nama lengkap wajib diisi.',
+            'nip.required' => 'NIP wajib diisi.',
+            'nip.unique' => 'NIP ini sudah dipakai pegawai lain.',
+            'nip.max' => 'NIP maksimal 30 karakter.',
+            'jabatan.required' => 'Jabatan wajib diisi.',
+            'email.required' => 'Email dinas wajib diisi.',
+            'email.email' => 'Format email tidak valid.',
+            'email.unique' => 'Email ini sudah dipakai pegawai lain.',
+            'password.required' => 'Password wajib diisi.',
+            'password.min' => 'Password minimal 6 karakter.',
+            'role.required' => 'Role wajib dipilih.',
+            'role.in' => 'Role harus Admin atau Pegawai.',
+            'foto_profil.image' => 'Foto profil harus berupa file gambar (JPG, PNG, atau WebP).',
+            'foto_profil.mimes' => 'Format foto harus JPG, PNG, atau WebP. File HEIC perlu dikonversi dulu.',
+            'foto_profil.max' => 'Ukuran foto maksimal 4 MB. Foto tidak tersimpan karena melebihi batas.',
+        ];
+    }
+
+    /**
+     * Hapus file foto pegawai dari disk "public".
+     * `foto_profil` disimpan sebagai path relatif, contoh: foto-pegawai/abc.jpg
+     *
+     * @param string|null $foto Path foto yang akan dihapus. Bila null,
+     *                         diambil dari nilai mentah `foto_profil`.
+     */
+    private function hapusFotoPegawai(User $user, ?string $foto = null): void
+    {
+        $foto ??= $user->getRawOriginal('foto_profil');
+
+        if (empty($foto) || str_starts_with($foto, 'http')) {
+            return;
+        }
+
+        // Data lama mungkin masih memakai prefix "public/"
+        $candidates = [$foto];
+        if (str_starts_with($foto, 'public/')) {
+            $candidates[] = substr($foto, strlen('public/'));
+        } else {
+            $candidates[] = 'public/' . $foto;
+        }
+
+        foreach ($candidates as $path) {
+            if (Storage::disk('public')->exists($path)) {
+                Storage::disk('public')->delete($path);
+            }
+        }
     }
 }

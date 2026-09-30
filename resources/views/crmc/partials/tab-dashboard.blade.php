@@ -8,10 +8,10 @@
                     <span>Sistem Pengendalian Risiko Terintegrasi</span>
                 </div>
                 <h2 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-white mb-2">
-                    Pusat Monitoring & Pengendalian Risiko CRMC
+                    Continuous Monitoring on Risk Control (CMRC)
                 </h2>
                 <p class="text-slate-300 text-xs sm:text-sm max-w-xl leading-relaxed">
-                    Akses terpadu pengawasan risiko, standar operasional prosedur, serta bukti pelaksanaan kegiatan di lingkungan Kementerian Pekerjaan Umum.
+                    Pusat Pengembangan Kompetensi Sumber Daya Air, Cipta Karya dan Prasarana Strategis
                 </p>
             </div>
             <div class="mt-6 pt-4 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-400">

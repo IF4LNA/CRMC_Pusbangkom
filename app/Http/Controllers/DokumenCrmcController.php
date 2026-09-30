@@ -70,15 +70,16 @@ class DokumenCrmcController extends Controller
                     $extension = $file->getClientOriginalExtension();
                     
                     $path = $file->storeAs(
-                        "public/crmc/{$tahun}/{$subMenuId}/{$kategori}",
-                        time() . '_' . $originalName
+                        "crmc/{$tahun}/{$subMenuId}/{$kategori}",
+                        time() . '_' . $originalName,
+                        'public'
                     );
 
                     LampiranCrmc::create([
                         'dokumen_crmc_id' => $dokumen->id,
                         'kategori_komponen' => $kategori,
                         'nama_file' => $originalName,
-                        'file_path' => Storage::url($path),
+                        'file_path' => Storage::disk('public')->url($path),
                         'tipe_file' => strtolower($extension),
                     ]);
                 }
@@ -96,9 +97,9 @@ class DokumenCrmcController extends Controller
     {
         $lampiran = LampiranCrmc::findOrFail($attachmentId);
 
-        $relativePath = str_replace('/storage/', 'public/', $lampiran->file_path);
-        if (Storage::exists($relativePath)) {
-            Storage::delete($relativePath);
+        $relativePath = $lampiran->storage_path;
+        if ($relativePath && Storage::disk('public')->exists($relativePath)) {
+            Storage::disk('public')->delete($relativePath);
         }
 
         $lampiran->delete();

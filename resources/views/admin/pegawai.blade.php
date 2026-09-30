@@ -47,6 +47,22 @@
     </div>
     @endif
 
+    @if($errors->any())
+    <div class="p-4 bg-rose-50 border border-rose-200 rounded-2xl text-xs text-rose-900 shadow-sm">
+        <div class="flex items-center space-x-3">
+            <div class="w-8 h-8 bg-rose-500 text-white rounded-xl flex items-center justify-center shrink-0">
+                <i data-lucide="alert-triangle" class="w-4 h-4"></i>
+            </div>
+            <p class="font-bold">Perubahan tidak tersimpan!</p>
+        </div>
+        <ul class="mt-2 ml-11 space-y-1 list-disc">
+            @foreach($errors->all() as $pesan)
+                <li>{{ $pesan }}</li>
+            @endforeach
+        </ul>
+    </div>
+    @endif
+
     <!-- HERO HEADER -->
     <div class="bg-gradient-to-r from-slate-900 via-blue-950 to-slate-900 rounded-3xl p-6 sm:p-8 text-white border border-slate-800 shadow-xl relative overflow-hidden">
         <div class="absolute -right-20 -top-20 w-80 h-80 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
@@ -217,7 +233,8 @@
                     </div>
                     <div>
                         <label class="block font-bold text-slate-800 mb-1">Foto Profil (Opsional)</label>
-                        <input type="file" name="foto_profil" accept="image/jpeg,image/png" class="w-full p-2 bg-slate-50 rounded-xl border border-slate-300 text-slate-600">
+                        <input type="file" name="foto_profil" accept="image/jpeg,image/png,image/webp" class="w-full p-2 bg-slate-50 rounded-xl border border-slate-300 text-slate-600">
+                        <p class="mt-1 text-[10px] text-slate-400">JPG, PNG, atau WebP. Maksimal 4 MB.</p>
                     </div>
                 </div>
 
@@ -252,6 +269,7 @@
             <form id="editForm" method="POST" enctype="multipart/form-data" class="space-y-4 text-xs">
                 @csrf
                 @method('PUT')
+                <input type="hidden" id="editUserId" name="user_id" value="">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <label class="block font-bold text-slate-800 mb-1">Nama Lengkap *</label>
@@ -286,7 +304,8 @@
                     </div>
                     <div>
                         <label class="block font-bold text-slate-800 mb-1">Foto Profil Baru (Opsional)</label>
-                        <input type="file" name="foto_profil" accept="image/jpeg,image/png" class="w-full p-2 bg-slate-50 rounded-xl border border-slate-300 text-slate-600">
+                        <input type="file" name="foto_profil" accept="image/jpeg,image/png,image/webp" class="w-full p-2 bg-slate-50 rounded-xl border border-slate-300 text-slate-600">
+                        <p class="mt-1 text-[10px] text-slate-400">JPG, PNG, atau WebP. Maksimal 4 MB. Kosongkan bila tidak ingin mengganti foto.</p>
                     </div>
                 </div>
 
@@ -310,6 +329,7 @@
     }
     function openEditModal(user) {
         document.getElementById('editForm').action = '/admin/pegawai/' + user.id;
+        document.getElementById('editUserId').value = user.id;
         document.getElementById('editName').value = user.name;
         document.getElementById('editNip').value = user.nip || '';
         document.getElementById('editJabatan').value = user.jabatan || '';
@@ -320,5 +340,23 @@
     function closeEditModal() {
         document.getElementById('editModal').classList.add('hidden');
     }
+
+    // Kalau validasi gagal, buka kembali modal yang tadi dipakai beserta
+    // isiannya supaya user tidak perlu mengetik ulang.
+    @if($errors->any() && old('_method') === 'PUT' && old('user_id'))
+        (function () {
+            var form = document.getElementById('editForm');
+            form.action = '/admin/pegawai/' + '{{ old('user_id') }}';
+            document.getElementById('editName').value = @json(old('name'));
+            document.getElementById('editNip').value = @json(old('nip'));
+            document.getElementById('editJabatan').value = @json(old('jabatan'));
+            document.getElementById('editEmail').value = @json(old('email'));
+            document.getElementById('editRole').value = @json(old('role'));
+            document.getElementById('editModal').classList.remove('hidden');
+            document.getElementById('editModal').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        })();
+    @elseif($errors->any())
+        openTambahModal();
+    @endif
 </script>
 @endpush

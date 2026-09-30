@@ -30,6 +30,7 @@
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
         ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
     </style>
+    @stack('styles')
 </head>
 <body class="h-full text-slate-800 font-sans flex flex-col antialiased bg-slate-50">
 
@@ -56,13 +57,19 @@
                             @endauth
                         </div>
                         <h1 class="text-lg font-extrabold tracking-tight text-white flex items-center gap-1.5">
-                            CRMC <span class="text-xs font-normal text-slate-400 hidden sm:inline">(Continuous Monitoring on Risk Control)</span>
+                            CRMC PUSBANGKOM ACP <span class="text-xs font-normal text-slate-400 hidden sm:inline">Continuous Monitoring on Risk Control</span>
                         </h1>
                     </div>
                 </div>
 
                 <!-- Global Search & Actions -->
                 <div class="flex items-center space-x-3">
+                    <a href="{{ route('beranda') }}"
+                       class="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition border shrink-0
+                              {{ request()->routeIs('beranda') ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-sm' : 'bg-slate-800/80 text-slate-200 border-slate-700 hover:bg-slate-700 hover:text-white' }}">
+                        <i data-lucide="home" class="w-4 h-4"></i>
+                        <span>Beranda</span>
+                    </a>
                     <div class="relative hidden md:block w-56 lg:w-72">
                         <input type="text" id="searchInput" oninput="handleSearch(this.value)" placeholder="Cari bidang, SOP, dokumen..." 
                                class="w-full bg-slate-800/80 text-sm text-slate-100 placeholder-slate-400 pl-9 pr-4 py-2 rounded-xl border border-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500 transition">
@@ -70,12 +77,12 @@
                     </div>
 
                     @auth
-                        @if(Auth::user()->isAdmin())
+                        <!-- @if(Auth::user()->isAdmin())
                             <button onclick="openAdminModal()" class="flex items-center space-x-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold px-3 py-2 rounded-xl text-xs transition shadow-sm">
                                 <i data-lucide="plus-circle" class="w-4 h-4"></i>
                                 <span class="hidden sm:inline">Tambah Item</span>
                             </button>
-                        @endif
+                        @endif -->
 
                         <!-- User Profile Pill & Logout -->
                         <div class="flex items-center space-x-2 bg-slate-800/90 border border-slate-700 pl-1.5 pr-2.5 py-1 rounded-2xl">
@@ -103,6 +110,28 @@
             </div>
 
             <!-- SUB NAVIGATION BAR -->
+            @if(request()->routeIs('beranda'))
+                {{-- Di halaman Beranda, tombol tab tidak relevan. Diganti
+                     lompat ke bagian (anchor) yang ada di halaman tersebut. --}}
+                <nav class="flex space-x-1 sm:space-x-2 overflow-x-auto py-2 border-t border-slate-800/80 no-scrollbar">
+                    <a href="#tentang-crmc" class="flex items-center space-x-2 px-3.5 py-2 rounded-lg text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-800 transition shrink-0">
+                        <i data-lucide="book-open" class="w-4 h-4"></i>
+                        <span>Tentang CRMC</span>
+                    </a>
+                    <a href="#struktur-organisasi" class="flex items-center space-x-2 px-3.5 py-2 rounded-lg text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-800 transition shrink-0">
+                        <i data-lucide="network" class="w-4 h-4"></i>
+                        <span>Struktur Organisasi</span>
+                    </a>
+                    <a href="#galeri" class="flex items-center space-x-2 px-3.5 py-2 rounded-lg text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-800 transition shrink-0">
+                        <i data-lucide="images" class="w-4 h-4"></i>
+                        <span>Sarana dan Prasarana</span>
+                    </a>
+                    <a href="#peta" class="flex items-center space-x-2 px-3.5 py-2 rounded-lg text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-800 transition shrink-0">
+                        <i data-lucide="map-pin" class="w-4 h-4"></i>
+                        <span>Lokasi</span>
+                    </a>
+                </nav>
+            @else
             <nav class="flex space-x-1 sm:space-x-2 overflow-x-auto py-2 border-t border-slate-800/80 no-scrollbar">
                 <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-btn flex items-center space-x-2 px-3.5 py-2 rounded-lg text-xs font-semibold text-amber-400 bg-slate-800 transition shrink-0">
                     <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
@@ -128,6 +157,7 @@
                     <span class="bg-slate-700 text-slate-300 text-[10px] px-1.5 py-0.2 rounded-full">7</span>
                 </button>
             </nav>
+            @endif
         </div>
     </header>
 

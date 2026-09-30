@@ -43,6 +43,37 @@
     </div>
     @endif
 
+    <!-- VALIDATION FAILED: tanpa blok ini, redirect gagal validasi tampil
+         seperti tidak terjadi sama sekali karena view hanya memeriksa
+         session('success'). -->
+    @if($errors->any())
+    <div class="p-4 bg-rose-50 border border-rose-200 rounded-2xl flex items-start space-x-3 text-xs text-rose-900 shadow-sm animate-fade-in">
+        <div class="w-8 h-8 rounded-xl bg-rose-500 text-white flex items-center justify-center shrink-0">
+            <i data-lucide="alert-triangle" class="w-4 h-4"></i>
+        </div>
+        <div class="flex-1">
+            <p class="font-bold">Perubahan tidak tersimpan!</p>
+            <ul class="mt-1 space-y-0.5 list-disc list-inside text-rose-700">
+                @foreach($errors->all() as $pesan)
+                    <li>{{ $pesan }}</li>
+                @endforeach
+            </ul>
+        </div>
+    </div>
+    @endif
+
+    @if(session('error'))
+    <div class="p-4 bg-rose-50 border border-rose-200 rounded-2xl flex items-center space-x-3 text-xs text-rose-900 shadow-sm animate-fade-in">
+        <div class="w-8 h-8 rounded-xl bg-rose-500 text-white flex items-center justify-center shrink-0">
+            <i data-lucide="alert-triangle" class="w-4 h-4"></i>
+        </div>
+        <div class="flex-1">
+            <p class="font-bold">Gagal Diproses!</p>
+            <p class="text-rose-700">{{ session('error') }}</p>
+        </div>
+    </div>
+    @endif
+
     <!-- SUB-BIDANG HERO BANNER -->
     <div class="bg-gradient-to-r from-slate-900 via-blue-950 to-slate-900 rounded-3xl p-6 sm:p-8 text-white border border-slate-800 shadow-xl relative overflow-hidden">
         <!-- Background Decorative Glow -->
@@ -208,32 +239,48 @@
                     <div class="p-4 bg-slate-50 rounded-2xl border border-slate-200/90 flex flex-col items-center text-center space-y-3">
                         <div class="flex items-center justify-between w-full">
                             <span class="text-[10px] font-extrabold uppercase tracking-wider text-blue-900 bg-blue-100 px-2 py-0.5 rounded">1. Pemilik Risiko</span>
-                            <span class="text-[10px] text-slate-400 font-mono">1 Orang</span>
+                            <span class="text-[10px] text-slate-400 font-mono">{{ $pemilikRisiko ? '1 Orang' : 'Belum Ada' }}</span>
                         </div>
-                        <img src="{{ $pemilikRisiko->foto_url ?? 'https://ui-avatars.com/api/?name=Budi+Santoso&background=0f172a&color=f59e0b&bold=true&size=300' }}" 
-                             alt="{{ $pemilikRisiko->name ?? 'Pemilik Risiko' }}" 
-                             class="w-28 h-36 rounded-2xl object-cover border-2 border-blue-900 shadow-md">
-                        <div class="space-y-0.5">
-                            <h5 class="text-xs sm:text-sm font-bold text-slate-900">{{ $pemilikRisiko->name ?? 'Dr. Ir. Budi Santoso, M.Sc.' }}</h5>
-                            <p class="text-[11px] text-slate-500">NIP. {{ $pemilikRisiko->nip ?? '197502022000031002' }}</p>
-                            <p class="text-[10px] text-blue-800 font-semibold">{{ $pemilikRisiko->jabatan ?? 'Kepala Pusat' }}</p>
-                        </div>
+                        @if($pemilikRisiko)
+                            <img src="{{ $pemilikRisiko->foto_url }}" width="224" height="288" loading="lazy" decoding="async"
+                                 alt="{{ $pemilikRisiko->name }}"
+                                 class="w-56 h-72 rounded-2xl object-cover object-top border-2 border-blue-900 shadow-md">
+                            <div class="space-y-0.5">
+                                <h5 class="text-xs sm:text-sm font-bold text-slate-900">{{ $pemilikRisiko->name }}</h5>
+                                <p class="text-[11px] text-slate-500">NIP. {{ $pemilikRisiko->nip ?? '-' }}</p>
+                                <p class="text-[10px] text-blue-800 font-semibold">{{ $pemilikRisiko->jabatan ?? '-' }}</p>
+                            </div>
+                        @else
+                            <div class="w-56 h-72 rounded-2xl border-2 border-dashed border-blue-900/30 bg-white/60 flex flex-col items-center justify-center text-center px-4 space-y-1.5">
+                                <i data-lucide="user-round-x" class="w-8 h-8 text-slate-300"></i>
+                                <p class="text-[11px] font-bold text-slate-500 leading-tight">Pemilik Risiko<br>Belum Ditugaskan</p>
+                                <p class="text-[10px] text-slate-400">Atur lewat tombol "Atur Penugasan"</p>
+                            </div>
+                        @endif
                     </div>
 
                     <!-- Lapis 2: Pengendali Mutu (1 Orang per Bidang/Sub-Bidang) - Foto Besar -->
                     <div class="p-4 bg-slate-50 rounded-2xl border border-slate-200/90 flex flex-col items-center text-center space-y-3">
                         <div class="flex items-center justify-between w-full">
                             <span class="text-[10px] font-extrabold uppercase tracking-wider text-amber-900 bg-amber-100 px-2 py-0.5 rounded">2. Pengendali Mutu</span>
-                            <span class="text-[10px] text-slate-400 font-mono">1 Orang</span>
+                            <span class="text-[10px] text-slate-400 font-mono">{{ $pengendaliMutu ? '1 Orang' : 'Belum Ada' }}</span>
                         </div>
-                        <img src="{{ $pengendaliMutu->foto_url ?? 'https://ui-avatars.com/api/?name=Andi+Wirawan&background=1e3a8a&color=f59e0b&bold=true&size=300' }}" 
-                             alt="{{ $pengendaliMutu->name ?? 'Pengendali Mutu' }}" 
-                             class="w-28 h-36 rounded-2xl object-cover border-2 border-amber-500 shadow-md">
-                        <div class="space-y-0.5">
-                            <h5 class="text-xs sm:text-sm font-bold text-slate-900">{{ $pengendaliMutu->name ?? 'Andi Wirawan, S.T., M.T.' }}</h5>
-                            <p class="text-[11px] text-slate-500">NIP. {{ $pengendaliMutu->nip ?? '198003032005011003' }}</p>
-                            <p class="text-[10px] text-amber-800 font-semibold">{{ $pengendaliMutu->jabatan ?? 'Kepala Bagian' }}</p>
-                        </div>
+                        @if($pengendaliMutu)
+                            <img src="{{ $pengendaliMutu->foto_url }}" width="224" height="288" loading="lazy" decoding="async"
+                                 alt="{{ $pengendaliMutu->name }}"
+                                 class="w-56 h-72 rounded-2xl object-cover object-top border-2 border-amber-500 shadow-md">
+                            <div class="space-y-0.5">
+                                <h5 class="text-xs sm:text-sm font-bold text-slate-900">{{ $pengendaliMutu->name }}</h5>
+                                <p class="text-[11px] text-slate-500">NIP. {{ $pengendaliMutu->nip ?? '-' }}</p>
+                                <p class="text-[10px] text-amber-800 font-semibold">{{ $pengendaliMutu->jabatan ?? '-' }}</p>
+                            </div>
+                        @else
+                            <div class="w-56 h-72 rounded-2xl border-2 border-dashed border-amber-500/40 bg-white/60 flex flex-col items-center justify-center text-center px-4 space-y-1.5">
+                                <i data-lucide="user-round-x" class="w-8 h-8 text-slate-300"></i>
+                                <p class="text-[11px] font-bold text-slate-500 leading-tight">Pengendali Mutu<br>Belum Ditugaskan</p>
+                                <p class="text-[10px] text-slate-400">Atur lewat tombol "Atur Penugasan"</p>
+                            </div>
+                        @endif
                     </div>
 
                     <!-- Lapis 3: Tim Pengendali Risiko (Bisa Banyak Orang) -->
@@ -245,10 +292,10 @@
                             <span class="text-[10px] text-slate-400 font-medium">{{ $pengendaliRisikoList->count() }} Orang</span>
                         </div>
 
-                        <div class="space-y-2 max-h-72 overflow-y-auto pr-1">
+                        <div class="space-y-2.5 max-h-96 overflow-y-auto pr-1">
                             @forelse($pengendaliRisikoList as $staf)
                             <div class="p-3 bg-white hover:bg-slate-100/80 rounded-xl border border-slate-200/80 flex items-center space-x-3 transition">
-                                <img src="{{ $staf->foto_url }}" alt="{{ $staf->name }}" class="w-14 h-18 rounded-xl object-cover border border-emerald-500/80 shrink-0 shadow-xs" style="height: 4.5rem;">
+                                <img src="{{ $staf->foto_url }}" width="96" height="112" loading="lazy" decoding="async" alt="{{ $staf->name }}" class="w-24 h-28 rounded-xl object-cover object-top border border-emerald-500/80 shrink-0 shadow-xs">
                                 <div class="flex-1 min-w-0">
                                     <h6 class="text-xs font-bold text-slate-900 truncate">{{ $staf->name }}</h6>
                                     <p class="text-[10px] text-slate-500 truncate">NIP. {{ $staf->nip ?? '-' }}</p>
@@ -306,6 +353,12 @@
                             <i data-lucide="upload" class="w-3 h-3"></i>
                             <span>Upload</span>
                         </button>
+                        @if(Auth::user()->isAdmin())
+                        <button onclick="openResiduKomponenModal('{{ $kategoriKey }}')" class="inline-flex items-center space-x-1 px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 rounded-lg text-[10px] font-bold transition border border-amber-200">
+                            <i data-lucide="edit-3" class="w-3 h-3"></i>
+                            <span>Residu</span>
+                        </button>
+                        @endif
                         @endauth
                         <i data-lucide="{{ $meta['icon'] }}" class="w-5 h-5 text-blue-900"></i>
                     </div>
@@ -620,6 +673,12 @@
                             <i data-lucide="upload" class="w-3 h-3"></i>
                             <span>Upload</span>
                         </button>
+                        @if(Auth::user()->isAdmin())
+                        <button onclick="openResiduKomponenModal('evaluasi')" class="inline-flex items-center space-x-1 px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 rounded-lg text-[10px] font-bold transition border border-amber-200">
+                            <i data-lucide="edit-3" class="w-3 h-3"></i>
+                            <span>Residu</span>
+                        </button>
+                        @endif
                         @endauth
                         <i data-lucide="trending-up" class="w-5 h-5 text-blue-900"></i>
                     </div>
@@ -627,6 +686,16 @@
                 <div>
                     <h3 class="text-sm sm:text-base font-bold text-slate-900">8. Evaluasi & Rencana Perbaikan</h3>
                     <p class="text-xs text-slate-500 mt-0.5">Tindak lanjut penyempurnaan proses kendali dan rencana aksi berkelanjutan.</p>
+                </div>
+
+                <!-- Year Selector untuk Komponen 8 -->
+                <div class="flex items-center gap-2">
+                    <span class="text-[10px] font-bold uppercase tracking-wider text-slate-500">Tahun:</span>
+                    <select onchange="if(this.value) window.location.href = '{{ route('crmc.show', ['slug' => $slug]) }}?tahun=' + this.value" class="px-3 py-1.5 rounded-xl text-xs font-bold border border-slate-200 bg-white focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                        @foreach($availableYears as $tahun)
+                            <option value="{{ $tahun }}" {{ $selectedTahun == $tahun ? 'selected' : '' }}>{{ $tahun }}</option>
+                        @endforeach
+                    </select>
                 </div>
 
                 <div class="space-y-3 pt-1">
@@ -855,6 +924,56 @@
     @endif
     @endauth
 
+    <!-- MODAL RESIDU UNTUK SETIAP KOMPONEN (ADMIN ONLY) -->
+    @auth
+    @if(Auth::user()->isAdmin())
+    <div id="residuKomponenModal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 hidden">
+        <div class="bg-white w-full max-w-md max-h-[92vh] rounded-3xl shadow-2xl flex flex-col overflow-hidden border border-slate-100">
+            <div class="bg-slate-900 text-white p-5 sm:p-6 flex items-start justify-between border-b border-slate-800">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-amber-500 rounded-xl flex items-center justify-center text-slate-950 font-bold shrink-0">
+                        <i data-lucide="gauge" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <span class="text-[10px] font-bold text-amber-400 uppercase tracking-widest">Khusus Admin</span>
+                        <h3 id="residuKomponenModalTitle" class="text-lg font-extrabold text-white">Ubah Status Residu</h3>
+                    </div>
+                </div>
+                <button onclick="closeResiduKomponenModal()" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+
+            <div class="flex-1 overflow-y-auto p-5 sm:p-6">
+                <form id="residuKomponenForm" method="POST" class="space-y-4 text-xs">
+                    @csrf
+                    <input type="hidden" name="tahun_pelaksanaan" value="{{ $selectedTahun }}">
+
+                    <div class="bg-amber-50 p-3 rounded-2xl border border-amber-200 text-xs text-amber-900">
+                        <p class="font-bold flex items-center gap-1.5"><i data-lucide="info" class="w-4 h-4 text-amber-600"></i> Perhatian:</p>
+                        <p class="mt-1">Perubahan status residu risiko hanya dapat dilakukan oleh Administrator dan akan berlaku untuk tahun <strong>{{ $selectedTahun }}</strong>.</p>
+                    </div>
+
+                    <div>
+                        <label class="block font-bold text-slate-800 mb-1">Status Residu Risiko *</label>
+                        <select name="residu" required class="w-full p-2.5 rounded-xl border border-slate-300 font-semibold bg-white focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                            <option value="Rendah" {{ strtolower($crmcData['residu']) == 'rendah' ? 'selected' : '' }}>Rendah (Low Risk)</option>
+                            <option value="Sedang" {{ strtolower($crmcData['residu']) == 'sedang' ? 'selected' : '' }}>Sedang (Medium Risk)</option>
+                            <option value="Tinggi" {{ strtolower($crmcData['residu']) == 'tinggi' ? 'selected' : '' }}>Tinggi (High Risk)</option>
+                        </select>
+                    </div>
+
+                    <div class="pt-3 border-t border-slate-200 flex justify-end space-x-2">
+                        <button type="button" onclick="closeResiduKomponenModal()" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold">Batal</button>
+                        <button type="submit" class="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold shadow-sm transition">Simpan Status</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    @endif
+    @endauth
+
     <!-- MODAL PENUGASAN IDENTITAS PEGAWAI (KHUSUS ADMIN) -->
     @auth
     @if(Auth::user()->isAdmin())
@@ -891,7 +1010,7 @@
                 <form action="{{ route('crmc.penugasan.update', $slug) }}" method="POST" class="space-y-4 text-xs">
                     @csrf
 
-                    <!-- 1. Pemilik Risiko (1 Orang) -->
+                    <!-- 1. Pemilik Risiko (1 Orang - berlaku untuk semua sub-bidang) -->
                     <div>
                         <label class="block font-bold text-slate-800 mb-1">
                             1. Pemilik Risiko (Pilih 1 Orang) *
@@ -903,13 +1022,16 @@
                                 </option>
                             @endforeach
                         </select>
-                        <span class="text-[10px] text-slate-500 mt-0.5 block">Hanya 1 orang sebagai penanggung jawab universal.</span>
+                        <div class="mt-1 flex items-start gap-1.5 text-[10px] text-blue-800 bg-blue-50 border border-blue-200 rounded-lg px-2 py-1.5">
+                            <i data-lucide="globe-2" class="w-3 h-3 shrink-0 mt-0.5"></i>
+                            <span><strong>Berlaku untuk semua sub-bidang.</strong> Hanya ada 1 Pemilik Risiko untuk seluruh CRMC, apa pun sub-bidang yang Anda buka. Mengganti di sini langsung berlaku di {{ \App\Models\SubMenu::count() }} sub-bidang sekaligus.</span>
+                        </div>
                     </div>
 
-                    <!-- 2. Pengendali Mutu (1 Orang) -->
+                    <!-- 2. Pengendali Mutu (1 Orang per Bidang) -->
                     <div>
                         <label class="block font-bold text-slate-800 mb-1">
-                            2. Pengendali Mutu (Pilih 1 Orang per Bidang/Sub-Bidang) *
+                            2. Pengendali Mutu (Pilih 1 Orang per Bidang) *
                         </label>
                         <select name="pengendali_mutu_id" required class="w-full p-2.5 rounded-xl border border-slate-300 font-semibold bg-white focus:ring-2 focus:ring-amber-500 focus:outline-none">
                             @foreach($allUsers as $u)
@@ -918,7 +1040,10 @@
                                 </option>
                             @endforeach
                         </select>
-                        <span class="text-[10px] text-slate-500 mt-0.5 block">Hanya 1 orang sebagai penjamin mutu & verifikator.</span>
+                        <div class="mt-1 flex items-start gap-1.5 text-[10px] text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-2 py-1.5">
+                            <i data-lucide="building-2" class="w-3 h-3 shrink-0 mt-0.5"></i>
+                            <span><strong>Berlaku untuk 1 bidang saja:</strong> {{ $parentBidang }}. Otomatis tampil di semua sub-bidang di bawah bidang ini, tetapi <em>tidak</em> memengaruhi bidang lain.</span>
+                        </div>
                     </div>
 
                     <!-- 3. Pengendali Risiko (Bisa Banyak Orang) -->
@@ -1028,13 +1153,41 @@
         }
     }
 
-    // Residu Modal
+    // Residu Modal (Komponen 7 - General)
     function openResiduModal() {
         const modal = document.getElementById('residuModal');
         if (modal) modal.classList.remove('hidden');
     }
     function closeResiduModal() {
         const modal = document.getElementById('residuModal');
+        if (modal) modal.classList.add('hidden');
+    }
+
+    // Residu Modal per Komponen (2,3,4,5,6,8)
+    function openResiduKomponenModal(kategori) {
+        const modal = document.getElementById('residuKomponenModal');
+        const form = document.getElementById('residuKomponenForm');
+        const title = document.getElementById('residuKomponenModalTitle');
+        if (modal && form) {
+            // Update form action to include kategori
+            form.action = '{{ route('crmc.update.residu', $slug) }}';
+            // Update title based on kategori
+            const kategoriNames = {
+                'risk_register': 'Risk Register',
+                'sop': 'SOP',
+                'formulir_pengendalian': 'Formulir Pengendalian',
+                'jadwal_pelaksanaan': 'Jadwal Pelaksanaan',
+                'bukti_pelaksanaan': 'Bukti Pelaksanaan',
+                'evaluasi': 'Evaluasi & Rencana Perbaikan'
+            };
+            if (title) {
+                title.textContent = 'Ubah Status Residu - ' + (kategoriNames[kategori] || kategori);
+            }
+            modal.classList.remove('hidden');
+        }
+    }
+    function closeResiduKomponenModal() {
+        const modal = document.getElementById('residuKomponenModal');
         if (modal) modal.classList.add('hidden');
     }
 
