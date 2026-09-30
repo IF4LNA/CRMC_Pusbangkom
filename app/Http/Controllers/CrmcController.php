@@ -7,6 +7,7 @@ use App\Models\Bidang;
 use App\Models\DokumenCrmc;
 use App\Models\LampiranCrmc;
 use App\Models\PenugasanCrmc;
+use App\Models\TahunAnggaran;
 use App\Models\User;
 use App\Support\PenyimpananGambar;
 use Illuminate\Http\Request;
@@ -18,6 +19,58 @@ use Illuminate\Support\Facades\Storage;
 
 class CrmcController extends Controller
 {
+    /**
+     * Komponen yang bisa diisi dokumen + keterangan oleh Admin/Pegawai.
+     * Dipakai bersama oleh show(), uploadDokumen(), dan view.
+     */
+    private const KOMPONEN_UPLOAD = [
+        'risk_register'         => ['nomor' => 2, 'judul' => 'Risk Register Spesifik Acuan', 'ikon' => 'file-spreadsheet'],
+        'sop'                   => ['nomor' => 3, 'judul' => 'Standar Operasional Prosedur (SOP)', 'ikon' => 'book-open'],
+        'formulir_pengendalian' => ['nomor' => 4, 'judul' => 'Formulir Pengendalian / Daftar Periksa', 'ikon' => 'clipboard-check'],
+        'jadwal_pelaksanaan'    => ['nomor' => 5, 'judul' => 'Jadwal Rencana Pelaksanaan', 'ikon' => 'calendar'],
+        'bukti_pelaksanaan'     => ['nomor' => 6, 'judul' => 'Bukti Pelaksanaan', 'ikon' => 'link-2'],
+        'evaluasi'              => ['nomor' => 8, 'judul' => 'Evaluasi & Rencana Perbaikan', 'ikon' => 'trending-up'],
+    ];
+
+    /**
+     * Daftar tahun yang bisa dipilih pada halaman 8 Komponen.
+     *
+     * Gabungan tiga sumber:
+     *   1. Otomatis  : tahun berjalan + 1 tahun ke depan (untuk perencanaan),
+     *                  sehingga tahun baru muncul sendiri saat pergantian tahun
+     *                  tanpa perlu ada action dari admin.
+     *   2. Data      : tahun yang sudah punya dokumen di sub-bidang ini.
+     *   3. Manual    : tahun yang ditambahkan Admin lewat tombol "Tambah Tahun",
+     *                  untuk tahun khusus di luar rentang otomatis.
+     *
+     * @return array<int> daftar tahun urut menaik
+     */
+    private function daftarTahun(?SubMenu $subMenu = null): array
+    {
+        $tahunSekarang = (int) date('Y');
+
+        $dariDokumen = DokumenCrmc::query()
+            ->when($subMenu, fn ($q) => $q->where('sub_menu_id', $subMenu->id))
+            ->distinct()
+            ->pluck('tahun_pelaksanaan')
+            ->all();
+
+        $dariAdmin = TahunAnggaran::pluck('tahun')->all();
+
+        return collect([$tahunSekarang, $tahunSekarang + 1])
+            ->merge($dariDokumen)
+            ->merge($dariAdmin)
+            ->map(fn ($t) => (int) $t)
+            // Batas atas longgar sampai 2100, sama dengan batas validasi
+            // tambahTahun(). Kalau lebih kecil, tahun yang berhasil
+            // ditambahkan admin tetap tidak muncul di dropdown.
+            ->filter(fn ($t) => $t >= 2000 && $t <= 2100)
+            ->unique()
+            ->sort()
+            ->values()
+            ->all();
+    }
+
     public function show(Request $request, $slug)
     {
         // Normalisasi slug ke teks biasa
@@ -73,111 +126,147 @@ class CrmcController extends Controller
                 ->values();
         }
 
-        // === TAHUN FILTER: Default tahun terbaru, bisa melihat tahun sebelumnya ===
-        $selectedTahun = $request->input('tahun', null);
-        
-        // Ambil semua tahun yang memiliki dokumen
-        $availableYears = collect();
-        if ($subMenu) {
-            $availableYears = DokumenCrmc::where('sub_menu_id', $subMenu->id)
-                ->distinct()
-                ->orderByDesc('tahun_pelaksanaan')
-                ->pluck('tahun_pelaksanaan');
-        }
-        
-        // Jika belum ada tahun tersimpan, tampilkan tahun berjalan saja
-        if ($availableYears->isEmpty()) {
-            $availableYears = collect([date('Y')]);
-        }
-        
-        // Default ke tahun terbaru jika tidak dipilih
-        if (!$selectedTahun) {
-            $selectedTahun = $availableYears->first();
+        // === TAHUN ===
+        $daftarTahun = $this->daftarTahun($subMenu);
+
+        // Tahun default = tahun terbaru di daftar (cenderung ke tahun berjalan).
+        $defaultTahun = $daftarTahun[count($daftarTahun) - 1] ?? (int) date('Y');
+
+        $selectedTahun = (int) $request->input('tahun', $defaultTahun);
+        if (!in_array($selectedTahun, $daftarTahun, true)) {
+            $selectedTahun = $defaultTahun;
         }
 
-        // Dokumen CRMC berdasarkan tahun terpilih
-        $dokumenDb = null;
+        // Setiap komponen punya pilihan tahun sendiri (?t[kategori]=YYYY),
+        // sehingga admin/pegawai bisa membandingkan dokumen antar tahun
+        // pada satu halaman. Kalau tidak diisi, memakai tahun default di atas.
+        $tahunPerKomponen = [];
+        foreach (array_keys(self::KOMPONEN_UPLOAD) as $kategori) {
+            $tahun = (int) $request->input("t.{$kategori}", $selectedTahun);
+            $tahunPerKomponen[$kategori] = in_array($tahun, $daftarTahun, true) ? $tahun : $selectedTahun;
+        }
+
+        // Komponen 7 (residu) juga mengikuti tahun, sama seperti komponen dokumen.
+        $tahunResidu = (int) $request->input('t.residu', $selectedTahun);
+        if (!in_array($tahunResidu, $daftarTahun, true)) {
+            $tahunResidu = $selectedTahun;
+        }
+
+        // === DOKUMEN ===
+        // Muat dokumen sub-bidang ini beserta seluruh lampirannya sekali saja,
+        // lalu kelompokkan per (tahun, kategori) supaya tiap komponen bisa
+        // menampilkan dokumen sesuai tahun yang dipilihnya.
+        $dokumenTahun = collect();
+        $lampiranPerTahun = [];
+
         if ($subMenu) {
-            $dokumenDb = DokumenCrmc::with('lampiran')
+            $dokumenTahun = DokumenCrmc::with('lampiran')
                 ->where('sub_menu_id', $subMenu->id)
-                ->where('tahun_pelaksanaan', $selectedTahun)
-                ->first();
+                ->orderByDesc('tahun_pelaksanaan')
+                ->get()
+                ->keyBy('tahun_pelaksanaan');
+
+            foreach ($dokumenTahun as $tahun => $dokumen) {
+                foreach ($dokumen->lampiran->groupBy('kategori_komponen') as $kategori => $list) {
+                    $lampiranPerTahun[(int) $tahun][$kategori] = $list->values();
+                }
+            }
         }
 
-        // Lampiran dikelompokkan berdasarkan kategori komponen
-        $lampiranGrouped = [];
-        if ($dokumenDb) {
-            $lampiranGrouped = $dokumenDb->lampiran->groupBy('kategori_komponen');
+        // Rakit data tiap komponen: tahun terpilih + dokumen tahun itu
+        $komponen = [];
+        foreach (self::KOMPONEN_UPLOAD as $kategori => $meta) {
+            $tahun = $tahunPerKomponen[$kategori];
+            $komponen[$kategori] = [
+                'nomor' => $meta['nomor'],
+                'judul' => $meta['judul'],
+                'ikon' => $meta['ikon'],
+                'tahun' => $tahun,
+                'tahunTersedia' => $daftarTahun,
+                'lampiran' => $lampiranPerTahun[$tahun][$kategori] ?? collect(),
+            ];
         }
 
-        // Data 8 Komponen CRMC
-        $firstPengendali = $pengendaliRisikoList->first();
-        $picCadangan = new User(['name' => 'PIC CRMC', 'nip' => '-', 'jabatan' => '-']);
-        $crmcData = [
-            // Metadata PIC utama
-            'pegawai' => $firstPengendali?->name ?? 'PIC CRMC',
-            'pegawai_nip' => $firstPengendali?->nip ?? '-',
-            'pegawai_jabatan' => $firstPengendali?->jabatan ?? '-',
-            'pegawai_foto' => ($firstPengendali ?? $picCadangan)->foto_url,
-
-            // 2. Risk Register Spesifik Acuan
-            'risk_register' => 'RR-CRMC-' . strtoupper(substr(md5($subBidangName), 0, 4)) . '-2026-V1',
-            'deskripsi_risiko' => 'Pengendalian risiko operasional, kepatuhan regulasi, dan akuntabilitas pelaksanaan kegiatan ' . $subBidangName . '.',
-
-            // 3. Standar Operasional Prosedur (SOP)
-            'sop_file' => 'SOP-CRMC-' . Str::slug($subBidangName) . '.pdf',
-            'sop_nomor' => 'SOP/PUPR/BPSDM/2026/' . str_pad(abs(crc32($subBidangName)) % 900 + 100, 3, '0', STR_PAD_LEFT),
-
-            // 4. Formulir Pengendalian
-            'checklist_file' => 'Formulir-Kepatuhan-' . Str::slug($subBidangName) . '.pdf',
-            'checklist_status' => '100% Sesuai & Terverifikasi',
-
-            // 5. Jadwal Rencana Pelaksanaan
-            'jadwal' => 'Tahun Anggaran ' . date('Y') . ' (Triwulan I - IV)',
-            'jadwal_detail' => 'Pemantauan berkala bulanan dan pelaporan terpadu setiap akhir triwulan.',
-
-            // 6. Tautan Bukti Pelaksanaan
-            'bukti_url' => 'https://drive.pupr.go.id/s/crmc-2026-' . Str::slug($subBidangName),
-
-            // 7. Status Residu Risiko
-            'residu' => $dokumenDb?->status_residu_risiko ?? 'Rendah',
-
-            // 8. Evaluasi & Rencana Perbaikan
-            'evaluasi' => $dokumenDb?->evaluasi_dan_rencana ?? 'Sistem pengendalian berjalan optimal, tidak ditemukan deviasi signifikan, dan terus dilakukan pemantauan rutin.',
-
-            // Metadata
-            'tanggal_update' => date('d M Y')
+        // Status residu untuk tahun yang dipilih pada Komponen 7
+        $residuTerpilih = [
+            'tahun' => $tahunResidu,
+            'tahunTersedia' => $daftarTahun,
+            'nilai' => $dokumenTahun->get($tahunResidu)?->status_residu_risiko,
+            'rangkumanEvaluasi' => $dokumenTahun->get($tahunResidu)?->evaluasi_dan_rencana,
         ];
 
-        // Daftar seluruh user untuk form penugasan admin
-        $allUsers = User::orderBy('name')->get();
+        // Ringkasan nyata (dihitung dari dokumen, bukan angka dummy)
+        $dokumenTahunTerpilih = $dokumenTahun->get($selectedTahun);
+
+        // PENTING: rangkuman selalu dihitung untuk $selectedTahun (tahun
+        // default halaman), bukan tahun per-komponen. Kalau dihitung dari
+        // tahun per-komponen, angkanya tidak akan cocok dengan label
+        // "Kelengkapan Tahun X" padahal tiap komponen bisa menampilkan
+        // tahun yang berbeda.
+        $komponenTerisi = collect(self::KOMPONEN_UPLOAD)
+            ->filter(fn ($meta, $kategori) => ($lampiranPerTahun[$selectedTahun][$kategori] ?? collect())->isNotEmpty())
+            ->keys();
+
+        $rangkuman = [
+            'tahun' => $selectedTahun,
+            'totalDokumen' => (int) $dokumenTahunTerpilih?->lampiran?->count(),
+            'komponenTerisi' => $komponenTerisi->count(),
+            'totalKomponen' => count(self::KOMPONEN_UPLOAD),
+            'jumlahTahun' => count($daftarTahun),
+            'totalSubMenu' => SubMenu::count(),
+            'tahunAdaData' => $dokumenTahun->keys()->map(fn ($t) => (int) $t)->all(),
+        ];
+
+        // Daftar user & tahun manual hanya dipakai di panel admin. Ambil
+        // dengan when() supaya pegawai & pengunjung tidak memuat 75 baris
+        // user dan tabel tahun yang tidak akan ditampilkan.
+        $isAdmin = Auth::check() && Auth::user()->isAdmin();
+
+        $allUsers = $isAdmin
+            ? User::orderBy('name')->get()
+            : collect();
+
+        $tahunManual = $isAdmin
+            ? TahunAnggaran::orderByDesc('tahun')->get()
+            : collect();
 
         return view('crmc.show', compact(
-            'subBidangName', 
-            'parentBidang', 
-            'slug', 
-            'crmcData', 
-            'subMenu', 
-            'pemilikRisiko', 
-            'pengendaliMutu', 
-            'pengendaliRisikoList', 
+            'subBidangName',
+            'parentBidang',
+            'slug',
+            'subMenu',
+            'pemilikRisiko',
+            'pengendaliMutu',
+            'pengendaliRisikoList',
             'allUsers',
             'selectedTahun',
-            'availableYears',
-            'dokumenDb',
-            'lampiranGrouped'
+            'daftarTahun',
+            'dokumenTahun',
+            'dokumenTahunTerpilih',
+            'komponen',
+            'residuTerpilih',
+            'rangkuman',
+            'tahunManual',
+            'isAdmin',
         ));
     }
 
+    /**
+     * Simpan data ringkasan CRMC untuk satu tahun (rangkuman evaluasi / residu).
+     *
+     * Nilai kosong tidak lagi diisi default dummy. Null berarti "belum diisi"
+     * dan view menampilkannya sebagai empty state, bukan data karangan.
+     */
     public function update(Request $request, $slug)
     {
+        if (!Auth::check()) {
+            abort(403, 'Anda harus login untuk memperbarui data CRMC.');
+        }
+
         $request->validate([
-            'pegawai' => 'nullable|string',
-            'risk_register' => 'nullable|string',
-            'residu' => 'nullable|string',
-            'evaluasi' => 'nullable|string',
-            'bukti_url' => 'nullable|string',
-            'jadwal' => 'nullable|string',
+            'residu' => 'nullable|string|in:Rendah,Sedang,Tinggi',
+            'evaluasi' => 'nullable|string|max:5000',
+            'tahun_pelaksanaan' => 'required|numeric|min:2000|max:2100',
         ]);
 
         $cleanSlug = str_replace('-', ' ', $slug);
@@ -190,11 +279,11 @@ class CrmcController extends Controller
                 DokumenCrmc::updateOrCreate(
                     [
                         'sub_menu_id' => $subMenu->id,
-                        'tahun_pelaksanaan' => date('Y'),
+                        'tahun_pelaksanaan' => $request->input('tahun_pelaksanaan'),
                     ],
                     [
-                        'status_residu_risiko' => $request->input('residu', 'Rendah'),
-                        'evaluasi_dan_rencana' => $request->input('evaluasi', 'Pengendalian berjalan efektif.'),
+                        'status_residu_risiko' => $request->input('residu') ?: null,
+                        'evaluasi_dan_rencana' => $request->input('evaluasi') ?: null,
                     ]
                 );
             }
@@ -202,12 +291,18 @@ class CrmcController extends Controller
             // Abaikan error DB jika tabel tidak tersedia
         }
 
-        return redirect()->route('crmc.show', $slug)->with('success', 'Dokumen 8 Komponen CRMC berhasil diperbarui.');
+        return redirect()
+            ->route('crmc.show', ['slug' => $slug, 'tahun' => $request->input('tahun_pelaksanaan')])
+            ->with('success', 'Data CRMC berhasil diperbarui.');
     }
 
     /**
      * Upload Dokumen per Komponen (Multi-file Upload).
      * Pegawai & Admin bisa upload di komponen 2,3,4,5,6,8.
+     *
+     * Setiap file boleh punya "keterangan" sendiri. Input keterangan dikirim
+     * sebagai array bernomor yang indeksnya sama dengan indeks file, jadi
+     * keterangan file ke-2 menempel pada file ke-2, bukan file pertama.
      */
     public function uploadDokumen(Request $request, $slug)
     {
@@ -216,66 +311,397 @@ class CrmcController extends Controller
         }
 
         $request->validate([
-            'kategori_komponen' => 'required|string',
-            'tahun_pelaksanaan' => 'required|numeric',
+            'kategori_komponen' => 'required|string|max:100',
+            'tahun_pelaksanaan' => 'required|numeric|min:2000|max:2100',
             'files' => 'required|array|min:1',
-            'files.*' => 'file|mimes:pdf,doc,docx,xls,xlsx,jpg,jpeg,png|max:10240',
+            'files.*' => 'file|mimes:pdf,doc,docx,xls,xlsx,jpg,jpeg,png,webp|max:10240',
+            'keterangan' => 'nullable|array',
+            'keterangan.*' => 'nullable|string|max:1000',
         ], [
             'files.required' => 'Pilih minimal 1 file untuk diunggah.',
-            'files.*.mimes' => 'Format file harus PDF, DOC, DOCX, XLS, XLSX, JPG, atau PNG.',
+            'files.*.mimes' => 'Format file harus PDF, DOC, DOCX, XLS, XLSX, JPG, PNG, atau WebP.',
             'files.*.max' => 'Ukuran file maksimal 10MB per file.',
+            'keterangan.*.max' => 'Keterangan maksimal 1000 karakter.',
         ]);
 
-        $cleanSlug = str_replace('-', ' ', $slug);
-        $subMenu = SubMenu::where('nama_sub_menu', 'like', "%{$cleanSlug}%")
-            ->orWhereRaw("LOWER(REPLACE(REPLACE(nama_sub_menu, ' ', '-'), '/', '-')) = ?", [strtolower($slug)])
-            ->first();
-
-        if (!$subMenu) {
-            $defaultBidang = Bidang::first();
-            $subMenu = SubMenu::create([
-                'bidang_id' => $defaultBidang?->id ?? 1,
-                'nama_sub_menu' => ucwords($cleanSlug),
-            ]);
-        }
-
-        $tahun = $request->input('tahun_pelaksanaan');
         $kategori = $request->input('kategori_komponen');
 
-        // Buat/dapatkan dokumen untuk tahun ini
+        // Batasi kategori ke komponen yang memang punya slot upload, supaya
+        // request buatan tangan tidak bisa menulis kategori bebas ke tabel.
+        if (!array_key_exists($kategori, self::KOMPONEN_UPLOAD)) {
+            abort(422, 'Komponen tidak dikenal.');
+        }
+
+        $subMenu = $this->cariSubMenu($slug);
+
+        $tahun = (int) $request->input('tahun_pelaksanaan');
+        $keterangan = $request->input('keterangan', []);
+
+        // Buat/dapatkan dokumen untuk tahun ini. Residu & evaluasi dibiarkan
+        // kosong supaya tidak ada nilai default yang menyesatkan di Komponen 7.
         $dokumen = DokumenCrmc::firstOrCreate(
             [
                 'sub_menu_id' => $subMenu->id,
                 'tahun_pelaksanaan' => $tahun,
             ],
-            [
-                'status_residu_risiko' => 'Rendah',
-                'evaluasi_dan_rencana' => 'Pengendalian berjalan efektif.',
-            ]
+            []
         );
 
+        $folder = "crmc/{$tahun}/{$subMenu->id}/{$kategori}";
+        $jumlahBerhasil = 0;
+        $keteranganTersimpan = 0;
+
         // Upload setiap file
-        foreach ($request->file('files') as $file) {
+        foreach ($request->file('files') as $index => $file) {
             $originalName = $file->getClientOriginalName();
             $extension = $file->getClientOriginalExtension();
-            
+
             $path = $file->storeAs(
-                "crmc/{$tahun}/{$subMenu->id}/{$kategori}",
+                $folder,
                 time() . '_' . Str::slug(pathinfo($originalName, PATHINFO_FILENAME)) . '.' . $extension,
                 'public'
             );
+
+            // Keterangan diambil berdasarkan indeks file yang sama.
+            $ket = trim((string) ($keterangan[$index] ?? ''));
+            if ($ket !== '') {
+                $keteranganTersimpan++;
+            }
 
             LampiranCrmc::create([
                 'dokumen_crmc_id' => $dokumen->id,
                 'kategori_komponen' => $kategori,
                 'nama_file' => $originalName,
+                'keterangan' => $ket !== '' ? $ket : null,
                 'file_path' => Storage::disk('public')->url($path),
                 'tipe_file' => strtolower($extension),
             ]);
+
+            $jumlahBerhasil++;
         }
 
-        return redirect()->route('crmc.show', ['slug' => $slug, 'tahun' => $tahun])
-            ->with('success', 'Dokumen berhasil diunggah pada komponen "' . str_replace('_', ' ', ucfirst($kategori)) . '".');
+        $judul = self::KOMPONEN_UPLOAD[$kategori]['judul'];
+
+        $pesan = "{$jumlahBerhasil} dokumen berhasil diunggah pada Komponen {$judul} (Komponen {$this->nomorKomponen($kategori)}) tahun {$tahun}.";
+        if ($keteranganTersimpan > 0) {
+            $pesan .= " {$keteranganTersimpan} berkas disertai keterangan.";
+        }
+
+        return redirect()
+            ->route('crmc.show', ['slug' => $slug, 'tahun' => $tahun, 't' => [$kategori => $tahun]])
+            ->with('success', $pesan);
+    }
+
+    /**
+     * Perbarui keterangan satu lampiran (Admin & Pegawai).
+     */
+    public function updateKeterangan(Request $request, $id)
+    {
+        if (!Auth::check()) {
+            abort(403, 'Anda harus login untuk mengubah keterangan.');
+        }
+
+        $request->validate([
+            'keterangan' => 'nullable|string|max:1000',
+        ], [
+            'keterangan.max' => 'Keterangan maksimal 1000 karakter.',
+        ]);
+
+        $lampiran = LampiranCrmc::findOrFail($id);
+
+        $keterangan = trim((string) $request->input('keterangan'));
+        $lampiran->update(['keterangan' => $keterangan !== '' ? $keterangan : null]);
+
+        $tahun = $lampiran->dokumenCrmc?->tahun_pelaksanaan;
+        $kategori = $lampiran->kategori_komponen;
+        $slug = $lampiran->dokumenCrmc?->subMenu
+            ? Str::slug($lampiran->dokumenCrmc->subMenu->nama_sub_menu)
+            : null;
+
+        return redirect()
+            ->route('crmc.show', array_filter([
+                'slug' => $slug,
+                'tahun' => $tahun,
+                't' => $kategori ? [$kategori => $tahun] : null,
+            ]))
+            ->with('success', 'Keterangan "' . $lampiran->nama_file . '" berhasil diperbarui.');
+    }
+
+    // ========================
+    // ADMIN: Management Tahun
+    // ========================
+
+    /**
+     * Tambah tahun anggaran baru di luar rentang otomatis (Khusus Admin).
+     */
+    public function tambahTahun(Request $request)
+    {
+        if (!Auth::check() || !Auth::user()->isAdmin()) {
+            abort(403, 'Akses Ditolak: Hanya Administrator yang dapat menambah tahun.');
+        }
+
+        $request->validate([
+            'tahun' => 'required|numeric|min:2000|max:2100|unique:tahun_anggaran,tahun',
+            'keterangan' => 'nullable|string|max:255',
+        ], [
+            'tahun.required' => 'Tahun wajib diisi.',
+            'tahun.numeric' => 'Tahun harus berupa angka.',
+            'tahun.min' => 'Tahun minimal 2000.',
+            'tahun.max' => 'Tahun maksimal 2100.',
+            'tahun.unique' => 'Tahun ini sudah ada di daftar tahun tambahan.',
+        ]);
+
+        $tahun = (int) $request->input('tahun');
+        $keterangan = trim((string) $request->input('keterangan'));
+
+        if (TahunAnggaran::where('tahun', $tahun)->exists()) {
+            return back()->with('error', "Tahun {$tahun} sudah ada di daftar tahun tambahan.");
+        }
+
+        TahunAnggaran::create([
+            'tahun' => $tahun,
+            'keterangan' => $keterangan !== '' ? $keterangan : null,
+        ]);
+
+        return back()->with('success', "Tahun {$tahun} berhasil ditambahkan ke daftar pilihan tahun.");
+    }
+
+    /**
+     * Hapus tahun tambahan yang ditambahkan Admin (Khusus Admin).
+     *
+     * Hanya menghapus entri daftar tahun. Dokumen tahun tersebut TIDAK ikut
+     * terhapus -- penghapusan dokumen tetap dilakukan lewat aksi hapus dokumen
+     * per tahun supaya tidak ada kehilangan data yang tidak disengaja.
+     */
+    public function hapusTahun($id)
+    {
+        if (!Auth::check() || !Auth::user()->isAdmin()) {
+            abort(403, 'Akses Ditolak: Hanya Administrator yang dapat menghapus tahun.');
+        }
+
+        $tahunAnggaran = TahunAnggaran::findOrFail($id);
+        $tahun = $tahunAnggaran->tahun;
+
+        $jumlahDokumen = DokumenCrmc::where('tahun_pelaksanaan', $tahun)->count();
+
+        $tahunAnggaran->delete();
+
+        $pesan = "Tahun {$tahun} dihapus dari daftar tahun tambahan.";
+        if ($jumlahDokumen > 0) {
+            $pesan .= " Catatan: {$jumlahDokumen} dokumen tahun {$tahun} tidak ikut terhapus.";
+        }
+
+        return back()->with('success', $pesan);
+    }
+
+    // ========================
+    // ADMIN: Hapus Dokumen per Tahun
+    // ========================
+
+    /**
+     * Hapus seluruh dokumen satu sub-bidang pada satu tahun (Khusus Admin).
+     *
+     * Menghapus record lampiran, record dokumen, dan file fisik di disk.
+     */
+    public function hapusDokumenTahunSubBidang(Request $request, $slug)
+    {
+        if (!Auth::check() || !Auth::user()->isAdmin()) {
+            abort(403, 'Akses Ditolak: Hanya Administrator yang dapat menghapus dokumen per tahun.');
+        }
+
+        $request->validate([
+            'tahun' => 'required|numeric|min:2000|max:2100',
+            'kategori' => 'nullable|string|max:100',
+        ], [
+            'tahun.required' => 'Tahun wajib dipilih.',
+        ]);
+
+        $kategori = $request->input('kategori');
+        if ($kategori !== null && $kategori !== '' && !array_key_exists($kategori, self::KOMPONEN_UPLOAD)) {
+            abort(422, 'Komponen tidak dikenal.');
+        }
+
+        // Jangan pakai cariSubMenu() di sini: fungsi itu membuat sub-bidang
+        // baru kalau slug tidak dikenal, sehingga satu ketikalan URL akan
+        // menyisakan baris sampah di database.
+        $subMenu = $this->cariSubMenuTersedia($slug);
+        abort_if($subMenu === null, 404, 'Sub-bidang tidak ditemukan.');
+
+        $tahun = (int) $request->input('tahun');
+
+        $hasil = $this->hapusDokumen([
+            'sub_menu_id' => $subMenu->id,
+            'tahun_pelaksanaan' => $tahun,
+        ], $kategori ?: null);
+
+        if ($hasil['file'] === 0) {
+            return back()->with('error', "Tidak ada dokumen tahun {$tahun} yang bisa dihapus pada sub-bidang ini.");
+        }
+
+        $rujukan = $kategori
+            ? 'Komponen ' . $this->nomorKomponen($kategori) . ' (' . self::KOMPONEN_UPLOAD[$kategori]['judul'] . ')'
+            : 'seluruh komponen';
+
+        return back()->with(
+            'success',
+            "{$hasil['file']} berkas tahun {$tahun} pada sub-bidang \"{$subMenu->nama_sub_menu}\" — {$rujukan} — berhasil dihapus."
+        );
+    }
+
+    /**
+     * Hapus seluruh dokumen tahun tertentu di SEMUA sub-bidang (Khusus Admin).
+     */
+    public function hapusDokumenTahunSemua(Request $request)
+    {
+        if (!Auth::check() || !Auth::user()->isAdmin()) {
+            abort(403, 'Akses Ditolak: Hanya Administrator yang dapat menghapus dokumen per tahun.');
+        }
+
+        $request->validate([
+            'tahun' => 'required|numeric|min:2000|max:2100',
+        ], [
+            'tahun.required' => 'Tahun wajib dipilih.',
+        ]);
+
+        $tahun = (int) $request->input('tahun');
+        $hasil = $this->hapusDokumen(['tahun_pelaksanaan' => $tahun]);
+
+        if ($hasil['file'] === 0) {
+            return back()->with('error', "Tidak ada dokumen tahun {$tahun} di seluruh sub-bidang, jadi tidak ada yang dihapus.");
+        }
+
+        return back()->with(
+            'success',
+            "{$hasil['file']} berkas tahun {$tahun} dari {$hasil['sub_bidang']} sub-bidang berhasil dihapus (termasuk file fisik di storage)."
+        );
+    }
+
+    /**
+     * Kerjakan penghapusan dokumen berdasarkan filter, sekalian file fisiknya.
+     *
+     * $kategori hanya ada di tabel lampiran_crmc, bukan dokumen_crmc. Kalau
+     * kategori diberikan, dokumen induknya tetap dipertahankan supaya status
+     * residu dan ringkasan evaluasinya tidak ikut hilang.
+     *
+     * @param  array<string, mixed>  $filter  kolom dokumen_crmc: sub_menu_id, tahun_pelaksanaan
+     * @param  string|null  $kategori  batasi ke satu kategori komponen
+     * @return array{file:int, dokumen:int, sub_bidang:int, lampiran:int}
+     */
+    private function hapusDokumen(array $filter, ?string $kategori = null): array
+    {
+        $dokumenQuery = DokumenCrmc::query()->where($filter);
+        $dokumenIds = (clone $dokumenQuery)->pluck('id');
+
+        // Kumpulkan lampiran yang akan dihapus (seluruh dokumen, atau satu kategori).
+        $lampiranQuery = LampiranCrmc::query()
+            ->whereIn('dokumen_crmc_id', $dokumenIds)
+            ->when($kategori, fn ($q) => $q->where('kategori_komponen', $kategori));
+
+        $paths = (clone $lampiranQuery)->pluck('file_path')
+            ->map(fn ($p) => $this->pathDariUrl($p))
+            ->filter()
+            ->unique()
+            ->all();
+
+        $jumlahLampiran = (clone $lampiranQuery)->count();
+        $jumlahSubMenu = (clone $dokumenQuery)->distinct()->count('sub_menu_id');
+        $jumlahDokumen = $dokumenIds->count();
+
+        // Hapus file fisik terlebih dahulu. Kalau gagal di tengah, record DB
+        // masih utuh sehingga admin bisa mencoba ulang tanpa kehilangan data.
+        foreach ($paths as $path) {
+            if (Storage::disk('public')->exists($path)) {
+                Storage::disk('public')->delete($path);
+            }
+        }
+
+        // Baris lampiran dihapus eksplisit supaya aman pada instalasi lama
+        // yang belum punya cascade di skema.
+        (clone $lampiranQuery)->delete();
+
+        // Dokumen induk hanya dihapus kalau tidak ada lampiran tersisa, supaya
+        // status residu tetap utuh saat hanya satu komponen yang dihapus.
+        foreach ($dokumenIds as $id) {
+            if (!LampiranCrmc::where('dokumen_crmc_id', $id)->exists()) {
+                DokumenCrmc::where('id', $id)->delete();
+            }
+        }
+
+        return [
+            'file' => $jumlahLampiran,
+            'dokumen' => $jumlahDokumen,
+            'sub_bidang' => $jumlahSubMenu,
+            'lampiran' => $jumlahLampiran,
+        ];
+    }
+
+    /**
+     * Ubah URL absolut hasil Storage::url() menjadi path relatif di disk.
+     */
+    private function pathDariUrl(?string $url): ?string
+    {
+        if (empty($url)) {
+            return null;
+        }
+
+        // Path relatif yang tersimpan rapi sejak awal.
+        if (!Str::startsWith($url, ['http://', 'https://', '/'])) {
+            return ltrim($url, '/');
+        }
+
+        $prefix = parse_url(Storage::disk('public')->url(''), PHP_URL_PATH) ?: '/storage';
+        $path = parse_url($url, PHP_URL_PATH) ?: $url;
+
+        if (Str::startsWith($path, rtrim($prefix, '/'))) {
+            return ltrim(Str::after($path, rtrim($prefix, '/')), '/');
+        }
+
+        // Fallback: ambil semua yang setelah "/storage/".
+        if (Str::contains($path, '/storage/')) {
+            return Str::after($path, '/storage/');
+        }
+
+        return ltrim($path, '/');
+    }
+
+    /**
+     * Cari SubMenu berdasarkan slug, buat otomatis bila belum ada.
+     *
+     * HATI-HATI: fungsi ini menulis ke database. Jangan dipakai di jalur yang
+     * hanya membaca/mengubah, karena satu ketikalan URL akan membuat
+     * sub-bidang baru. Untuk jalur hapus & ubah residu, pakai
+     * cariSubMenuTersedia() yang menolak dengan 404.
+     */
+    private function cariSubMenu(string $slug): SubMenu
+    {
+        $subMenu = $this->cariSubMenuTersedia($slug);
+
+        if (!$subMenu) {
+            $defaultBidang = Bidang::first();
+            $subMenu = SubMenu::create([
+                'bidang_id' => $defaultBidang?->id ?? 1,
+                'nama_sub_menu' => ucwords(str_replace('-', ' ', $slug)),
+            ]);
+        }
+
+        return $subMenu;
+    }
+
+    /**
+     * Cari SubMenu berdasarkan slug tanpa membuatnya. Null kalau tidak ada.
+     */
+    private function cariSubMenuTersedia(string $slug): ?SubMenu
+    {
+        $cleanSlug = str_replace('-', ' ', $slug);
+
+        return SubMenu::where('nama_sub_menu', 'like', "%{$cleanSlug}%")
+            ->orWhereRaw("LOWER(REPLACE(REPLACE(nama_sub_menu, ' ', '-'), '/', '-')) = ?", [strtolower($slug)])
+            ->first();
+    }
+
+    private function nomorKomponen(string $kategori): int
+    {
+        return self::KOMPONEN_UPLOAD[$kategori]['nomor'] ?? 0;
     }
 
     /**
@@ -295,9 +721,13 @@ class CrmcController extends Controller
             Storage::disk('public')->delete($relativePath);
         }
 
+        $namaFile = $lampiran->nama_file;
+        $tahun = $lampiran->dokumenCrmc?->tahun_pelaksanaan;
+        $kategori = $lampiran->kategori_komponen;
+
         $lampiran->delete();
 
-        return back()->with('success', 'Lampiran "' . $lampiran->nama_file . '" berhasil dihapus.');
+        return back()->with('success', 'Dokumen "' . $namaFile . '" tahun ' . $tahun . ' berhasil dihapus.');
     }
 
     /**
@@ -311,21 +741,12 @@ class CrmcController extends Controller
 
         $request->validate([
             'residu' => 'required|string|in:Rendah,Sedang,Tinggi',
-            'tahun_pelaksanaan' => 'required|numeric',
+            'tahun_pelaksanaan' => 'required|numeric|min:2000|max:2100',
         ]);
 
-        $cleanSlug = str_replace('-', ' ', $slug);
-        $subMenu = SubMenu::where('nama_sub_menu', 'like', "%{$cleanSlug}%")
-            ->orWhereRaw("LOWER(REPLACE(REPLACE(nama_sub_menu, ' ', '-'), '/', '-')) = ?", [strtolower($slug)])
-            ->first();
-
-        if (!$subMenu) {
-            $defaultBidang = Bidang::first();
-            $subMenu = SubMenu::create([
-                'bidang_id' => $defaultBidang?->id ?? 1,
-                'nama_sub_menu' => ucwords($cleanSlug),
-            ]);
-        }
+        // Sama seperti hapus: jangan sampai slug ngawur membuat sub-bidang baru.
+        $subMenu = $this->cariSubMenuTersedia($slug);
+        abort_if($subMenu === null, 404, 'Sub-bidang tidak ditemukan.');
 
         DokumenCrmc::updateOrCreate(
             [

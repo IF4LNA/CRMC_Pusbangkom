@@ -17,6 +17,31 @@ Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
 Route::post('/login', [AuthController::class, 'login'])->name('login.post');
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
+// ============================================================
+// PENTING: route dengan path LITERAL harus didaftarkan SEBELUM route
+// berparameter {slug}. Laravel mencocokkan route sesuai urutan
+// pendaftaran, jadi "/crmc/tahun" yang diletakkan setelah
+// "/crmc/{slug}" akan tertangkap sebagai slug="tahun" dan
+// memanggil crmc.update(), bukan crmc.tahun.store().
+// ============================================================
+
+// ========================
+// ADMIN: Management Tahun Anggaran
+// Catatan urutan: lihat catatan di atas soal path literal vs {slug}.
+Route::post('/crmc/tahun', [CrmcController::class, 'tambahTahun'])->name('crmc.tahun.store');
+Route::delete('/crmc/tahun/{id}', [CrmcController::class, 'hapusTahun'])->name('crmc.tahun.destroy');
+
+// ========================
+// ADMIN: Hapus Dokumen per Tahun
+// ========================
+
+// Hapus dokumen tahun tertentu di seluruh sub-bidang
+Route::post('/crmc/hapus-dokumen-tahun', [CrmcController::class, 'hapusDokumenTahunSemua'])->name('crmc.hapus.tahun.semua');
+
+// Lampiran individual (path literal "lampiran" agar tidak jadi {slug})
+Route::delete('/crmc/lampiran/{id}', [CrmcController::class, 'deleteLampiran'])->name('crmc.lampiran.delete');
+Route::patch('/crmc/lampiran/{id}/keterangan', [CrmcController::class, 'updateKeterangan'])->name('crmc.lampiran.keterangan');
+
 // Halaman Detail 8 Komponen CRMC
 Route::get('/crmc/{slug}', [CrmcController::class, 'show'])->name('crmc.show');
 
@@ -29,11 +54,11 @@ Route::post('/crmc/{slug}/penugasan', [CrmcController::class, 'updatePenugasan']
 // Upload Dokumen per Komponen (Pegawai & Admin)
 Route::post('/crmc/{slug}/upload-dokumen', [CrmcController::class, 'uploadDokumen'])->name('crmc.upload.dokumen');
 
-// Hapus Lampiran Individual (Admin)
-Route::delete('/crmc/lampiran/{id}', [CrmcController::class, 'deleteLampiran'])->name('crmc.lampiran.delete');
-
 // Admin: Update Status Residu Risiko (Komponen 7)
 Route::post('/crmc/{slug}/update-residu', [CrmcController::class, 'updateResidu'])->name('crmc.update.residu');
+
+// Hapus dokumen satu sub-bidang pada satu tahun (opsional per kategori komponen)
+Route::post('/crmc/{slug}/hapus-dokumen-tahun', [CrmcController::class, 'hapusDokumenTahunSubBidang'])->name('crmc.hapus.tahun.subbidang');
 
 // ========================
 // ADMIN: Kelola Akun Pegawai

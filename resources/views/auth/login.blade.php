@@ -37,7 +37,7 @@
             </div>
             <div>
                 <span class="text-[10px] font-bold tracking-widest text-amber-400 uppercase block">Kementerian Pekerjaan Umum</span>
-                <span class="text-sm font-extrabold text-white group-hover:text-amber-400 transition">CRMC Pusbangkom</span>
+                <span class="text-sm font-extrabold text-white group-hover:text-amber-400 transition">BADAN PENGEMBANGAN SUMBER DAYA MANUSIA</span>
             </div>
         </a>
         <a href="{{ url('/') }}" class="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl border border-slate-700 bg-slate-800/80 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition">
@@ -57,10 +57,13 @@
                     <span>Autentikasi Pegawai & Administrator</span>
                 </div>
                 <h1 class="text-xl sm:text-2xl font-extrabold text-white leading-tight">
-                    Masuk ke Sistem CRMC
+                    PUSBANGKOM ACP
                 </h1>
                 <p class="text-xs text-slate-300 mt-1.5 leading-relaxed">
-                    Akses pemantauan kepatuhan pengendalian risiko dan penugasan instrumen 8 komponen.
+                Pusat Pengembangan Kompetensi Sumber Daya Air, Cipta Karya dan Prasarana Strategis    
+                </p>
+                <p class="text-xs text-slate-300 mt-1.5 leading-relaxed">   
+                Masuk ke Sistem CRMC
                 </p>
             </div>
 
@@ -117,7 +120,7 @@
                 </form>
 
                 <!-- DEMO QUICK LOGIN SWITCHER -->
-                <div class="pt-4 border-t border-slate-100">
+                <!-- <div class="pt-4 border-t border-slate-100">
                     <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-2 text-center">Akun Uji Coba Cepat (Klik untuk Isi Otomatis)</span>
                     <div class="grid grid-cols-2 gap-2">
                         <button type="button" onclick="fillCredentials('admin@pu.go.id', 'password123')" 
@@ -142,7 +145,7 @@
                     </div>
                 </div>
 
-            </div>
+            </div> -->
 
             <!-- CARD FOOTER -->
             <div class="bg-slate-50 px-6 py-3.5 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">

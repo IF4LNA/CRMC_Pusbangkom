@@ -157,7 +157,8 @@
                                     <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
                                 </button>
                                 @if($u->id !== Auth::id())
-                                <form action="{{ route('admin.pegawai.delete', $u->id) }}" method="POST" onsubmit="return confirm('Yakin ingin menghapus akun {{ $u->name }}?');">
+                                <form action="{{ route('admin.pegawai.delete', $u->id) }}" method="POST"
+                                      data-konfirmasi="Yakin ingin menghapus akun &quot;{{ $u->name }}&quot;? Akun ini tidak bisa dipulihkan lagi.">
                                     @csrf
                                     @method('DELETE')
                                     <button type="submit" class="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg transition" title="Hapus">
@@ -321,6 +322,18 @@
 
 @push('scripts')
 <script>
+    // Konfirmasi hapus memakai atribut data-konfirmasi, bukan confirm('...')
+    // yang disisipkan langsung ke HTML. Nama akun bisa mengandung tanda
+    // kutip, dan satu tanda kutip saja sudah cukup untuk menutup string JS
+    // pada pola lama. Dengan data-konfirmasi, teksnya dibaca sebagai data
+    // murni lewat dataset sehingga tidak pernah dieksekusi.
+    document.addEventListener('submit', function (e) {
+        const pesan = e.target.dataset && e.target.dataset.konfirmasi;
+        if (pesan && !window.confirm(pesan)) {
+            e.preventDefault();
+        }
+    }, true);
+
     function openTambahModal() {
         document.getElementById('tambahModal').classList.remove('hidden');
     }

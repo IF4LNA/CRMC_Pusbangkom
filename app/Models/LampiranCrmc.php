@@ -16,6 +16,7 @@ class LampiranCrmc extends Model
         'dokumen_crmc_id',
         'kategori_komponen',
         'nama_file',
+        'keterangan',
         'file_path',
         'tipe_file',
     ];
