@@ -10,19 +10,14 @@
     $total = $galeri->count();
 @endphp
 
-<section id="galeri" class="scroll-mt-32 py-16 bg-white">
+<section id="galeri" class="scroll-mt-20 py-10 bg-white border-b border-slate-200">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
-        <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-10">
+        <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-3 mb-6">
             <div class="max-w-2xl">
-                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 text-emerald-900 text-[11px] font-bold tracking-wide uppercase mb-4">
-                    <i data-lucide="images" class="w-3.5 h-3.5"></i>
-                    Sarana dan Prasarana
-                </span>
-                <h2 class="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight leading-tight">
-                    Pendukung Pelaksanaan Pengendalian
-                </h2>
-                <p class="text-sm text-slate-600 leading-relaxed mt-3">
+                <span class="eyebrow mb-2 block">Sarana dan Prasarana</span>
+                <h2 class="section-title">Pendukung Pelaksanaan Pengendalian</h2>
+                <p class="page-sub mt-2 leading-relaxed">
                     Sarana dan prasarana yang mendukung pelaksanaan pengendalian
                     risiko, mulai dari ruang kerja, perangkat, hingga infrastruktur
                     digital.
@@ -32,17 +27,14 @@
             @if ($bisaKelola)
                 <div class="flex items-center gap-2 shrink-0">
                     @if ($total > 1)
-                        <button onclick="geserGaleri(-1)" title="Gambar sebelumnya"
-                                class="w-9 h-9 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl flex items-center justify-center transition">
+                        <button onclick="geserGaleri(-1)" title="Gambar sebelumnya" class="icon-btn">
                             <i data-lucide="chevron-left" class="w-4 h-4"></i>
                         </button>
-                        <button onclick="geserGaleri(1)" title="Gambar berikutnya"
-                                class="w-9 h-9 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl flex items-center justify-center transition">
+                        <button onclick="geserGaleri(1)" title="Gambar berikutnya" class="icon-btn">
                             <i data-lucide="chevron-right" class="w-4 h-4"></i>
                         </button>
                     @endif
-                    <button onclick="bukaModalGaleri()"
-                            class="inline-flex items-center gap-2 px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl transition shadow-sm">
+                    <button onclick="bukaModalGaleri()" class="btn btn-dark">
                         <i data-lucide="image-plus" class="w-4 h-4"></i>
                         Unggah Gambar
                     </button>
@@ -52,12 +44,10 @@
 
         @if ($total === 0)
             {{-- Empty state --}}
-            <div class="border-2 border-dashed border-slate-300 rounded-3xl p-12 text-center bg-slate-50">
-                <div class="w-16 h-16 mx-auto bg-white border border-slate-200 rounded-2xl flex items-center justify-center mb-4">
-                    <i data-lucide="image-off" class="w-8 h-8 text-slate-400"></i>
-                </div>
-                <h3 class="text-base font-bold text-slate-800 mb-2">Belum Ada Gambar</h3>
-                <p class="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
+            <div class="empty">
+                <i data-lucide="image-off" class="w-7 h-7 text-slate-300 mx-auto mb-2"></i>
+                <p class="font-semibold text-slate-600">Belum Ada Gambar</p>
+                <p class="text-[11px] text-slate-400 mt-1 max-w-md mx-auto leading-relaxed">
                     @if ($bisaKelola)
                         Belum ada gambar sarana dan prasarana. Gunakan tombol
                         "Unggah Gambar" di atas untuk menambahkannya. Gambar
@@ -78,7 +68,7 @@
 
                 {{-- Viewport: hanya satu slide terlihat, slide lain
                      absolut dan translate-geser. --}}
-                <div class="relative overflow-hidden rounded-3xl border border-slate-200 bg-slate-100 shadow-sm">
+                <div class="relative overflow-hidden rounded-xl border border-slate-200 bg-slate-100">
                     <div id="galeriTrack" class="flex transition-transform duration-500 ease-out">
                         @foreach ($galeri as $g)
                             @php
@@ -116,7 +106,7 @@
                                         @endif
                                     </div>
 
-                                    <span class="absolute top-4 right-4 px-2.5 py-1 bg-slate-950/70 backdrop-blur text-white text-[10px] font-bold rounded-full border border-white/20">
+                                    <span class="absolute top-3 right-3 px-2 py-0.5 bg-slate-950/70 text-white text-[10px] font-semibold rounded border border-white/20">
                                         {{ $loop->iteration }} / {{ $total }}
                                     </span>
                                 </div>
@@ -126,17 +116,17 @@
                                     {{-- Argumen @json ditulis dalam satu baris:
                                          Blade hanya mengenali argumen direktif
                                          sampai tanda kurung tertutup pertama. --}}
-                                    <div class="absolute top-4 left-4 flex items-center gap-1.5">
+                                    <div class="absolute top-3 left-3 flex items-center gap-1.5">
                                         <button type="button"
                                                 onclick='bukaModalGaleri(@json($dataUbah))'
                                                 title="Ubah gambar ini"
-                                                class="w-8 h-8 bg-white/90 hover:bg-white text-slate-800 rounded-lg shadow-sm flex items-center justify-center transition">
+                                                class="icon-btn">
                                             <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
                                         </button>
                                         <button type="button"
                                                 onclick="konfirmasiHapusGaleri({{ $g->id }}, @js($g->judul))"
                                                 title="Hapus gambar ini"
-                                                class="w-8 h-8 bg-white/90 hover:bg-rose-500 hover:text-white text-rose-700 rounded-lg shadow-sm flex items-center justify-center transition">
+                                                class="icon-btn icon-btn-danger">
                                             <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
                                         </button>
                                     </div>
@@ -154,7 +144,7 @@
                                     onclick="tampilGaleri({{ $i }})"
                                     data-titik="{{ $i }}"
                                     aria-label="Gambar {{ $i + 1 }}"
-                                    class="h-2 rounded-full transition-all {{ $i === 0 ? 'w-7 bg-amber-500' : 'w-2 bg-slate-300 hover:bg-slate-400' }}"></button>
+                                    class="h-2 rounded-full transition-all {{ $i === 0 ? 'w-7 bg-blue-600' : 'w-2 bg-slate-300 hover:bg-slate-400' }}"></button>
                         @endfor
                     </div>
                 @endif
@@ -162,7 +152,7 @@
 
             {{-- Daftar judul (berguna sebagai teks alternatif dan agar
                  gambar dapat dicari lewat Ctrl+F) --}}
-            <ul class="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+            <ul class="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                 @foreach ($galeri as $g)
                     <li class="flex items-center gap-2 text-[11px] text-slate-500">
                         <span class="w-1.5 h-1.5 rounded-full bg-slate-300 shrink-0"></span>
@@ -200,7 +190,7 @@
                 titikWrap.querySelectorAll('[data-titik]').forEach(function (btn) {
                     const aktif = parseInt(btn.dataset.titik, 10) === index;
                     btn.className = 'h-2 rounded-full transition-all ' +
-                        (aktif ? 'w-7 bg-amber-500' : 'w-2 bg-slate-300 hover:bg-slate-400');
+                        (aktif ? 'w-7 bg-blue-600' : 'w-2 bg-slate-300 hover:bg-slate-400');
                 });
             }
         };

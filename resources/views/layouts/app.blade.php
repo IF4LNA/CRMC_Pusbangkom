@@ -29,81 +29,360 @@
         ::-webkit-scrollbar-track { background: #f1f5f9; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
         ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        {{-- ======================================================
+             SISTEM DESAIN MINIMALIS
+
+             Seluruh token warna, radius, dan komponen dasar (kartu,
+             tombol, input, badge, tabel, modal) didefinisikan satu kali
+             di sini. Halaman cukup menyebut nama komponennya, bukan
+             rangkaian kelas utilitas yang panjang, sehingga tampilan
+             antar halaman konsisten dan mudah dirawat.
+
+             Aksen tunggal: biru. Sisanya netral abu-abu (slate).
+        ======================================================= --}}
+        :root {
+            --ac: #2563eb;          /* biru = satu-satunya warna aksen */
+            --ac-dark: #1d4ed8;
+            --ac-soft: #dbeafe;
+            --navy: #172554;        /* biru paling tua untuk header */
+            --ink: #0f172a;
+            --line: #e2e8f0;
+            --mut: #64748b;
+        }
+
+        body { font-size: 14px; }
+
+        /* Sembunyikan scrollbar pada navigasi yang bisa digeser */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* ---------- Permukaan ---------- */
+        .card {
+            background: #fff;
+            border: 1px solid var(--line);
+            border-radius: .75rem;
+        }
+        .card-head {
+            padding: .875rem 1rem;
+            border-bottom: 1px solid var(--line);
+        }
+        .card-title {
+            font-size: .875rem;
+            font-weight: 600;
+            color: var(--ink);
+        }
+
+        /* ---------- Tipografi ---------- */
+        .page-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            letter-spacing: -.015em;
+            color: var(--ink);
+        }
+        .page-sub { font-size: .8125rem; color: var(--mut); }
+        .eyebrow {
+            font-size: .6875rem;
+            font-weight: 700;
+            letter-spacing: .06em;
+            text-transform: uppercase;
+            color: var(--mut);
+        }
+        .section-title {
+            font-size: 1.125rem;
+            font-weight: 700;
+            letter-spacing: -.01em;
+            color: var(--ink);
+        }
+
+        /* ---------- Tombol ---------- */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: .375rem;
+            padding: .5rem .875rem;
+            border: 1px solid transparent;
+            border-radius: .5rem;
+            font-size: .8125rem;
+            font-weight: 600;
+            line-height: 1.2;
+            white-space: nowrap;
+            cursor: pointer;
+            transition: background .15s, border-color .15s, color .15s;
+        }
+        .btn-primary { background: var(--ac); color: #fff; }
+        .btn-primary:hover { background: var(--ac-dark); }
+        .btn-dark { background: var(--ink); color: #fff; }
+        .btn-dark:hover { background: #1e293b; }
+        .btn-outline { background: #fff; border-color: #cbd5e1; color: #334155; }
+        .btn-outline:hover { background: #f8fafc; }
+        .btn-quiet { background: #f1f5f9; color: #334155; }
+        .btn-quiet:hover { background: #e2e8f0; }
+        .btn-danger { background: #fff; border-color: #fecdd3; color: #be123c; }
+        .btn-danger:hover { background: #fff1f2; }
+        .btn-sm { padding: .3125rem .625rem; font-size: .75rem; }
+
+        /* Tombol ikon hanya berisi satu ikon */
+        .icon-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 1.875rem;
+            height: 1.875rem;
+            border: 1px solid var(--line);
+            border-radius: .375rem;
+            background: #fff;
+            color: #475569;
+            transition: background .15s, color .15s, border-color .15s;
+        }
+        .icon-btn:hover { background: #f8fafc; color: var(--ink); }
+        .icon-btn-danger:hover { background: #fff1f2; border-color: #fecdd3; color: #be123c; }
+
+        /* ---------- Form ---------- */
+        .label {
+            display: block;
+            margin-bottom: .375rem;
+            font-size: .6875rem;
+            font-weight: 700;
+            letter-spacing: .04em;
+            text-transform: uppercase;
+            color: var(--mut);
+        }
+        .input {
+            width: 100%;
+            padding: .5rem .75rem;
+            border: 1px solid #cbd5e1;
+            border-radius: .5rem;
+            background: #fff;
+            font-family: inherit;
+            font-size: .8125rem;
+            color: var(--ink);
+        }
+        .input:focus {
+            outline: 0;
+            border-color: var(--ac);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, .2);
+        }
+        select.input { font-weight: 600; }
+        .hint { margin-top: .375rem; font-size: .6875rem; color: var(--mut); }
+
+        /* ---------- Badge ---------- */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: .25rem;
+            padding: .125rem .5rem;
+            border-radius: .375rem;
+            background: #f1f5f9;
+            color: #475569;
+            font-size: .6875rem;
+            font-weight: 600;
+        }
+        .badge-accent { background: var(--ac-soft); color: #1e40af; }
+        .badge-ok { background: #d1fae5; color: #065f46; }
+        .badge-info { background: #e0e7ff; color: #3730a3; }
+        .badge-bad { background: #ffe4e6; color: #9f1239; }
+
+        /* ---------- Navigasi ---------- */
+        .nav {
+            display: flex;
+            gap: .25rem;
+            overflow-x: auto;
+            padding: .375rem 0;
+            border-top: 1px solid var(--line);
+        }
+        .nav-link {
+            display: inline-flex;
+            align-items: center;
+            gap: .375rem;
+            padding: .375rem .625rem;
+            border-radius: .375rem;
+            font-size: .8125rem;
+            font-weight: 500;
+            color: #475569;
+            white-space: nowrap;
+            transition: background .15s, color .15s;
+        }
+        .nav-link:hover { background: #f1f5f9; color: var(--ink); }
+        .nav-link .count { font-size: .6875rem; color: #94a3b8; }
+        .nav-link.is-active { background: var(--ink); color: #fff; }
+        .nav-link.is-active .count { color: #cbd5e1; }
+
+        /* Varian navigasi untuk header gelap (navy) */
+        .nav-dark { border-top-color: rgba(255, 255, 255, .14); }
+        .nav-dark .nav-link { color: #cbd5e1; }
+        .nav-dark .nav-link:hover { background: rgba(255, 255, 255, .1); color: #fff; }
+        .nav-dark .nav-link .count { color: #94a3b8; }
+        .nav-dark .nav-link.is-active { background: #fff; color: var(--navy); }
+        .nav-dark .nav-link.is-active .count { color: #64748b; }
+
+        /* ---------- Statistik ---------- */
+        .stat { padding: 1rem; background: #fff; border: 1px solid var(--line); border-radius: .75rem; }
+        .stat-label {
+            display: flex;
+            align-items: center;
+            gap: .375rem;
+            font-size: .6875rem;
+            font-weight: 700;
+            letter-spacing: .04em;
+            text-transform: uppercase;
+            color: var(--mut);
+        }
+        .stat-value { margin-top: .25rem; font-size: 1.5rem; font-weight: 700; line-height: 1.1; color: var(--ink); }
+        .stat-note { margin-top: .25rem; font-size: .6875rem; color: var(--mut); }
+        .card.click-card { cursor: pointer; transition: border-color .15s, box-shadow .15s; }
+        .card.click-card:hover { border-color: var(--ac); box-shadow: 0 1px 3px rgba(15, 23, 42, .08); }
+
+        /* ---------- Catatan ---------- */
+        .note {
+            padding: .75rem 1rem;
+            border: 1px solid var(--line);
+            border-radius: .5rem;
+            background: #f8fafc;
+            font-size: .8125rem;
+            color: #334155;
+        }
+        .note-warn { background: #fffbeb; border-color: #fde68a; color: #92400e; }
+
+        /* ---------- Keadaan kosong ---------- */
+        .empty {
+            padding: 2.25rem 1rem;
+            border: 1px dashed #cbd5e1;
+            border-radius: .75rem;
+            background: #f8fafc;
+            text-align: center;
+            font-size: .8125rem;
+            color: var(--mut);
+        }
+
+        /* ---------- Tabel ---------- */
+        .tbl { width: 100%; font-size: .8125rem; }
+        .tbl th {
+            padding: .5rem 1rem;
+            background: #f8fafc;
+            border-bottom: 1px solid var(--line);
+            text-align: left;
+            font-size: .6875rem;
+            font-weight: 700;
+            letter-spacing: .04em;
+            text-transform: uppercase;
+            color: var(--mut);
+        }
+        .tbl td { padding: .625rem 1rem; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
+        .tbl tbody tr:hover { background: #f8fafc; }
+
+        /* ---------- Modal ---------- */
+        .modal {
+            position: fixed;
+            inset: 0;
+            z-index: 50;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+            background: rgba(15, 23, 42, .6);
+        }
+        /* .modal memakai display:flex, jadi .hidden dari Tailwind
+           harus dikuatkan agar modal tetap bisa disembunyikan. */
+        .modal.hidden { display: none; }
+        .modal-card {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            max-width: 40rem;
+            max-height: 92vh;
+            background: #fff;
+            border-radius: .75rem;
+            overflow: hidden;
+            box-shadow: 0 24px 48px -12px rgba(15, 23, 42, .3);
+        }
+        .modal-head {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 1rem;
+            padding: 1rem;
+            border-bottom: 1px solid var(--line);
+        }
+        .modal-title { font-size: 1rem; font-weight: 700; color: var(--ink); }
+        .modal-body { flex: 1; padding: 1rem; overflow-y: auto; }
+        .modal-foot {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: .5rem;
+            padding: .75rem 1rem;
+            background: #f8fafc;
+            border-top: 1px solid var(--line);
+        }
+
+        /* ---------- Toast ---------- */
+        #toast { transition: transform .2s, opacity .2s; }
     </style>
     @stack('styles')
 </head>
 <body class="h-full text-slate-800 font-sans flex flex-col antialiased bg-slate-50">
 
     <!-- TOP HEADER / NAVBAR -->
-    <header class="sticky top-0 z-40 bg-slate-900 text-white shadow-md border-b border-slate-800">
+    <header class="sticky top-0 z-40 bg-blue-950 text-white border-b border-blue-900">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex items-center justify-between h-20">
+
+            {{-- Baris atas: identitas dan aksi pengguna --}}
+            <div class="flex items-center justify-between gap-4 h-14">
                 <!-- Logo & Brand -->
-                <div class="flex items-center space-x-3">
-                    <a href="{{ route('home') }}" class="w-11 h-11 flex items-center justify-center shrink-0">
+                <div class="flex items-center gap-2.5 min-w-0">
+                    <a href="{{ route('home') }}" class="w-8 h-8 flex items-center justify-center shrink-0">
                         <img src="{{ asset('images/Logo_PU.svg') }}" alt="Logo PUPR" class="w-full h-full object-contain">
                     </a>
-                    <div>
-                        <div class="flex items-center space-x-2">
-                            <span class="text-xs font-bold tracking-widest text-amber-400 uppercase">Kementerian Pekerjaan Umum</span>
+                    <div class="min-w-0">
+                        <div class="flex items-center gap-2">
+                            <span class="text-[10px] font-bold tracking-widest text-blue-300 uppercase">Kementerian Pekerjaan Umum</span>
                             @auth
                                 @if(Auth::user()->isAdmin())
-                                    <span class="px-2 py-0.5 text-[10px] font-bold bg-amber-500 text-slate-950 rounded-full shadow-sm">Admin</span>
+                                    <span class="badge badge-accent">Admin</span>
                                 @else
-                                    <span class="px-2 py-0.5 text-[10px] font-semibold bg-blue-900 text-blue-200 rounded-full border border-blue-700">Pegawai</span>
+                                    <span class="badge badge-accent">Pegawai</span>
                                 @endif
                             @else
-                                <span class="px-2 py-0.5 text-[10px] font-medium bg-slate-800 text-slate-300 rounded-full border border-slate-700">Publik</span>
+                                <span class="badge">Publik</span>
                             @endauth
                         </div>
-                        <h1 class="text-lg font-extrabold tracking-tight text-white flex items-center gap-1.5">
-                            BPSDM <span class="text-xs font-normal text-slate-400 hidden sm:inline">Pusat Pengembangan Kompetensi Sumber Daya Air, Cipta Karya dan Prasarana Strategis</span>
+                        <h1 class="text-sm font-bold tracking-tight text-white leading-tight truncate">
+                            BPSDM <span class="text-[11px] font-normal text-blue-200/80">Pusat Pengembangan Kompetensi Sumber Daya Air, Cipta Karya dan Prasarana Strategis</span>
                         </h1>
                     </div>
                 </div>
 
                 <!-- Global Search & Actions -->
-                <div class="flex items-center space-x-3">
-                    <!-- <a href="{{ route('beranda') }}"
-                       class="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition border shrink-0
-                              {{ request()->routeIs('beranda') ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-sm' : 'bg-slate-800/80 text-slate-200 border-slate-700 hover:bg-slate-700 hover:text-white' }}">
-                        <i data-lucide="home" class="w-4 h-4"></i>
-                        <span>Beranda</span>
-                    </a> -->
-                    <div class="relative hidden md:block w-56 lg:w-72">
+                <div class="flex items-center gap-3">
+                    <div class="relative hidden md:block w-56 lg:w-64">
                         <input type="text" id="searchInput" oninput="handleSearch(this.value)" placeholder="Cari bidang, SOP, dokumen..." 
-                               class="w-full bg-slate-800/80 text-sm text-slate-100 placeholder-slate-400 pl-9 pr-4 py-2 rounded-xl border border-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500 transition">
-                        <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-2.5"></i>
+                               class="input pl-8 !bg-blue-900 !border-blue-800 !text-white placeholder-blue-300/70">
+                        <i data-lucide="search" class="w-4 h-4 text-blue-300 absolute left-2.5 top-2.5"></i>
                     </div>
 
                     @auth
-                        <!-- @if(Auth::user()->isAdmin())
-                            <button onclick="openAdminModal()" class="flex items-center space-x-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold px-3 py-2 rounded-xl text-xs transition shadow-sm">
-                                <i data-lucide="plus-circle" class="w-4 h-4"></i>
-                                <span class="hidden sm:inline">Tambah Item</span>
-                            </button>
-                        @endif -->
-
                         <!-- User Profile Pill & Logout -->
-                        <div class="flex items-center space-x-2 bg-slate-800/90 border border-slate-700 pl-1.5 pr-2.5 py-1 rounded-2xl">
-                            <img src="{{ Auth::user()->foto_url }}" alt="{{ Auth::user()->name }}" class="w-8 h-8 rounded-xl object-cover border border-amber-400/60 shrink-0">
+                        <div class="flex items-center gap-2 pl-0.5 pr-0.5 py-0.5 border border-blue-800 rounded-lg">
+                            <img src="{{ Auth::user()->foto_url }}" alt="{{ Auth::user()->name }}" class="w-7 h-7 rounded-md object-cover shrink-0">
                             <div class="text-left hidden sm:block">
-                                <span class="text-xs font-bold text-white block leading-tight truncate max-w-[120px]">{{ Auth::user()->name }}</span>
-                                <span class="text-[10px] text-slate-400 block leading-none">{{ Auth::user()->isAdmin() ? 'Super Admin' : 'Pegawai' }}</span>
+                                <span class="text-xs font-medium text-white block leading-tight truncate max-w-[130px]">{{ Auth::user()->name }}</span>
+                                <span class="text-[10px] text-blue-300/80 block leading-none">{{ Auth::user()->isAdmin() ? 'Super Admin' : 'Pegawai' }}</span>
                             </div>
 
                             <form action="{{ route('logout') }}" method="POST" class="inline">
                                 @csrf
-                                <button type="submit" title="Keluar / Logout" class="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-slate-700 rounded-xl transition">
+                                <button type="submit" title="Keluar / Logout" class="icon-btn !bg-transparent !border-0 hover:!bg-blue-800 hover:!text-white">
                                     <i data-lucide="log-out" class="w-4 h-4"></i>
                                 </button>
                             </form>
                         </div>
                     @else
                         <!-- Tombol Masuk / Login -->
-                        <a href="{{ route('login') }}" class="flex items-center space-x-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold px-3.5 py-2 rounded-xl text-xs transition shadow-sm">
+                        <a href="{{ route('login') }}" class="btn btn-primary">
                             <i data-lucide="log-in" class="w-4 h-4"></i>
-                            <span>Masuk / Login</span>
+                            <span>Masuk</span>
                         </a>
                     @endauth
                 </div>
@@ -113,61 +392,56 @@
             @if(request()->routeIs('beranda'))
                 {{-- Di halaman Beranda, tombol tab tidak relevan. Diganti
                      lompat ke bagian (anchor) yang ada di halaman tersebut. --}}
-                <nav class="flex space-x-1 sm:space-x-2 overflow-x-auto py-2 border-t border-slate-800/80 no-scrollbar">
-                                        <a href="{{ route('home') }}"
-                       class="flex items-center space-x-2 px-3.5 py-2 rounded-lg text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-800 transition shrink-0">
+                <nav class="nav nav-dark no-scrollbar">
+                    <a href="{{ route('home') }}" class="nav-link">
                         <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
                         Dashboard CRMC
                     </a>
-                <a href="#tentang-crmc" class="flex items-center space-x-2 px-3.5 py-2 rounded-lg text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-800 transition shrink-0">
+                    <a href="#tentang-crmc" class="nav-link">
                         <i data-lucide="book-open" class="w-4 h-4"></i>
                         <span>Tentang CRMC</span>
                     </a>
-                    <a href="#struktur-organisasi" class="flex items-center space-x-2 px-3.5 py-2 rounded-lg text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-800 transition shrink-0">
+                    <a href="#struktur-organisasi" class="nav-link">
                         <i data-lucide="network" class="w-4 h-4"></i>
                         <span>Struktur Organisasi</span>
                     </a>
-                    <a href="#galeri" class="flex items-center space-x-2 px-3.5 py-2 rounded-lg text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-800 transition shrink-0">
+                    <a href="#galeri" class="nav-link">
                         <i data-lucide="images" class="w-4 h-4"></i>
                         <span>Sarana dan Prasarana</span>
                     </a>
-                    <a href="#peta" class="flex items-center space-x-2 px-3.5 py-2 rounded-lg text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-800 transition shrink-0">
+                    <a href="#peta" class="nav-link">
                         <i data-lucide="map-pin" class="w-4 h-4"></i>
                         <span>Lokasi</span>
                     </a>
                 </nav>
             @else
-            <nav class="flex space-x-1 sm:space-x-2 overflow-x-auto py-2 border-t border-slate-800/80 no-scrollbar">
-<a href="{{ route('beranda') }}"
-   class="hidden sm:flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold transition shrink-0
-          {{ request()->routeIs('beranda')
-              ? 'text-amber-400 bg-slate-800'
-              : 'text-slate-200 hover:bg-slate-700 hover:text-white' }}">
-    <i data-lucide="home" class="w-4 h-4"></i>
-    <span>Beranda</span>
-</a>   
-            <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-btn flex items-center space-x-2 px-3.5 py-2 rounded-lg text-xs font-semibold text-amber-400 bg-slate-800 transition shrink-0">
+            <nav class="nav nav-dark no-scrollbar">
+                <a href="{{ route('beranda') }}" class="nav-link">
+                    <i data-lucide="home" class="w-4 h-4"></i>
+                    <span>Beranda</span>
+                </a>
+                <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-link nav-btn">
                     <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
                     <span>Dashboard</span>
                 </button>
-                <button onclick="switchTab('dasar-hukum')" id="nav-dasar-hukum" class="nav-btn flex items-center space-x-2 px-3.5 py-2 rounded-lg text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-800 transition shrink-0">
+                <button onclick="switchTab('dasar-hukum')" id="nav-dasar-hukum" class="nav-link nav-btn">
                     <i data-lucide="scale" class="w-4 h-4"></i>
                     <span>Dasar Hukum</span>
                 </button>
-                <button onclick="switchTab('umum-tu')" id="nav-umum-tu" class="nav-btn flex items-center space-x-2 px-3.5 py-2 rounded-lg text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-800 transition shrink-0">
+                <button onclick="switchTab('umum-tu')" id="nav-umum-tu" class="nav-link nav-btn">
                     <i data-lucide="briefcase" class="w-4 h-4"></i>
-                    <span>Bagian Umum & TU</span>
-                    <span class="bg-slate-700 text-slate-300 text-[10px] px-1.5 py-0.2 rounded-full">29</span>
+                    <span>Bagian Umum &amp; TU</span>
+                    <span class="count">29</span>
                 </button>
-                <button onclick="switchTab('sda')" id="nav-sda" class="nav-btn flex items-center space-x-2 px-3.5 py-2 rounded-lg text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-800 transition shrink-0">
+                <button onclick="switchTab('sda')" id="nav-sda" class="nav-link nav-btn">
                     <i data-lucide="waves" class="w-4 h-4"></i>
                     <span>Bidang SDA</span>
-                    <span class="bg-slate-700 text-slate-300 text-[10px] px-1.5 py-0.2 rounded-full">5</span>
+                    <span class="count">5</span>
                 </button>
-                <button onclick="switchTab('ckps')" id="nav-ckps" class="nav-btn flex items-center space-x-2 px-3.5 py-2 rounded-lg text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-800 transition shrink-0">
+                <button onclick="switchTab('ckps')" id="nav-ckps" class="nav-link nav-btn">
                     <i data-lucide="building-2" class="w-4 h-4"></i>
                     <span>Bidang CKPS</span>
-                    <span class="bg-slate-700 text-slate-300 text-[10px] px-1.5 py-0.2 rounded-full">7</span>
+                    <span class="count">7</span>
                 </button>
             </nav>
             @endif
@@ -181,8 +455,8 @@
     @yield('modals')
 
     <!-- TOAST NOTIFICATION -->
-    <div id="toast" class="fixed bottom-5 right-5 bg-slate-900 text-white px-4 py-3 rounded-2xl shadow-xl flex items-center space-x-3 text-xs border border-slate-800 transition transform translate-y-20 opacity-0 z-50">
-        <i data-lucide="check-circle-2" class="w-5 h-5 text-amber-400"></i>
+    <div id="toast" class="fixed bottom-5 right-5 z-50 flex items-center gap-2.5 rounded-lg bg-slate-900 px-4 py-2.5 text-xs text-white shadow-lg translate-y-20 opacity-0">
+        <i data-lucide="check-circle-2" class="w-4 h-4 text-blue-400 shrink-0"></i>
         <span id="toastMessage">Pesan Notifikasi</span>
     </div>
 
@@ -239,11 +513,11 @@
                 document.querySelectorAll('.tab-content').forEach(tab => tab.classList.add('hidden'));
                 target.classList.remove('hidden');
 
-                document.querySelectorAll('.nav-btn').forEach(btn => {
-                    btn.className = "nav-btn flex items-center space-x-2 px-3.5 py-2 rounded-lg text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-800 transition shrink-0";
-                });
+                {{-- Hanya kelas .is-active yang ditukar, bukan seluruh
+                     className, supaya gaya tombol tetap utuh. --}}
+                document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('is-active'));
                 const activeBtn = document.getElementById(`nav-${tabId}`);
-                if (activeBtn) activeBtn.className = "nav-btn flex items-center space-x-2 px-3.5 py-2 rounded-lg text-xs font-semibold text-amber-400 bg-slate-800 transition shrink-0";
+                if (activeBtn) activeBtn.classList.add('is-active');
                 window.scrollTo({ top: 0, behavior: 'smooth' });
             } else {
                 window.location.href = '/?tab=' + tabId;
@@ -260,16 +534,16 @@
             if (currentRole === 'pegawai') {
                 currentRole = 'admin';
                 roleBadge.textContent = 'Mode Admin (Full Control)';
-                roleBadge.className = 'px-2 py-0.5 text-[10px] font-bold bg-amber-500 text-slate-950 rounded-full shadow-sm';
+                roleBadge.className = 'badge badge-accent';
                 roleToggleText.textContent = 'Ganti Ke Pegawai';
                 if (adminAddBtn) adminAddBtn.classList.remove('hidden');
-                if (modalAccessStatus) { modalAccessStatus.textContent = 'Super Admin (Akses Penuh Edit/Hapus)'; modalAccessStatus.className = 'text-amber-600 font-bold'; }
+                if (modalAccessStatus) { modalAccessStatus.textContent = 'Super Admin (Akses Penuh Edit/Hapus)'; modalAccessStatus.className = 'text-blue-700 font-bold'; }
                 if (adminDeleteBtn) adminDeleteBtn.classList.remove('hidden');
                 showToast('Dialihkan ke Mode Admin.');
             } else {
                 currentRole = 'pegawai';
                 roleBadge.textContent = 'Mode Pegawai';
-                roleBadge.className = 'px-2 py-0.5 text-[10px] font-semibold bg-blue-900 text-blue-200 rounded-full border border-blue-700';
+                roleBadge.className = 'badge badge-info';
                 roleToggleText.textContent = 'Ganti Ke Admin';
                 if (adminAddBtn) adminAddBtn.classList.add('hidden');
                 if (modalAccessStatus) { modalAccessStatus.textContent = 'Pegawai (Read/Submit)'; modalAccessStatus.className = 'text-slate-800'; }
@@ -320,12 +594,12 @@
             const filtered = allItems.filter(item => item.title.toLowerCase().includes(q));
             if (filtered.length > 0) {
                 resultsGrid.innerHTML = filtered.map(item => `
-                    <div onclick="navigateToCRMC('${item.title}')" class="p-3 bg-slate-50 hover:bg-amber-50 rounded-xl border border-slate-200 cursor-pointer transition flex items-center justify-between group">
-                        <div>
-                            <span class="text-[10px] font-bold text-slate-400 block">${item.parent}</span>
-                            <h5 class="text-xs font-bold text-slate-800 group-hover:text-blue-900 transition">${item.title}</h5>
+                    <div onclick="navigateToCRMC('${item.title}')" class="card click-card px-3 py-2.5 flex items-center justify-between gap-2">
+                        <div class="min-w-0">
+                            <span class="block text-[10px] font-bold uppercase tracking-wide text-slate-400">${item.parent}</span>
+                            <h5 class="text-xs font-semibold text-slate-800 truncate">${item.title}</h5>
                         </div>
-                        <i data-lucide="arrow-right" class="w-4 h-4 text-slate-400 group-hover:text-amber-500 group-hover:translate-x-1 transition shrink-0 ml-2"></i>
+                        <i data-lucide="arrow-right" class="w-4 h-4 text-slate-400 shrink-0"></i>
                     </div>
                 `).join('');
                 if (typeof lucide !== 'undefined') lucide.createIcons();

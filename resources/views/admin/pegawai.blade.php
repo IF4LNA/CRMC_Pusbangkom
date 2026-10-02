@@ -8,15 +8,15 @@
     <!-- BREADCRUMB -->
     <div class="flex flex-wrap items-center justify-between gap-3 text-xs">
         <nav class="flex items-center space-x-2 text-slate-500">
-            <a href="{{ url('/') }}" class="hover:text-blue-900 flex items-center gap-1 font-medium transition">
+            <a href="{{ url('/') }}" class="hover:text-blue-700 flex items-center gap-1 font-medium transition">
                 <i data-lucide="home" class="w-3.5 h-3.5"></i>
                 <span>Beranda CRMC</span>
             </a>
             <i data-lucide="chevron-right" class="w-3.5 h-3.5 text-slate-400"></i>
-            <span class="text-amber-600 font-bold">Kelola Akun Pegawai</span>
+            <span class="text-blue-700 font-semibold">Kelola Akun Pegawai</span>
         </nav>
 
-        <a href="{{ url('/') }}" class="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 font-semibold transition shadow-sm text-xs">
+        <a href="{{ url('/') }}" class="btn btn-outline">
             <i data-lucide="arrow-left" class="w-3.5 h-3.5 text-slate-500"></i>
             <span>Kembali ke Dashboard</span>
         </a>
@@ -24,38 +24,38 @@
 
     <!-- FLASH MESSAGE -->
     @if(session('success'))
-    <div class="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center space-x-3 text-xs text-emerald-900 shadow-sm">
-        <div class="w-8 h-8 rounded-xl bg-emerald-500 text-white flex items-center justify-center shrink-0">
+    <div class="note !border-emerald-200 !bg-emerald-50 !text-emerald-900 flex items-start gap-2">
+        <div class="hidden">
             <i data-lucide="check" class="w-4 h-4"></i>
         </div>
         <div class="flex-1">
-            <p class="font-bold">Berhasil!</p>
+            <p class="font-semibold">Berhasil!</p>
             <p class="text-emerald-700">{{ session('success') }}</p>
         </div>
     </div>
     @endif
 
     @if(session('error'))
-    <div class="p-4 bg-rose-50 border border-rose-200 rounded-2xl flex items-center space-x-3 text-xs text-rose-900 shadow-sm">
-        <div class="w-8 h-8 rounded-xl bg-rose-500 text-white flex items-center justify-center shrink-0">
+    <div class="note !border-rose-200 !bg-rose-50 !text-rose-900 flex items-start gap-2">
+        <div class="hidden">
             <i data-lucide="alert-triangle" class="w-4 h-4"></i>
         </div>
         <div class="flex-1">
-            <p class="font-bold">Gagal!</p>
+            <p class="font-semibold">Gagal!</p>
             <p class="text-rose-700">{{ session('error') }}</p>
         </div>
     </div>
     @endif
 
     @if($errors->any())
-    <div class="p-4 bg-rose-50 border border-rose-200 rounded-2xl text-xs text-rose-900 shadow-sm">
-        <div class="flex items-center space-x-3">
-            <div class="w-8 h-8 bg-rose-500 text-white rounded-xl flex items-center justify-center shrink-0">
+    <div class="note !border-rose-200 !bg-rose-50 !text-rose-900">
+        <div class="flex items-center gap-2">
+            <div class="hidden">
                 <i data-lucide="alert-triangle" class="w-4 h-4"></i>
             </div>
-            <p class="font-bold">Perubahan tidak tersimpan!</p>
+            <p class="font-semibold">Perubahan tidak tersimpan!</p>
         </div>
-        <ul class="mt-2 ml-11 space-y-1 list-disc">
+        <ul class="mt-1.5 space-y-0.5 list-disc list-inside">
             @foreach($errors->all() as $pesan)
                 <li>{{ $pesan }}</li>
             @endforeach
@@ -63,19 +63,23 @@
     </div>
     @endif
 
-    <!-- HERO HEADER -->
-    <div class="bg-gradient-to-r from-slate-900 via-blue-950 to-slate-900 rounded-3xl p-6 sm:p-8 text-white border border-slate-800 shadow-xl relative overflow-hidden">
-        <div class="absolute -right-20 -top-20 w-80 h-80 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
-        <div class="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div class="space-y-2">
-                <div class="inline-flex items-center space-x-2 px-3 py-1 bg-amber-500/20 text-amber-400 rounded-full text-xs font-bold border border-amber-500/30">
+    {{-- HERO: foto gedung PUSBANGKOM sebagai latar banner --}}
+    <div class="relative overflow-hidden rounded-xl bg-blue-950 text-white border border-blue-900">
+        <img src="{{ asset('images/gedung_pusbangkom.jpg') }}"
+             alt="Gedung PUSBANGKOM"
+             class="absolute inset-0 h-full w-full object-cover object-center">
+        <div class="absolute inset-0 bg-gradient-to-r from-blue-950/95 via-blue-950/85 to-blue-900/50"></div>
+
+        <div class="relative flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-5">
+            <div class="space-y-1.5">
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-900 text-blue-200 rounded-md text-[11px] font-bold border border-blue-800">
                     <i data-lucide="users" class="w-3.5 h-3.5"></i>
                     <span class="uppercase tracking-wider">Panel Administrator</span>
-                </div>
-                <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight">Kelola Akun Pegawai</h1>
-                <p class="text-slate-300 text-xs sm:text-sm">Buat, edit, dan hapus akun pegawai untuk penugasan di seluruh sub-bidang CRMC.</p>
+                </span>
+                <h1 class="text-xl sm:text-2xl font-bold tracking-tight">Kelola Akun Pegawai</h1>
+                <p class="text-blue-200 text-xs sm:text-sm">Buat, edit, dan hapus akun pegawai untuk penugasan di seluruh sub-bidang CRMC.</p>
             </div>
-            <button onclick="openTambahModal()" class="inline-flex items-center space-x-2 px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-xl text-sm transition shadow-md shrink-0">
+            <button onclick="openTambahModal()" class="btn btn-primary shrink-0">
                 <i data-lucide="user-plus" class="w-4 h-4"></i>
                 <span>Tambah Pegawai Baru</span>
             </button>
@@ -83,77 +87,62 @@
     </div>
 
     <!-- STATS -->
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm flex items-center justify-between">
-            <div>
-                <p class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Total Pegawai</p>
-                <p class="text-2xl font-black text-slate-900 mt-1">{{ $users->count() }}</p>
-            </div>
-            <div class="w-11 h-11 rounded-xl bg-blue-50 text-blue-900 flex items-center justify-center">
-                <i data-lucide="users" class="w-6 h-6"></i>
-            </div>
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div class="stat">
+            <p class="stat-label">Total Pegawai</p>
+            <p class="stat-value">{{ $users->count() }}</p>
         </div>
-        <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm flex items-center justify-between">
-            <div>
-                <p class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Administrator</p>
-                <p class="text-2xl font-black text-amber-600 mt-1">{{ $users->where('role', 'admin')->count() }}</p>
-            </div>
-            <div class="w-11 h-11 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
-                <i data-lucide="shield" class="w-6 h-6"></i>
-            </div>
+        <div class="stat">
+            <p class="stat-label">Administrator</p>
+            <p class="stat-value">{{ $users->where('role', 'admin')->count() }}</p>
         </div>
-        <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm flex items-center justify-between">
-            <div>
-                <p class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Pegawai</p>
-                <p class="text-2xl font-black text-blue-900 mt-1">{{ $users->where('role', 'pegawai')->count() }}</p>
-            </div>
-            <div class="w-11 h-11 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
-                <i data-lucide="user-check" class="w-6 h-6"></i>
-            </div>
+        <div class="stat">
+            <p class="stat-label">Pegawai</p>
+            <p class="stat-value">{{ $users->where('role', 'pegawai')->count() }}</p>
         </div>
     </div>
 
     <!-- TABLE PEGAWAI -->
-    <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-        <div class="p-5 border-b border-slate-100 flex items-center justify-between">
-            <h2 class="text-sm font-bold text-slate-900 flex items-center gap-2">
-                <i data-lucide="list" class="w-4 h-4 text-amber-500"></i>
+    <div class="card overflow-hidden">
+        <div class="card-head">
+            <h2 class="card-title flex items-center gap-1.5">
+                <i data-lucide="list" class="w-4 h-4 text-slate-400"></i>
                 Daftar Seluruh Akun Pegawai
             </h2>
         </div>
         <div class="overflow-x-auto">
-            <table class="w-full text-xs">
-                <thead class="bg-slate-50 border-b border-slate-200">
+            <table class="tbl">
+                <thead>
                     <tr>
-                        <th class="text-left px-5 py-3 font-bold text-slate-500 uppercase tracking-wider">Foto</th>
-                        <th class="text-left px-5 py-3 font-bold text-slate-500 uppercase tracking-wider">Nama Lengkap</th>
-                        <th class="text-left px-5 py-3 font-bold text-slate-500 uppercase tracking-wider">NIP</th>
-                        <th class="text-left px-5 py-3 font-bold text-slate-500 uppercase tracking-wider">Jabatan</th>
-                        <th class="text-left px-5 py-3 font-bold text-slate-500 uppercase tracking-wider">Email</th>
-                        <th class="text-left px-5 py-3 font-bold text-slate-500 uppercase tracking-wider">Role</th>
-                        <th class="text-center px-5 py-3 font-bold text-slate-500 uppercase tracking-wider">Aksi</th>
+                        <th>Foto</th>
+                        <th>Nama Lengkap</th>
+                        <th>NIP</th>
+                        <th>Jabatan</th>
+                        <th>Email</th>
+                        <th>Role</th>
+                        <th class="text-center">Aksi</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-slate-100">
+                <tbody>
                     @foreach($users as $u)
-                    <tr class="hover:bg-slate-50/80 transition">
-                        <td class="px-5 py-3">
-                            <img src="{{ $u->foto_url }}" alt="{{ $u->name }}" class="w-10 h-10 rounded-xl object-cover border border-slate-200 shadow-xs">
+                    <tr>
+                        <td>
+                            <img src="{{ $u->foto_url }}" alt="{{ $u->name }}" class="w-10 h-10 rounded-md object-cover border border-slate-200">
                         </td>
-                        <td class="px-5 py-3 font-bold text-slate-900">{{ $u->name }}</td>
-                        <td class="px-5 py-3 text-slate-600 font-mono">{{ $u->nip ?? '-' }}</td>
-                        <td class="px-5 py-3 text-slate-600">{{ $u->jabatan ?? '-' }}</td>
-                        <td class="px-5 py-3 text-slate-600">{{ $u->email }}</td>
-                        <td class="px-5 py-3">
+                        <td class="font-semibold text-slate-900">{{ $u->name }}</td>
+                        <td class="font-mono">{{ $u->nip ?? '-' }}</td>
+                        <td>{{ $u->jabatan ?? '-' }}</td>
+                        <td>{{ $u->email }}</td>
+                        <td>
                             @if($u->role === 'admin')
-                                <span class="px-2 py-0.5 text-[10px] font-bold bg-amber-100 text-amber-800 rounded-full">Admin</span>
+                                <span class="badge badge-accent">Admin</span>
                             @else
-                                <span class="px-2 py-0.5 text-[10px] font-semibold bg-blue-50 text-blue-800 rounded-full">Pegawai</span>
+                                <span class="badge badge-info">Pegawai</span>
                             @endif
                         </td>
-                        <td class="px-5 py-3 text-center">
+                        <td class="text-center">
                             <div class="flex items-center justify-center gap-1.5">
-                                <button onclick="openEditModal({{ json_encode($u) }})" class="p-1.5 bg-blue-50 hover:bg-blue-100 text-blue-900 rounded-lg transition" title="Edit">
+                                <button onclick="openEditModal({{ json_encode($u) }})" class="icon-btn" title="Edit">
                                     <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
                                 </button>
                                 @if($u->id !== Auth::id())
@@ -161,7 +150,7 @@
                                       data-konfirmasi="Yakin ingin menghapus akun &quot;{{ $u->name }}&quot;? Akun ini tidak bisa dipulihkan lagi.">
                                     @csrf
                                     @method('DELETE')
-                                    <button type="submit" class="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg transition" title="Hapus">
+                                    <button type="submit" class="icon-btn icon-btn-danger" title="Hapus">
                                         <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
                                     </button>
                                 </form>
@@ -180,142 +169,144 @@
 
 @section('modals')
 <!-- MODAL TAMBAH PEGAWAI -->
-<div id="tambahModal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 hidden">
-    <div class="bg-white w-full max-w-xl max-h-[92vh] rounded-3xl shadow-2xl flex flex-col overflow-hidden border border-slate-100">
-        <div class="bg-slate-900 text-white p-5 sm:p-6 flex items-start justify-between border-b border-slate-800">
-            <div class="flex items-center space-x-3">
-                <div class="w-10 h-10 bg-amber-500 rounded-xl flex items-center justify-center text-slate-950 font-bold shrink-0">
-                    <i data-lucide="user-plus" class="w-5 h-5"></i>
+<div id="tambahModal" class="modal hidden">
+    <div class="modal-card !max-w-xl">
+        <div class="modal-head">
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 bg-blue-50 text-blue-700 rounded-md flex items-center justify-center shrink-0">
+                    <i data-lucide="user-plus" class="w-4 h-4"></i>
                 </div>
                 <div>
-                    <span class="text-[10px] font-bold text-amber-400 uppercase tracking-widest">Administrator</span>
-                    <h3 class="text-lg font-extrabold text-white">Tambah Akun Pegawai Baru</h3>
+                    <span class="eyebrow">Administrator</span>
+                    <h3 class="modal-title mt-0.5">Tambah Akun Pegawai Baru</h3>
                 </div>
             </div>
-            <button onclick="closeTambahModal()" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition">
-                <i data-lucide="x" class="w-6 h-6"></i>
+            <button onclick="closeTambahModal()" class="icon-btn" title="Tutup">
+                <i data-lucide="x" class="w-4 h-4"></i>
             </button>
         </div>
 
-        <div class="flex-1 overflow-y-auto p-5 sm:p-6">
-            <form action="{{ route('admin.pegawai.store') }}" method="POST" enctype="multipart/form-data" class="space-y-4 text-xs">
+        <form action="{{ route('admin.pegawai.store') }}" method="POST" enctype="multipart/form-data" class="flex-1 flex flex-col min-h-0">
+            <div class="modal-body space-y-3">
                 @csrf
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div>
-                        <label class="block font-bold text-slate-800 mb-1">Nama Lengkap *</label>
-                        <input type="text" name="name" required class="w-full p-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                        <label class="label">Nama Lengkap *</label>
+                        <input type="text" name="name" required class="input">
                     </div>
                     <div>
-                        <label class="block font-bold text-slate-800 mb-1">NIP *</label>
-                        <input type="text" name="nip" required class="w-full p-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                        <label class="label">NIP *</label>
+                        <input type="text" name="nip" required class="input">
                     </div>
                 </div>
                 <div>
-                    <label class="block font-bold text-slate-800 mb-1">Jabatan *</label>
-                    <input type="text" name="jabatan" required class="w-full p-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                    <label class="label">Jabatan *</label>
+                    <input type="text" name="jabatan" required class="input">
                 </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div>
-                        <label class="block font-bold text-slate-800 mb-1">Email Dinas *</label>
-                        <input type="email" name="email" required class="w-full p-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                        <label class="label">Email Dinas *</label>
+                        <input type="email" name="email" required class="input">
                     </div>
                     <div>
-                        <label class="block font-bold text-slate-800 mb-1">Password *</label>
-                        <input type="password" name="password" required minlength="6" class="w-full p-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                        <label class="label">Password *</label>
+                        <input type="password" name="password" required minlength="6" class="input">
                     </div>
                 </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div>
-                        <label class="block font-bold text-slate-800 mb-1">Role *</label>
-                        <select name="role" required class="w-full p-2.5 rounded-xl border border-slate-300 bg-white font-semibold focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                        <label class="label">Role *</label>
+                        <select name="role" required class="input">
                             <option value="pegawai">Pegawai</option>
                             <option value="admin">Administrator</option>
                         </select>
                     </div>
                     <div>
-                        <label class="block font-bold text-slate-800 mb-1">Foto Profil (Opsional)</label>
-                        <input type="file" name="foto_profil" accept="image/jpeg,image/png,image/webp" class="w-full p-2 bg-slate-50 rounded-xl border border-slate-300 text-slate-600">
-                        <p class="mt-1 text-[10px] text-slate-400">JPG, PNG, atau WebP. Maksimal 4 MB.</p>
+                        <label class="label">Foto Profil (Opsional)</label>
+                        <input type="file" name="foto_profil" accept="image/jpeg,image/png,image/webp" class="input !py-1.5">
+                        <p class="hint">JPG, PNG, atau WebP. Maksimal 4 MB.</p>
                     </div>
                 </div>
 
-                <div class="pt-4 border-t border-slate-200 flex justify-end space-x-2">
-                    <button type="button" onclick="closeTambahModal()" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold">Batal</button>
-                    <button type="submit" class="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold shadow-sm transition">Simpan Akun</button>
-                </div>
-            </form>
-        </div>
+            </div>
+
+            <div class="modal-foot">
+                <button type="button" onclick="closeTambahModal()" class="btn btn-quiet">Batal</button>
+                <button type="submit" class="btn btn-primary">Simpan Akun</button>
+            </div>
+        </form>
     </div>
 </div>
 
 <!-- MODAL EDIT PEGAWAI -->
-<div id="editModal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 hidden">
-    <div class="bg-white w-full max-w-xl max-h-[92vh] rounded-3xl shadow-2xl flex flex-col overflow-hidden border border-slate-100">
-        <div class="bg-slate-900 text-white p-5 sm:p-6 flex items-start justify-between border-b border-slate-800">
-            <div class="flex items-center space-x-3">
-                <div class="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white font-bold shrink-0">
-                    <i data-lucide="pencil" class="w-5 h-5"></i>
+<div id="editModal" class="modal hidden">
+    <div class="modal-card !max-w-xl">
+        <div class="modal-head">
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 bg-blue-50 text-blue-700 rounded-md flex items-center justify-center shrink-0">
+                    <i data-lucide="pencil" class="w-4 h-4"></i>
                 </div>
                 <div>
-                    <span class="text-[10px] font-bold text-amber-400 uppercase tracking-widest">Administrator</span>
-                    <h3 class="text-lg font-extrabold text-white">Edit Data Pegawai</h3>
+                    <span class="eyebrow">Administrator</span>
+                    <h3 class="modal-title mt-0.5">Edit Data Pegawai</h3>
                 </div>
             </div>
-            <button onclick="closeEditModal()" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition">
-                <i data-lucide="x" class="w-6 h-6"></i>
+            <button onclick="closeEditModal()" class="icon-btn" title="Tutup">
+                <i data-lucide="x" class="w-4 h-4"></i>
             </button>
         </div>
 
-        <div class="flex-1 overflow-y-auto p-5 sm:p-6">
-            <form id="editForm" method="POST" enctype="multipart/form-data" class="space-y-4 text-xs">
+        <form id="editForm" method="POST" enctype="multipart/form-data" class="flex-1 flex flex-col min-h-0">
+            <div class="modal-body space-y-3">
                 @csrf
                 @method('PUT')
                 <input type="hidden" id="editUserId" name="user_id" value="">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div>
-                        <label class="block font-bold text-slate-800 mb-1">Nama Lengkap *</label>
-                        <input type="text" name="name" id="editName" required class="w-full p-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                        <label class="label">Nama Lengkap *</label>
+                        <input type="text" name="name" id="editName" required class="input">
                     </div>
                     <div>
-                        <label class="block font-bold text-slate-800 mb-1">NIP *</label>
-                        <input type="text" name="nip" id="editNip" required class="w-full p-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                        <label class="label">NIP *</label>
+                        <input type="text" name="nip" id="editNip" required class="input">
                     </div>
                 </div>
                 <div>
-                    <label class="block font-bold text-slate-800 mb-1">Jabatan *</label>
-                    <input type="text" name="jabatan" id="editJabatan" required class="w-full p-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                    <label class="label">Jabatan *</label>
+                    <input type="text" name="jabatan" id="editJabatan" required class="input">
                 </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div>
-                        <label class="block font-bold text-slate-800 mb-1">Email Dinas *</label>
-                        <input type="email" name="email" id="editEmail" required class="w-full p-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                        <label class="label">Email Dinas *</label>
+                        <input type="email" name="email" id="editEmail" required class="input">
                     </div>
                     <div>
-                        <label class="block font-bold text-slate-800 mb-1">Password Baru (kosongkan jika tidak diubah)</label>
-                        <input type="password" name="password" minlength="6" class="w-full p-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-amber-500 focus:outline-none" placeholder="••••••">
+                        <label class="label">Password Baru (kosongkan jika tidak diubah)</label>
+                        <input type="password" name="password" minlength="6" class="input" placeholder="&#8226;&#8226;&#8226;&#8226;">
                     </div>
                 </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div>
-                        <label class="block font-bold text-slate-800 mb-1">Role *</label>
-                        <select name="role" id="editRole" required class="w-full p-2.5 rounded-xl border border-slate-300 bg-white font-semibold focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                        <label class="label">Role *</label>
+                        <select name="role" id="editRole" required class="input">
                             <option value="pegawai">Pegawai</option>
                             <option value="admin">Administrator</option>
                         </select>
                     </div>
                     <div>
-                        <label class="block font-bold text-slate-800 mb-1">Foto Profil Baru (Opsional)</label>
-                        <input type="file" name="foto_profil" accept="image/jpeg,image/png,image/webp" class="w-full p-2 bg-slate-50 rounded-xl border border-slate-300 text-slate-600">
-                        <p class="mt-1 text-[10px] text-slate-400">JPG, PNG, atau WebP. Maksimal 4 MB. Kosongkan bila tidak ingin mengganti foto.</p>
+                        <label class="label">Foto Profil Baru (Opsional)</label>
+                        <input type="file" name="foto_profil" accept="image/jpeg,image/png,image/webp" class="input !py-1.5">
+                        <p class="hint">JPG, PNG, atau WebP. Maksimal 4 MB. Kosongkan bila tidak ingin mengganti foto.</p>
                     </div>
                 </div>
 
-                <div class="pt-4 border-t border-slate-200 flex justify-end space-x-2">
-                    <button type="button" onclick="closeEditModal()" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold">Batal</button>
-                    <button type="submit" class="px-5 py-2 rounded-xl bg-blue-900 hover:bg-blue-950 text-white font-bold shadow-sm transition">Perbarui Data</button>
-                </div>
-            </form>
-        </div>
+            </div>
+
+            <div class="modal-foot">
+                <button type="button" onclick="closeEditModal()" class="btn btn-quiet">Batal</button>
+                <button type="submit" class="btn btn-dark">Perbarui Data</button>
+            </div>
+        </form>
     </div>
 </div>
 @endsection

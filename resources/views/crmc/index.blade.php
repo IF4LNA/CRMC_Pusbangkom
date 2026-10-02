@@ -3,27 +3,31 @@
 @section('title', 'Dashboard Utama CRMC')
 
 @section('content')
-<main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+<main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-4 space-y-4">
 
     <!-- Mobile Search Bar -->
-    <div class="mb-4 md:hidden">
+    <div class="md:hidden">
         <div class="relative">
-            <input type="text" oninput="handleSearch(this.value)" placeholder="Cari bidang, SOP, dokumen..." 
-                   class="w-full bg-white text-sm text-slate-800 placeholder-slate-400 pl-9 pr-4 py-2.5 rounded-xl border border-slate-200 shadow-sm focus:outline-none focus:ring-2 focus:ring-amber-500">
-            <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-3"></i>
+            <input type="text" oninput="handleSearch(this.value)" placeholder="Cari bidang, SOP, dokumen..."
+                   class="input pl-8">
+            <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-2.5 top-2.5"></i>
         </div>
     </div>
 
     <!-- SEARCH RESULTS CONTAINER -->
-    <div id="searchResultsContainer" class="hidden mb-6 bg-white rounded-2xl p-6 border border-slate-200 shadow-lg">
-        <div class="flex items-center justify-between mb-4 border-b pb-3">
-            <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2">
-                <i data-lucide="search" class="w-4 h-4 text-amber-500"></i>
-                Hasil Pencarian Sub-Bidang & Dokumen CRMC
-            </h3>
-            <button onclick="clearSearch()" class="text-xs text-slate-500 hover:text-slate-800">Tutup</button>
+    <div id="searchResultsContainer" class="hidden">
+        <div class="card">
+            <div class="card-head flex items-center justify-between gap-2">
+                <h3 class="card-title flex items-center gap-1.5">
+                    <i data-lucide="search" class="w-4 h-4 text-slate-500"></i>
+                    Hasil Pencarian
+                </h3>
+                <button onclick="clearSearch()" class="btn btn-sm btn-quiet">Tutup</button>
+            </div>
+            <div class="p-3">
+                <div id="searchResultsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2"></div>
+            </div>
         </div>
-        <div id="searchResultsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
     </div>
 
     <!-- TAB CONTENTS -->
@@ -57,68 +61,40 @@
 
 @push('scripts')
 <script>
-    function renderBentoGrids() {
-        document.getElementById('grid-umum-tu').innerHTML = umumTuItems.map((item, idx) => `
-            <div onclick="navigateToCRMC('${item}')" class="bento-card cursor-pointer bg-white p-4 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md hover:border-amber-400 transition flex flex-col justify-between group">
-                <div>
-                    <div class="flex items-center justify-between mb-2">
-                        <span class="text-[10px] font-bold text-slate-400 group-hover:text-amber-600">SUB #${idx + 1}</span>
-                        <button onclick="event.stopPropagation(); openCRMCModal('${item}', 'Bagian Umum & Tata Usaha')" title="Form Input / Edit" class="p-1 text-slate-400 hover:text-amber-600 rounded-lg hover:bg-amber-50 transition">
-                            <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
-                        </button>
-                    </div>
-                    <h4 class="font-bold text-slate-900 text-xs sm:text-sm group-hover:text-blue-900 transition leading-snug">${item}</h4>
+    // Semua grid memakai markup yang sama supaya konsisten. Warna tidak
+    // dibedakan per bidang lagi: satu aksen biru untuk semuanya.
+    function kartuSubBidang(item, idx, prefiks, parent) {
+        return `
+            <div onclick="navigateToCRMC('${item}')" class="card click-card p-3 flex flex-col justify-between gap-3 min-h-[7rem]">
+                <div class="flex items-start justify-between gap-2">
+                    <span class="badge">${prefiks} #${idx + 1}</span>
+                    <button onclick="event.stopPropagation(); openCRMCModal('${item}', '${parent}')" title="Form Input / Edit" class="icon-btn">
+                        <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+                    </button>
                 </div>
-                <div class="mt-4 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
-                    <span class="bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded font-semibold flex items-center gap-1">
-                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> 8 Komponen
-                    </span>
-                    <span class="inline-flex items-center gap-0.5 text-blue-900 font-bold group-hover:translate-x-0.5 transition">
+                <h4 class="text-xs sm:text-sm font-semibold text-slate-800 leading-snug line-clamp-2">${item}</h4>
+                <div class="flex items-center justify-between border-t border-slate-200 pt-2 text-[11px] text-slate-500">
+                    <span class="badge badge-ok">8 Komponen</span>
+                    <span class="inline-flex items-center gap-0.5 text-slate-700 font-medium">
                         Buka <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
                     </span>
                 </div>
             </div>
-        `).join('');
+        `;
+    }
 
-        document.getElementById('grid-sda').innerHTML = sdaItems.map((item, idx) => `
-            <div onclick="navigateToCRMC('${item}')" class="bento-card cursor-pointer bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md hover:border-cyan-400 transition flex flex-col justify-between group">
-                <div>
-                    <div class="flex items-center justify-between mb-3">
-                        <span class="text-[10px] font-bold text-cyan-700 bg-cyan-50 px-2 py-0.5 rounded">SDA #${idx + 1}</span>
-                        <button onclick="event.stopPropagation(); openCRMCModal('${item}', 'Bidang SDA')" title="Form Input / Edit" class="p-1 text-slate-400 hover:text-cyan-600 rounded-lg hover:bg-cyan-50 transition">
-                            <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
-                        </button>
-                    </div>
-                    <h4 class="font-bold text-slate-900 text-sm group-hover:text-cyan-900 transition leading-snug">${item}</h4>
-                </div>
-                <div class="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-                    <span class="bg-cyan-50 text-cyan-800 px-2 py-0.5 rounded font-semibold">8 Komponen</span>
-                    <span class="inline-flex items-center gap-0.5 text-cyan-800 font-bold group-hover:translate-x-0.5 transition">
-                        Buka <i data-lucide="arrow-right" class="w-4 h-4"></i>
-                    </span>
-                </div>
-            </div>
-        `).join('');
+    function renderBentoGrids() {
+        document.getElementById('grid-umum-tu').innerHTML = umumTuItems
+            .map((item, idx) => kartuSubBidang(item, idx, 'SUB', 'Bagian Umum & Tata Usaha'))
+            .join('');
 
-        document.getElementById('grid-ckps').innerHTML = ckpsItems.map((item, idx) => `
-            <div onclick="navigateToCRMC('${item}')" class="bento-card cursor-pointer bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md hover:border-indigo-400 transition flex flex-col justify-between group">
-                <div>
-                    <div class="flex items-center justify-between mb-3">
-                        <span class="text-[10px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded">CKPS #${idx + 1}</span>
-                        <button onclick="event.stopPropagation(); openCRMCModal('${item}', 'Bidang CKPS')" title="Form Input / Edit" class="p-1 text-slate-400 hover:text-indigo-600 rounded-lg hover:bg-indigo-50 transition">
-                            <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
-                        </button>
-                    </div>
-                    <h4 class="font-bold text-slate-900 text-sm group-hover:text-indigo-900 transition leading-snug">${item}</h4>
-                </div>
-                <div class="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-                    <span class="bg-indigo-50 text-indigo-800 px-2 py-0.5 rounded font-semibold">8 Komponen</span>
-                    <span class="inline-flex items-center gap-0.5 text-indigo-800 font-bold group-hover:translate-x-0.5 transition">
-                        Buka <i data-lucide="arrow-right" class="w-4 h-4"></i>
-                    </span>
-                </div>
-            </div>
-        `).join('');
+        document.getElementById('grid-sda').innerHTML = sdaItems
+            .map((item, idx) => kartuSubBidang(item, idx, 'SDA', 'Bidang SDA'))
+            .join('');
+
+        document.getElementById('grid-ckps').innerHTML = ckpsItems
+            .map((item, idx) => kartuSubBidang(item, idx, 'CKPS', 'Bidang CKPS'))
+            .join('');
 
         if (typeof lucide !== 'undefined') lucide.createIcons();
     }

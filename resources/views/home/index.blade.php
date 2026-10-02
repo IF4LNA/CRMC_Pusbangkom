@@ -15,23 +15,25 @@
         </div>
     @endif
 
-    {{-- ============ HERO ============ --}}
-    <section class="relative bg-slate-900 text-white overflow-hidden">
-        {{-- Pola dekoratif: dua lingkaran besar dengan opacity rendah,
-             supaya latar tidak terasa polos tanpa menambah berkas gambar. --}}
-        <div class="absolute -top-32 -right-32 w-[28rem] h-[28rem] bg-blue-800/20 rounded-full blur-3xl"></div>
-        <div class="absolute -bottom-40 -left-24 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl"></div>
+    {{-- ============ HERO / BANNER ============ --}}
+    <section class="relative bg-blue-950 text-white overflow-hidden">
+        {{-- Banner foto gedung PUSBANGKOM. Lapisan biru di atasnya menjaga
+             teks tetap terbaca tanpa menutupi gambar sepenuhnya. --}}
+        <img src="{{ asset('images/gedung_pusbangkom.jpg') }}"
+             alt="Gedung PUSBANGKOM"
+             class="absolute inset-0 h-full w-full object-cover object-center">
+        <div class="absolute inset-0 bg-gradient-to-r from-blue-950/95 via-blue-950/85 to-blue-900/50"></div>
 
         <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24">
             <div class="max-w-3xl">
-                <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/15 text-amber-400 text-[11px] font-bold tracking-wide uppercase mb-6">
+                <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/15 text-blue-300 text-[11px] font-bold tracking-wide uppercase mb-6">
                     <i data-lucide="shield-check" class="w-3.5 h-3.5"></i>
                     Kementerian Pekerjaan Umum
                 </span>
 
                 <h1 class="text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.1]">
                     Continuous Monitoring
-                    <span class="block text-amber-400">on Risk Control</span>
+                    <span class="block text-blue-300">on Risk Control</span>
                 </h1>
 
                 <p class="text-sm md:text-base text-slate-300 leading-relaxed mt-6 max-w-2xl">
@@ -42,7 +44,7 @@
 
                 <div class="flex flex-wrap items-center gap-3 mt-8">
                     <a href="#tentang-crmc"
-                       class="inline-flex items-center gap-2 px-5 py-3 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs rounded-xl transition shadow-sm">
+                       class="inline-flex items-center gap-2 px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl transition shadow-sm">
                         <i data-lucide="book-open" class="w-4 h-4"></i>
                         Pelajari CRMC
                     </a>
@@ -91,7 +93,7 @@
     @include('home.partials.peta')
 
     {{-- ============ CTA PENUTUP ============ --}}
-    <section class="bg-slate-900 text-white py-12">
+    <section class="bg-blue-950 text-white py-12">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div>
                 <h2 class="text-xl md:text-2xl font-extrabold tracking-tight">Siap mengisi instrumen pengendalian?</h2>
@@ -101,7 +103,7 @@
                 </p>
             </div>
             <a href="{{ route('home') }}"
-               class="inline-flex items-center justify-center gap-2 px-5 py-3 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs rounded-xl transition shadow-sm shrink-0">
+               class="inline-flex items-center justify-center gap-2 px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl transition shadow-sm shrink-0">
                 <i data-lucide="arrow-right" class="w-4 h-4"></i>
                 Masuk ke Dashboard
             </a>

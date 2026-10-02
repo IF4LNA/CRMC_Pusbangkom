@@ -10,6 +10,7 @@ use App\Models\PenugasanCrmc;
 use App\Models\TahunAnggaran;
 use App\Models\User;
 use App\Support\PenyimpananGambar;
+use App\Support\SkalaResiduRisiko;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Auth;
@@ -264,7 +265,7 @@ class CrmcController extends Controller
         }
 
         $request->validate([
-            'residu' => 'nullable|string|in:Rendah,Sedang,Tinggi',
+            'residu' => ['nullable', 'string', 'in:' . implode(',', SkalaResiduRisiko::nilaiValid())],
             'evaluasi' => 'nullable|string|max:5000',
             'tahun_pelaksanaan' => 'required|numeric|min:2000|max:2100',
         ]);
@@ -732,6 +733,10 @@ class CrmcController extends Controller
 
     /**
      * Update Status Residu Risiko (Khusus Admin - Komponen 7).
+     *
+     * Nilai yang disimpan adalah KUNCI skala (mis. "waspada_ii"), bukan
+     * label tampilan, supaya label masih bisa diubah tanpa menulis ulang
+     * data lama.
      */
     public function updateResidu(Request $request, $slug)
     {
@@ -739,8 +744,11 @@ class CrmcController extends Controller
             abort(403, 'Hanya Administrator yang dapat mengubah Status Residu Risiko.');
         }
 
+        // "residu" boleh kosong: kartu radio di modal menyediakan opsi
+        // "Belum Diisi" supaya admin bisa membatalkan status yang pernah
+        // ditetapkan, bukan hanya menggantinya.
         $request->validate([
-            'residu' => 'required|string|in:Rendah,Sedang,Tinggi',
+            'residu' => ['nullable', 'string', 'in:' . implode(',', SkalaResiduRisiko::nilaiValid())],
             'tahun_pelaksanaan' => 'required|numeric|min:2000|max:2100',
         ]);
 
@@ -748,18 +756,23 @@ class CrmcController extends Controller
         $subMenu = $this->cariSubMenuTersedia($slug);
         abort_if($subMenu === null, 404, 'Sub-bidang tidak ditemukan.');
 
+        $kunci = SkalaResiduRisiko::normalisasi($request->input('residu'));
+
         DokumenCrmc::updateOrCreate(
             [
                 'sub_menu_id' => $subMenu->id,
                 'tahun_pelaksanaan' => $request->input('tahun_pelaksanaan'),
             ],
-            [
-                'status_residu_risiko' => $request->input('residu'),
-            ]
+            ['status_residu_risiko' => $kunci]
         );
 
+        $pesan = $kunci === null
+            ? 'Status Residu Risiko tahun ' . $request->input('tahun_pelaksanaan') . ' dikosongkan kembali.'
+            : 'Status Residu Risiko berhasil diperbarui menjadi "'
+                . SkalaResiduRisiko::TINGKAT[$kunci]['label'] . '".';
+
         return redirect()->route('crmc.show', ['slug' => $slug, 'tahun' => $request->input('tahun_pelaksanaan')])
-            ->with('success', 'Status Residu Risiko berhasil diperbarui menjadi "' . $request->input('residu') . '".');
+            ->with('success', $pesan);
     }
 
     /**

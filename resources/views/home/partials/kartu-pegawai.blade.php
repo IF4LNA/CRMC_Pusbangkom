@@ -34,7 +34,7 @@
     ];
 @endphp
 
-<div class="bg-white border border-slate-200 rounded-2xl overflow-hidden hover:border-slate-300 hover:shadow-md transition relative group">
+<div class="card relative group overflow-hidden">
 
     {{-- Pita jabatan --}}
     <div class="{{ $warnaPita }} {{ $teksPita }} px-3 py-1.5 flex items-center justify-between gap-2">
@@ -44,7 +44,7 @@
         <span class="text-[9px] font-bold opacity-70 shrink-0">T{{ $meta['tingkat'] ?? '-' }}</span>
     </div>
 
-    <div class="p-4 {{ $kecil ? '' : 'sm:p-5' }}">
+    <div class="p-3.5">
 
         <div class="flex items-start gap-3">
             {{-- Foto: property foto_url sudah mengembalikan placeholder SVG
@@ -55,7 +55,7 @@
                  height="{{ $kecil ? 48 : 64 }}"
                  loading="lazy"
                  decoding="async"
-                 class="{{ $kecil ? 'w-12 h-12' : 'w-16 h-16' }} rounded-xl object-cover shrink-0 border border-slate-200 {{ $kosong ? 'opacity-40 grayscale' : '' }}">
+                 class="{{ $kecil ? 'w-12 h-12' : 'w-16 h-16' }} rounded-lg object-cover shrink-0 border border-slate-200 {{ $kosong ? 'opacity-40 grayscale' : '' }}">
 
             <div class="min-w-0 flex-1">
                 <h4 class="text-xs sm:text-sm font-bold text-slate-900 leading-tight">
@@ -63,13 +63,13 @@
                 </h4>
 
                 @if ($kosong)
-                    <p class="text-[11px] text-slate-400 italic mt-0.5">Kursi kosong</p>
+                    <p class="page-sub italic mt-0.5">Kursi kosong</p>
                 @else
                     @if ($user->nip)
                         <p class="text-[10px] text-slate-400 font-mono mt-0.5">NIP {{ $user->nip }}</p>
                     @endif
                     @if ($user->jabatan && $user->jabatan !== '-')
-                        <p class="text-[11px] text-slate-500 leading-snug mt-0.5 line-clamp-2">
+                        <p class="page-sub leading-snug mt-0.5 line-clamp-2">
                             {{ $user->jabatan }}
                         </p>
                     @endif
@@ -82,7 +82,7 @@
         </p>
 
         @if ($row->keterangan)
-            <p class="text-[11px] text-slate-500 leading-relaxed mt-2">{{ $row->keterangan }}</p>
+            <p class="page-sub leading-relaxed mt-2">{{ $row->keterangan }}</p>
         @endif
     </div>
 
@@ -93,13 +93,13 @@
             <button type="button"
                     onclick='bukaModalStruktur(@json($dataUbah))'
                     title="Ubah"
-                    class="w-7 h-7 bg-white text-blue-900 hover:bg-blue-100 rounded-lg border border-slate-200 shadow-sm flex items-center justify-center transition">
+                    class="icon-btn">
                 <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
             </button>
             <button type="button"
                     onclick="konfirmasiHapusStruktur({{ $row->id }}, @js($user?->name ?? $row->nama_jabatan))"
                     title="Hapus"
-                    class="w-7 h-7 bg-white text-rose-700 hover:bg-rose-100 rounded-lg border border-slate-200 shadow-sm flex items-center justify-center transition">
+                    class="icon-btn icon-btn-danger">
                 <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
             </button>
         </div>

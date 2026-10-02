@@ -6,64 +6,59 @@
     Assets Leaflet dimuat lewat @push('styles') dan @push('scripts') supaya
     tidak membebani halaman lain.
 --}}
-<section id="peta" class="scroll-mt-32 py-16 bg-slate-100">
+<section id="peta" class="scroll-mt-20 py-10 bg-slate-50">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
-        <div class="max-w-2xl mb-10">
-            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100 text-amber-800 text-[11px] font-bold tracking-wide uppercase mb-4">
-                <i data-lucide="map-pin" class="w-3.5 h-3.5"></i>
-                Lokasi
-            </span>
-            <h2 class="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight leading-tight">
-                Kantor Pusat PUSBANGKOM
-            </h2>
-            <p class="text-sm text-slate-600 leading-relaxed mt-3">
+        <div class="max-w-2xl mb-6">
+            <span class="eyebrow mb-2 block">Lokasi</span>
+            <h2 class="section-title">Kantor Pusat PUSBANGKOM</h2>
+            <p class="page-sub mt-2 leading-relaxed">
                 Peta interaktif menampilkan posisi kantor pusat beserta lingkungan
                 sekitarnya. Geser atau perbesar peta untuk melihat jalan
                 penghubung ke lokasi.
             </p>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-3">
 
             {{-- Panel informasi --}}
-            <div class="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm flex flex-col">
-                <h3 class="text-sm font-bold text-slate-800 mb-4">Informasi Lokasi</h3>
+            <div class="card p-4 flex flex-col">
+                <h3 class="card-title mb-3">Informasi Lokasi</h3>
 
-                <ul class="space-y-4 text-xs flex-1">
+                <ul class="space-y-3 text-xs flex-1">
                     <li class="flex items-start gap-3">
-                        <div class="w-9 h-9 rounded-xl bg-blue-100 text-blue-800 flex items-center justify-center shrink-0">
+                        <div class="w-8 h-8 rounded-md bg-blue-50 text-blue-700 flex items-center justify-center shrink-0">
                             <i data-lucide="building-2" class="w-4 h-4"></i>
                         </div>
                         <div>
-                            <p class="font-bold text-slate-700">Instansi</p>
-                            <p class="text-slate-500 leading-relaxed mt-0.5">
+                            <p class="font-semibold text-slate-700">Instansi</p>
+                            <p class="page-sub leading-relaxed mt-0.5">
                                 Pusat Sumber Daya Air dan Prasarana Wilayah III Bandung
                             </p>
                         </div>
                     </li>
 
                     <li class="flex items-start gap-3">
-                        <div class="w-9 h-9 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+                        <div class="w-8 h-8 rounded-md bg-blue-50 text-blue-700 flex items-center justify-center shrink-0">
                             <i data-lucide="map-pinned" class="w-4 h-4"></i>
                         </div>
                         <div>
-                            <p class="font-bold text-slate-700">Alamat</p>
-                            <p class="text-slate-500 leading-relaxed mt-0.5">
+                            <p class="font-semibold text-slate-700">Alamat</p>
+                            <p class="page-sub leading-relaxed mt-0.5">
                                 Jl. Padjajaran, Bandung, Jawa Barat
                             </p>
                         </div>
                     </li>
 
                     <li class="flex items-start gap-3">
-                        <div class="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                        <div class="w-8 h-8 rounded-md bg-blue-50 text-blue-700 flex items-center justify-center shrink-0">
                             <i data-lucide="crosshair" class="w-4 h-4"></i>
                         </div>
                         <div class="min-w-0">
-                            <p class="font-bold text-slate-700">Koordinat</p>
+                            <p class="font-semibold text-slate-700">Koordinat</p>
                             {{-- $koordinatDms sudah berupa entitas HTML, jadi
                                  dicetak apa adanya tanpa escaping. --}}
-                            <p class="text-slate-500 mt-0.5 font-mono text-[11px] break-all">
+                            <p class="page-sub mt-0.5 font-mono text-[11px] break-all">
                                 {!! $koordinatDms !!}
                             </p>
                             <p class="text-slate-400 font-mono text-[10px] mt-0.5">
@@ -73,21 +68,21 @@
                     </li>
 
                     <li class="flex items-start gap-3">
-                        <div class="w-9 h-9 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center shrink-0">
+                        <div class="w-8 h-8 rounded-md bg-blue-50 text-blue-700 flex items-center justify-center shrink-0">
                             <i data-lucide="phone" class="w-4 h-4"></i>
                         </div>
                         <div>
-                            <p class="font-bold text-slate-700">Telepon</p>
-                            <p class="text-slate-500 mt-0.5">(022) 4203113</p>
+                            <p class="font-semibold text-slate-700">Telepon</p>
+                            <p class="page-sub mt-0.5">(022) 4203113</p>
                         </div>
                     </li>
 
                     <li class="flex items-start gap-3">
-                        <div class="w-9 h-9 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center shrink-0">
+                        <div class="w-8 h-8 rounded-md bg-blue-50 text-blue-700 flex items-center justify-center shrink-0">
                             <i data-lucide="mail" class="w-4 h-4"></i>
                         </div>
                         <div class="min-w-0">
-                            <p class="font-bold text-slate-700">Email</p>
+                            <p class="font-semibold text-slate-700">Email</p>
                             <a href="mailto:pusbangkom@pu.go.id"
                                class="text-blue-700 hover:text-blue-900 hover:underline break-all">
                                 pusbangkom@pu.go.id
@@ -96,8 +91,7 @@
                     </li>
                 </ul>
 
-                <a href="{{ $tautanPeta }}" target="_blank" rel="noopener noreferrer"
-                   class="mt-6 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs rounded-xl transition shadow-sm">
+                <a href="{{ $tautanPeta }}" target="_blank" rel="noopener noreferrer" class="btn btn-primary mt-4">
                     <i data-lucide="external-link" class="w-4 h-4"></i>
                     Buka di Google Maps
                 </a>
@@ -105,7 +99,7 @@
 
             {{-- Peta --}}
             <div class="lg:col-span-2">
-                <div class="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm h-full flex flex-col">
+                <div class="card overflow-hidden h-full flex flex-col">
                     {{-- id dipakai oleh JS di bawah untuk menginisialisasi Leaflet. --}}
                     <div id="petaCrmc"
                          class="w-full flex-1 min-h-[320px] md:min-h-[480px] bg-slate-200"
@@ -113,7 +107,7 @@
                          data-lng="{{ $longitude }}"
                          data-nama="PUSBANGKOM ACP"></div>
 
-                    <div class="px-5 py-3 border-t border-slate-200 flex flex-wrap items-center justify-between gap-2">
+                    <div class="px-4 py-2.5 border-t border-slate-200 flex flex-wrap items-center justify-between gap-2">
                         <p class="text-[10px] text-slate-400 flex items-center gap-1.5">
                             <i data-lucide="layers" class="w-3.5 h-3.5"></i>
                             Peta dasar dari OpenStreetMap
@@ -159,7 +153,7 @@
             '<svg viewBox="0 0 24 24" width="34" height="34" fill="none"',
             '     xmlns="http://www.w3.org/2000/svg">',
             '  <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"',
-            '        fill="#f59e0b" stroke="#1e293b" stroke-width="1.5"/>',
+            '        fill="#2563eb" stroke="#1e293b" stroke-width="1.5"/>',
             '  <circle cx="12" cy="9" r="2.8" fill="#0f172a"/>',
             '</svg>',
         ].join('');

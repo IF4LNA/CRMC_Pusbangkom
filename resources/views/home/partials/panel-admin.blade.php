@@ -9,36 +9,33 @@
 @endphp
 
 {{-- ===================== MODAL STRUKTUR ORGANISASI ===================== --}}
-<div id="modalStruktur" class="hidden fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm p-4 overflow-y-auto">
-    <div class="min-h-full flex items-start sm:items-center justify-center">
-        <div class="w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden my-8">
-
-            {{-- Header --}}
-            <div class="bg-slate-900 text-white px-6 py-4 flex items-center justify-between gap-3">
-                <div>
-                    <h3 class="text-sm font-extrabold" id="judulModalStruktur">Tambah Peran</h3>
-                    <p class="text-[11px] text-slate-400 mt-0.5" id="subjudulModalStruktur">
-                        Susunan jabatan pada org chart CRMC
-                    </p>
-                </div>
-                <button onclick="tutupModalStruktur()" title="Tutup"
-                        class="w-8 h-8 bg-slate-800 hover:bg-slate-700 rounded-lg flex items-center justify-center transition shrink-0">
-                    <i data-lucide="x" class="w-4 h-4"></i>
-                </button>
+<div id="modalStruktur" class="modal hidden">
+    <div class="modal-card !max-w-lg">
+        <div class="modal-head">
+            <div>
+                <h3 class="modal-title" id="judulModalStruktur">Tambah Peran</h3>
+                <p class="page-sub mt-0.5" id="subjudulModalStruktur">
+                    Susunan jabatan pada org chart CRMC
+                </p>
             </div>
+            <button onclick="tutupModalStruktur()" title="Tutup" class="icon-btn shrink-0">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+        </div>
 
-            <form id="formStruktur"
-                  action="{{ route('admin.beranda.struktur.simpan') }}"
-                  method="POST"
-                  class="p-6 space-y-4">
+        <form id="formStruktur"
+              action="{{ route('admin.beranda.struktur.simpan') }}"
+              method="POST"
+              class="flex-1 flex flex-col min-h-0">
+            <div class="modal-body space-y-3">
                 @csrf
                 {{-- Diisi lewat JS saat menyunting supaya tidak perlu membuat
                      form terpisah per mode. --}}
                 <input type="hidden" name="_method" id="metodeStruktur" value="">
 
                 {{-- Pesan validasi --}}
-                <div id="errorStruktur" class="hidden bg-rose-50 border border-rose-200 rounded-xl p-3">
-                    <p class="text-[11px] font-bold text-rose-800 flex items-center gap-1.5">
+                <div id="errorStruktur" class="hidden note !border-rose-200 !bg-rose-50 !text-rose-800">
+                    <p class="text-[11px] font-bold flex items-center gap-1.5">
                         <i data-lucide="alert-circle" class="w-3.5 h-3.5"></i>
                         Periksa kembali isian berikut
                     </p>
@@ -46,83 +43,73 @@
                 </div>
 
                 <div>
-                    <label class="block text-[11px] font-bold text-slate-700 mb-1.5">Peran</label>
-                    <select name="peran" id="inputPeran" required
-                            onchange="peranBerubah()"
-                            class="w-full px-3 py-2.5 text-sm rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-amber-500">
+                    <label class="label" for="inputPeran">Peran</label>
+                    <select name="peran" id="inputPeran" required onchange="peranBerubah()" class="input">
                         @foreach (\App\Models\StrukturOrganisasi::PERAN as $key => $meta)
                             <option value="{{ $key }}">{{ $meta['label'] }} (Tingkat {{ $meta['tingkat'] }})</option>
                         @endforeach
                     </select>
-                    <p class="text-[10px] text-slate-500 mt-1" id="petunjukPeran">
+                    <p class="hint" id="petunjukPeran">
                         Berlaku untuk seluruh CRMC, tidak perlu memilih bidang.
                     </p>
                 </div>
 
                 <div>
-                    <label class="block text-[11px] font-bold text-slate-700 mb-1.5">
-                        Label Jabatan <span class="text-rose-500">*</span>
-                    </label>
+                    <label class="label" for="inputJabatan">Label Jabatan <span class="text-rose-500">*</span></label>
                     <input type="text" name="nama_jabatan" id="inputJabatan" required maxlength="150"
                            placeholder="mis. Pengendali Mutu Bidang SDA"
-                           class="w-full px-3 py-2.5 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-amber-500">
-                    <p class="text-[10px] text-slate-500 mt-1">
+                           class="input">
+                    <p class="hint">
                         Teks yang tampil pada pita kartu. Boleh dibedakan dari peran
                         di atas bila perlu menyebut bidang tertentu.
                     </p>
                 </div>
 
                 <div>
-                    <label class="block text-[11px] font-bold text-slate-700 mb-1.5">Bidang</label>
-                    <select name="bidang_id" id="inputBidang"
-                            class="w-full px-3 py-2.5 text-sm rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-amber-500">
+                    <label class="label" for="inputBidang">Bidang</label>
+                    <select name="bidang_id" id="inputBidang" class="input">
                         <option value="">-- Tanpa Bidang (Seluruh CRMC) --</option>
                         @foreach ($daftarBidang as $b)
                             <option value="{{ $b->id }}">{{ $b->nama_bidang }}</option>
                         @endforeach
                     </select>
-                    <p class="text-[10px] text-slate-500 mt-1" id="petunjukBidang">
+                    <p class="hint" id="petunjukBidang">
                         Wajib dipilih untuk Pengendali Mutu dan Pengendali Risiko.
                     </p>
                 </div>
 
                 <div>
-                    <label class="block text-[11px] font-bold text-slate-700 mb-1.5">Pegawai</label>
-                    <select name="user_id" id="inputUser"
-                            class="w-full px-3 py-2.5 text-sm rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-amber-500">
+                    <label class="label" for="inputUser">Pegawai</label>
+                    <select name="user_id" id="inputUser" class="input">
                         <option value="">-- Belum Ditunjuk --</option>
                         @foreach ($daftarUserJson as $u)
                             <option value="{{ $u->id }}">{{ $u->name }}{{ $u->nip ? ' - ' . $u->nip : '' }}</option>
                         @endforeach
                     </select>
-                    <p class="text-[10px] text-slate-500 mt-1">
+                    <p class="hint">
                         Boleh dikosongkan. Kartu akan tampil sebagai "Belum Ditunjuk"
                         supaya kursinya terlihat di org chart.
                     </p>
                 </div>
 
                 <div>
-                    <label class="block text-[11px] font-bold text-slate-700 mb-1.5">Keterangan</label>
+                    <label class="label" for="inputKeterangan">Keterangan</label>
                     <textarea name="keterangan" id="inputKeterangan" rows="2" maxlength="500"
                               placeholder="Tugas atau ruang lingkup jabatan (opsional)"
-                              class="w-full px-3 py-2.5 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-amber-500 resize-y"></textarea>
+                              class="input"></textarea>
                 </div>
 
                 <input type="hidden" name="urutan" id="inputUrutan" value="0">
+            </div>
 
-                <div class="flex items-center gap-2 pt-2">
-                    <button type="submit"
-                            class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs rounded-xl transition shadow-sm">
-                        <i data-lucide="check" class="w-4 h-4"></i>
-                        <span id="labelTombolStruktur">Simpan</span>
-                    </button>
-                    <button type="button" onclick="tutupModalStruktur()"
-                            class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition">
-                        Batal
-                    </button>
-                </div>
-            </form>
-        </div>
+            <div class="modal-foot">
+                <button type="button" onclick="tutupModalStruktur()" class="btn btn-quiet">Batal</button>
+                <button type="submit" class="btn btn-primary">
+                    <i data-lucide="check" class="w-4 h-4"></i>
+                    <span id="labelTombolStruktur">Simpan</span>
+                </button>
+            </div>
+        </form>
     </div>
 </div>
 
@@ -134,33 +121,31 @@
 </form>
 
 {{-- ===================== MODAL GALERI ===================== --}}
-<div id="modalGaleri" class="hidden fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm p-4 overflow-y-auto">
-    <div class="min-h-full flex items-start sm:items-center justify-center">
-        <div class="w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden my-8">
-
-            <div class="bg-slate-900 text-white px-6 py-4 flex items-center justify-between gap-3">
-                <div>
-                    <h3 class="text-sm font-extrabold" id="judulModalGaleri">Unggah Gambar</h3>
-                    <p class="text-[11px] text-slate-400 mt-0.5" id="subjudulModalGaleri">
-                        Sarana dan prasarana untuk carousel Beranda
-                    </p>
-                </div>
-                <button onclick="tutupModalGaleri()" title="Tutup"
-                        class="w-8 h-8 bg-slate-800 hover:bg-slate-700 rounded-lg flex items-center justify-center transition shrink-0">
-                    <i data-lucide="x" class="w-4 h-4"></i>
-                </button>
+<div id="modalGaleri" class="modal hidden">
+    <div class="modal-card !max-w-lg">
+        <div class="modal-head">
+            <div>
+                <h3 class="modal-title" id="judulModalGaleri">Unggah Gambar</h3>
+                <p class="page-sub mt-0.5" id="subjudulModalGaleri">
+                    Sarana dan prasarana untuk carousel Beranda
+                </p>
             </div>
+            <button onclick="tutupModalGaleri()" title="Tutup" class="icon-btn shrink-0">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+        </div>
 
-            <form id="formGaleri"
-                  action="{{ route('admin.beranda.galeri.simpan') }}"
-                  method="POST"
-                  enctype="multipart/form-data"
-                  class="p-6 space-y-4">
+        <form id="formGaleri"
+              action="{{ route('admin.beranda.galeri.simpan') }}"
+              method="POST"
+              enctype="multipart/form-data"
+              class="flex-1 flex flex-col min-h-0">
+            <div class="modal-body space-y-3">
                 @csrf
                 <input type="hidden" name="_method" id="metodeGaleri" value="">
 
-                <div id="errorGaleri" class="hidden bg-rose-50 border border-rose-200 rounded-xl p-3">
-                    <p class="text-[11px] font-bold text-rose-800 flex items-center gap-1.5">
+                <div id="errorGaleri" class="hidden note !border-rose-200 !bg-rose-50 !text-rose-800">
+                    <p class="text-[11px] font-bold flex items-center gap-1.5">
                         <i data-lucide="alert-circle" class="w-3.5 h-3.5"></i>
                         Periksa kembali isian berikut
                     </p>
@@ -168,46 +153,38 @@
                 </div>
 
                 <div>
-                    <label class="block text-[11px] font-bold text-slate-700 mb-1.5">
-                        File Gambar <span class="text-rose-500" id="tandaWajibGambar">*</span>
-                    </label>
+                    <label class="label" for="inputGambar">File Gambar <span class="text-rose-500" id="tandaWajibGambar">*</span></label>
                     <input type="file" name="gambar" id="inputGambar" accept="image/jpeg,image/png,image/webp"
-                           class="w-full text-[11px] text-slate-600 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:bg-slate-100 file:hover:bg-slate-200 file:text-[11px] file:font-bold file:text-slate-700 cursor-pointer border border-slate-300 rounded-xl p-1.5 focus:outline-none focus:ring-2 focus:ring-amber-500">
-                    <p class="text-[10px] text-slate-500 mt-1" id="petunjukGambar">
+                           class="w-full text-[11px] text-slate-600 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:bg-slate-100 file:hover:bg-slate-200 file:text-[11px] file:font-bold file:text-slate-700 cursor-pointer border border-slate-300 rounded-lg p-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <p class="hint" id="petunjukGambar">
                         JPG, PNG, atau WebP. Maksimal 4 MB. Gambar otomatis diperkecil
                         ke ukuran yang tetap tajam supaya halaman ringan.
                     </p>
                 </div>
 
                 <div>
-                    <label class="block text-[11px] font-bold text-slate-700 mb-1.5">
-                        Judul <span class="text-rose-500">*</span>
-                    </label>
+                    <label class="label" for="inputJudul">Judul <span class="text-rose-500">*</span></label>
                     <input type="text" name="judul" id="inputJudul" required maxlength="150"
                            placeholder="mis. Ruang Rapat Bidang SDA"
-                           class="w-full px-3 py-2.5 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-amber-500">
+                           class="input">
                 </div>
 
                 <div>
-                    <label class="block text-[11px] font-bold text-slate-700 mb-1.5">Keterangan</label>
+                    <label class="label" for="inputKeteranganGaleri">Keterangan</label>
                     <textarea name="keterangan" id="inputKeteranganGaleri" rows="2" maxlength="500"
                               placeholder="Deskripsi singkat (opsional)"
-                              class="w-full px-3 py-2.5 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-amber-500 resize-y"></textarea>
+                              class="input"></textarea>
                 </div>
+            </div>
 
-                <div class="flex items-center gap-2 pt-2">
-                    <button type="submit"
-                            class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs rounded-xl transition shadow-sm">
-                        <i data-lucide="check" class="w-4 h-4"></i>
-                        <span id="labelTombolGaleri">Unggah</span>
-                    </button>
-                    <button type="button" onclick="tutupModalGaleri()"
-                            class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition">
-                        Batal
-                    </button>
-                </div>
-            </form>
-        </div>
+            <div class="modal-foot">
+                <button type="button" onclick="tutupModalGaleri()" class="btn btn-quiet">Batal</button>
+                <button type="submit" class="btn btn-primary">
+                    <i data-lucide="check" class="w-4 h-4"></i>
+                    <span id="labelTombolGaleri">Unggah</span>
+                </button>
+            </div>
+        </form>
     </div>
 </div>
 
