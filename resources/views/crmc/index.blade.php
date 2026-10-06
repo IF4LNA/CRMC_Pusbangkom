@@ -39,64 +39,22 @@
         @include('crmc.partials.tab-dasar-hukum')
     </div>
 
-    <div id="tab-umum-tu" class="tab-content hidden">
-        @include('crmc.partials.tab-umum-tu')
-    </div>
-
-    <div id="tab-sda" class="tab-content hidden">
-        @include('crmc.partials.tab-sda')
-    </div>
-
-    <div id="tab-ckps" class="tab-content hidden">
-        @include('crmc.partials.tab-ckps')
-    </div>
-
+    {{-- Satu tab per bidang. Daftar bidang dibaca dari tabel `bidang`,
+         sehingga bidang baru otomatis muncul di sini tanpa perubahan kode. --}}
+    @foreach ($daftarBidang as $bidang)
+        <div id="tab-bidang-{{ $bidang->id }}" class="tab-content hidden">
+            @include('crmc.partials.tab-bidang', ['bidang' => $bidang])
+        </div>
+    @endforeach
 </main>
 @endsection
 
 @section('modals')
-    @include('crmc.components.crmc-modal')
     @include('crmc.components.admin-settings-modal')
+
+    {{-- Modal tambah/ubah sub-bidang hanya dirender untuk admin. Rutenya
+         sendiri tetap memeriksa ulang peran admin di server. --}}
+    @if ($isAdmin)
+        @include('crmc.components.modal-sub-bidang')
+    @endif
 @endsection
-
-@push('scripts')
-<script>
-    // Semua grid memakai markup yang sama supaya konsisten. Warna tidak
-    // dibedakan per bidang lagi: satu aksen biru untuk semuanya.
-    function kartuSubBidang(item, idx, prefiks, parent) {
-        return `
-            <div onclick="navigateToCRMC('${item}')" class="card click-card p-3 flex flex-col justify-between gap-3 min-h-[7rem]">
-                <div class="flex items-start justify-between gap-2">
-                    <span class="badge">${prefiks} #${idx + 1}</span>
-                    <button onclick="event.stopPropagation(); openCRMCModal('${item}', '${parent}')" title="Form Input / Edit" class="icon-btn">
-                        <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
-                    </button>
-                </div>
-                <h4 class="text-xs sm:text-sm font-semibold text-slate-800 leading-snug line-clamp-2">${item}</h4>
-                <div class="flex items-center justify-between border-t border-slate-200 pt-2 text-[11px] text-slate-500">
-                    <span class="badge badge-ok">8 Komponen</span>
-                    <span class="inline-flex items-center gap-0.5 text-slate-700 font-medium">
-                        Buka <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
-                    </span>
-                </div>
-            </div>
-        `;
-    }
-
-    function renderBentoGrids() {
-        document.getElementById('grid-umum-tu').innerHTML = umumTuItems
-            .map((item, idx) => kartuSubBidang(item, idx, 'SUB', 'Bagian Umum & Tata Usaha'))
-            .join('');
-
-        document.getElementById('grid-sda').innerHTML = sdaItems
-            .map((item, idx) => kartuSubBidang(item, idx, 'SDA', 'Bidang SDA'))
-            .join('');
-
-        document.getElementById('grid-ckps').innerHTML = ckpsItems
-            .map((item, idx) => kartuSubBidang(item, idx, 'CKPS', 'Bidang CKPS'))
-            .join('');
-
-        if (typeof lucide !== 'undefined') lucide.createIcons();
-    }
-</script>
-@endpush

@@ -87,29 +87,74 @@
     </div>
 
     <!-- STATS -->
+    {{-- Angka di sini selalu untuk seluruh pegawai, bukan hasil pencarian,
+         supaya tetap bisa dipakai sebagai pembanding. --}}
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div class="stat">
             <p class="stat-label">Total Pegawai</p>
-            <p class="stat-value">{{ $users->count() }}</p>
+            <p class="stat-value">{{ $totalPegawai }}</p>
         </div>
         <div class="stat">
             <p class="stat-label">Administrator</p>
-            <p class="stat-value">{{ $users->where('role', 'admin')->count() }}</p>
+            <p class="stat-value">{{ $totalAdmin }}</p>
         </div>
         <div class="stat">
             <p class="stat-label">Pegawai</p>
-            <p class="stat-value">{{ $users->where('role', 'pegawai')->count() }}</p>
+            <p class="stat-value">{{ $totalPegawaiRole }}</p>
         </div>
     </div>
 
     <!-- TABLE PEGAWAI -->
     <div class="card overflow-hidden">
-        <div class="card-head">
+        <div class="card-head flex-col sm:flex-row sm:items-center justify-between gap-3">
             <h2 class="card-title flex items-center gap-1.5">
                 <i data-lucide="list" class="w-4 h-4 text-slate-400"></i>
                 Daftar Seluruh Akun Pegawai
+                <span class="badge">{{ $users->count() }} dari {{ $totalPegawai }}</span>
             </h2>
+
+            {{-- Pencarian dikirim lewat GET supaya bisa ditandai, dibagikan,
+                 dan tetap bekerja tanpa JavaScript. --}}
+            <form method="GET" action="{{ route('admin.pegawai.index') }}"
+                  class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
+                <div class="relative flex-1 sm:w-64">
+                    <input type="search" name="q" value="{{ $kataKunci }}"
+                           placeholder="Cari nama, NIP, jabatan, email..."
+                           aria-label="Cari pegawai"
+                           class="input pl-8">
+                    <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-2.5 top-2.5"></i>
+                </div>
+
+                <select name="peran" aria-label="Saring berdasarkan role" class="input sm:w-40">
+                    <option value="">Semua Role</option>
+                    <option value="pegawai" {{ $peran === 'pegawai' ? 'selected' : '' }}>Pegawai</option>
+                    <option value="admin" {{ $peran === 'admin' ? 'selected' : '' }}>Administrator</option>
+                </select>
+
+                <button type="submit" class="btn btn-primary shrink-0">
+                    <i data-lucide="search" class="w-3.5 h-3.5"></i>
+                    Cari
+                </button>
+
+                @if ($kataKunci !== '' || $peran !== '')
+                    <a href="{{ route('admin.pegawai.index') }}" class="btn btn-quiet shrink-0" title="Reset pencarian">
+                        <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                        Reset
+                    </a>
+                @endif
+            </form>
         </div>
+
+        @if ($users->isEmpty())
+            <div class="empty">
+                <i data-lucide="search-x" class="w-7 h-7 text-slate-300 mx-auto mb-2"></i>
+                <p class="font-semibold text-slate-600">Tidak ada pegawai yang cocok</p>
+                <p class="text-[11px] text-slate-400 mt-1 max-w-md mx-auto leading-relaxed">
+                    Coba kata kunci lain, atau tekan Reset untuk melihat seluruh pegawai.
+                </p>
+            </div>
+        @endif
+
         <div class="overflow-x-auto">
             <table class="tbl">
                 <thead>

@@ -62,14 +62,15 @@
                     @endguest
                 </div>
 
-                {{-- Angka ringkas --}}
+                {{-- Angka ringkas. Semua dihitung dari data nyata; tidak ada
+                     angka dummy yang harus dijaga manual. --}}
                 <dl class="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-12 max-w-2xl">
                     @php
                         $ringkasan = [
                             ['3', 'Tujuan Utama', 'target'],
                             ['8', 'Komponen', 'layers'],
-                            [count($pengendaliMutu), 'Pengendali Mutu', 'badge-check'],
-                            [count($pengendaliRisiko), 'Pengendali Risiko', 'shield-check'],
+                            [(string) $jumlahSubBidang, 'Sub-Bidang', 'layers-2'],
+                            [(string) $jumlahSop, 'Dokumen SOP', 'book-open-text'],
                         ];
                     @endphp
                     @foreach ($ringkasan as $r)

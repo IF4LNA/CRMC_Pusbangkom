@@ -1,28 +1,13 @@
 {{--
-    Bagian "Struktur Organisasi": org chart dari Pemilik Risiko di puncak,
-    Pengendali Mutu per bidang di tengah, sampai Pengendali Risiko di bawah
-    masing-masing bidang. Data diambil dari tabel `struktur_organisasi` yang
-    dikelola admin lewat panel di `home/panel-admin.blade.php`.
+    Section "Struktur Organisasi" pada halaman Beranda.
+
+    Isinya satu gambar bagan yang diunggah admin, bukan lagi daftar kartu
+    orang hasil input manual. Karena itu tabel `struktur_organisasi` tidak
+    lagi dipakai di halaman ini: yang aktif hanyalah baris terbaru pada
+    tabel `gambar_struktur` (lihat HomeController::simpanGambarStruktur).
 --}}
 @php
     $bisaKelola = Auth::check() && Auth::user()->isAdmin();
-
-    // Pengendali risiko yang tidak punya bidang, atau bidangnya belum punya
-    // pengendali mutu. Ditampilkan terpisah supaya tidak ada yang hilang
-    // diam-diam dari org chart.
-    $bidangTerpakai = $pengendaliMutu->pluck('bidang_id')->filter()->all();
-    $risikoTersisa = $pengendaliRisiko->filter(
-        fn($r) => $r->bidang_id === null || !in_array($r->bidang_id, $bidangTerpakai)
-    );
-
-    // Warna pita per tingkat, dipakai bersama oleh kartu dan garis
-    // penghubung supaya konsisten. Semua pita memakai nuansa biru
-    // agar tema visual tetap satu warna.
-    $pita = [
-        'pemilik_risiko' => ['bg-blue-900', 'text-blue-100'],
-        'pengendali_mutu' => ['bg-blue-700', 'text-white'],
-        'pengendali_risiko' => ['bg-blue-500', 'text-white'],
-    ];
 @endphp
 
 <section id="struktur-organisasi" class="scroll-mt-20 py-10 bg-slate-50">
@@ -32,7 +17,7 @@
         <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-3 mb-6">
             <div class="max-w-2xl">
                 <span class="eyebrow mb-2 block">Struktur Organisasi</span>
-                <h2 class="section-title">Rantai Tanggung Jawab Pengendalian Risiko</h2>
+                <h2 class="section-title">Bagan Rantai Tanggung Jawab Pengendalian Risiko</h2>
                 <p class="page-sub mt-2 leading-relaxed">
                     Preventive control dijalankan berjenjang. Pemilik Risiko
                     bertanggung jawab atas seluruh CRMC, setiap bidang memiliki satu
@@ -42,158 +27,36 @@
             </div>
 
             @if ($bisaKelola)
-                <button onclick="bukaModalStruktur()" class="btn btn-dark shrink-0">
-                    <i data-lucide="plus-circle" class="w-4 h-4"></i>
-                    Tambah Peran
-                </button>
+                <div class="flex flex-wrap items-center gap-2 shrink-0">
+                    <button type="button" form="formGambarStruktur"
+                            class="btn btn-dark">
+                        <i data-lucide="upload" class="w-4 h-4"></i>
+                        {{ $gambarStruktur ? 'Ganti Gambar' : 'Unggah Gambar' }}
+                    </button>
+
+                    @if ($gambarStruktur)
+                        <button type="submit" form="formHapusGambarStruktur"
+                                class="btn btn-danger">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            Hapus
+                        </button>
+                    @endif
+                </div>
             @endif
         </div>
 
-        @if ($pemilikRisiko->isEmpty() && $pengendaliMutu->isEmpty() && $pengendaliRisiko->isEmpty())
-            {{-- Empty state --}}
-            <div class="empty">
-                <i data-lucide="users" class="w-7 h-7 text-slate-300 mx-auto mb-2"></i>
-                <p class="font-semibold text-slate-600">Belum Ada Struktur Organisasi</p>
-                <p class="text-[11px] text-slate-400 mt-1 max-w-md mx-auto leading-relaxed">
-                    @if ($bisaKelola)
-                        Tambahkan pemilik risiko, pengendali mutu, dan pengendali
-                        risiko melalui tombol "Tambah Peran" di atas. Susunannya akan
-                        langsung tampil sebagai org chart.
-                    @else
-                        Data struktur organisasi belum diisi oleh administrator.
-                    @endif
-                </p>
-            </div>
-        @else
+        {{-- Bagan --}}
+        @if ($gambarStruktur)
+            <figure class="card p-3 sm:p-4">
+                <img src="{{ $gambarStruktur->url }}"
+                     alt="Bagan struktur organisasi PUSBANGKOM"
+                     loading="lazy" decoding="async"
+                     class="w-full rounded-lg border border-slate-200 bg-white">
 
-            {{-- ===================== ORG CHART ===================== --}}
-            <div class="space-y-4">
-
-                {{-- ---------- TINGKAT 1: PEMILIK RISIKO ---------- --}}
-                @if ($pemilikRisiko->isNotEmpty())
-                    <div class="card p-4 sm:p-5">
-                        <div class="flex flex-wrap items-center gap-2 mb-4">
-                            <span class="badge badge-accent">Tingkat 1</span>
-                            <h3 class="card-title">Pemilik Risiko</h3>
-                            <span class="page-sub">
-                                Penanggung jawab atas seluruh pengendalian risiko CRMC
-                            </span>
-                        </div>
-
-                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                            @foreach ($pemilikRisiko as $row)
-                                @include('home.partials.kartu-pegawai', [
-                                    'row' => $row,
-                                    'peran' => 'pemilik_risiko',
-                                    'pita' => $pita,
-                                    'bisaKelola' => $bisaKelola,
-                                    'subjudul' => 'Seluruh CRMC',
-                                ])
-                            @endforeach
-                        </div>
-                    </div>
+                @if ($gambarStruktur->keterangan)
+                    <figcaption class="page-sub mt-3 text-center">{{ $gambarStruktur->keterangan }}</figcaption>
                 @endif
-
-                {{-- ---------- TINGKAT 2: PENGENDALI MUTU ---------- --}}
-                @if ($pengendaliMutu->isNotEmpty())
-                    @php $mutuPerBidang = $pengendaliMutu->groupBy('bidang_id'); @endphp
-
-                    <div class="space-y-4">
-                        @foreach ($mutuPerBidang as $bidangId => $daftarMutu)
-                            @php
-                                $namaBidang = $daftarMutu->first()->bidang?->nama_bidang ?? 'Tanpa Bidang';
-                                $risikoBidang = $risikoPerBidang->get($bidangId, collect());
-                            @endphp
-
-                            <div class="card">
-                                {{-- Pita nama bidang --}}
-                                <div class="card-head flex flex-wrap items-center gap-2 !bg-blue-950 !border-blue-900 text-white">
-                                    <i data-lucide="landmark" class="w-4 h-4 text-blue-400"></i>
-                                    <span class="text-xs font-semibold">{{ $namaBidang }}</span>
-                                    <span class="ml-auto flex items-center gap-2">
-                                        <span class="badge !bg-blue-900 !text-blue-100">{{ $daftarMutu->count() }} pengendali mutu</span>
-                                        <span class="badge !bg-blue-900 !text-blue-100">{{ $risikoBidang->count() }} pengendali risiko</span>
-                                    </span>
-                                </div>
-
-                                <div class="p-4 sm:p-5">
-                                    <div class="flex flex-wrap items-center gap-2 mb-4">
-                                        <span class="badge badge-accent">Tingkat 2</span>
-                                        <span class="text-xs font-semibold text-slate-700">Pengendali Mutu</span>
-                                        <span class="page-sub">
-                                            Menjamin kualitas pengendalian risiko di {{ $namaBidang }}
-                                        </span>
-                                    </div>
-
-                                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                                        @foreach ($daftarMutu as $row)
-                                            @include('home.partials.kartu-pegawai', [
-                                                'row' => $row,
-                                                'peran' => 'pengendali_mutu',
-                                                'pita' => $pita,
-                                                'bisaKelola' => $bisaKelola,
-                                                'subjudul' => $namaBidang,
-                                            ])
-                                        @endforeach
-                                    </div>
-
-                                    {{-- Tim pengendali risiko di bawah bidang ini --}}
-                                    @if ($risikoBidang->isNotEmpty())
-                                        <div class="mt-4 p-3.5 bg-blue-50 border border-blue-100 rounded-lg">
-                                            <div class="flex flex-wrap items-center gap-2 mb-3">
-                                                <span class="badge badge-accent">Tingkat 3</span>
-                                                <span class="text-xs font-semibold text-blue-900">
-                                                    Tim Pengendali Risiko
-                                                </span>
-                                                <span class="page-sub">
-                                                    Melaksanakan pengendalian harian di {{ $namaBidang }}
-                                                </span>
-                                            </div>
-                                            <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-                                                @foreach ($risikoBidang as $row)
-                                                    @include('home.partials.kartu-pegawai', [
-                                                        'row' => $row,
-                                                        'peran' => 'pengendali_risiko',
-                                                        'pita' => $pita,
-                                                        'bisaKelola' => $bisaKelola,
-                                                        'subjudul' => $namaBidang,
-                                                        'kecil' => true,
-                                                    ])
-                                                @endforeach
-                                            </div>
-                                        </div>
-                                    @endif
-                                </div>
-                            </div>
-                        @endforeach
-                    </div>
-                @endif
-
-                {{-- ---------- PENGENDALI RISIKO YANG BELUM BERGANTUNG MUTU ---------- --}}
-                @if ($risikoTersisa->isNotEmpty())
-                    <div class="card p-4 sm:p-5">
-                        <div class="flex flex-wrap items-center gap-2 mb-4">
-                            <span class="badge badge-accent">Tingkat 3</span>
-                            <h3 class="card-title">Pengendali Risiko Belum Ditempatkan</h3>
-                            <span class="page-sub">
-                                Belum berada di bawah pengendali mutu bidang mana pun
-                            </span>
-                        </div>
-                        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-                            @foreach ($risikoTersisa as $row)
-                                @include('home.partials.kartu-pegawai', [
-                                    'row' => $row,
-                                    'peran' => 'pengendali_risiko',
-                                    'pita' => $pita,
-                                    'bisaKelola' => $bisaKelola,
-                                    'subjudul' => $row->bidang?->nama_bidang ?? 'Seluruh CRMC',
-                                    'kecil' => true,
-                                ])
-                            @endforeach
-                        </div>
-                    </div>
-                @endif
-            </div>
+            </figure>
 
             {{-- Penjelasan singkat tiap tingkat --}}
             <div class="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -228,6 +91,96 @@
                     </div>
                 @endforeach
             </div>
+        @else
+            {{-- Empty state --}}
+            <div class="empty">
+                <i data-lucide="image-plus" class="w-7 h-7 text-slate-300 mx-auto mb-2"></i>
+                <p class="font-semibold text-slate-600">Bagan Belum Diunggah</p>
+                <p class="text-[11px] text-slate-400 mt-1 max-w-md mx-auto leading-relaxed">
+                    @if ($bisaKelola)
+                        Klik "Unggah Gambar" di atas untuk memasang gambar bagan
+                        struktur organisasi. Format JPG, PNG, atau WebP, maksimal 4 MB.
+                    @else
+                        Bagan struktur organisasi belum diunggah oleh administrator.
+                    @endif
+                </p>
+            </div>
         @endif
     </div>
+
+    {{-- ============ FORM UNGGAH GAMBAR STRUKTUR (khusus admin) ============ --}}
+    @if ($bisaKelola)
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4">
+            <form id="formGambarStruktur"
+                  action="{{ route('admin.beranda.struktur.gambar.simpan') }}"
+                  method="POST"
+                  enctype="multipart/form-data"
+                  class="card p-4 grid grid-cols-1 sm:grid-cols-[1fr_16rem_auto] gap-3 items-end">
+                @csrf
+
+                @if ($errors->any())
+                    <div class="sm:col-span-3 note !border-rose-200 !bg-rose-50 !text-rose-800">
+                        <p class="text-[11px] font-bold flex items-center gap-1.5">
+                            <i data-lucide="alert-circle" class="w-3.5 h-3.5"></i>
+                            Periksa kembali isian berikut
+                        </p>
+                        <ul class="mt-1.5 space-y-0.5 text-[11px] text-rose-700">
+                            @foreach ($errors->all() as $pesan)
+                                <li>{{ $pesan }}</li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endif
+
+                <div>
+                    <label class="label" for="strukturGambar">
+                        File Gambar <span class="text-rose-500">*</span>
+                    </label>
+                    <input type="file" name="gambar" id="strukturGambar" required
+                           accept="image/jpeg,image/png,image/webp"
+                           class="w-full text-[11px] text-slate-600 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:bg-slate-100 file:hover:bg-slate-200 file:text-[11px] file:font-bold file:text-slate-700 cursor-pointer border border-slate-300 rounded-lg p-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <p class="hint">
+                        JPG, PNG, atau WebP. Maksimal 4 MB. Gambar otomatis
+                        diperkecil ke ukuran yang tetap tajam supaya halaman ringan.
+                    </p>
+                </div>
+
+                <div>
+                    <label class="label" for="strukturKeterangan">Keterangan</label>
+                    <input type="text" name="keterangan" id="strukturKeterangan" maxlength="300"
+                           value="{{ old('keterangan', $gambarStruktur->keterangan ?? '') }}"
+                           placeholder="mis. Bagan struktur per 1 Januari 2026"
+                           class="input">
+                </div>
+
+                <button type="submit" class="btn btn-primary">
+                    <i data-lucide="check" class="w-4 h-4"></i>
+                    {{ $gambarStruktur ? 'Ganti' : 'Unggah' }}
+                </button>
+            </form>
+
+            {{-- Form hapus dikirim terpisah supaya tombol "Hapus" tidak ikut
+                 mengirim berkas gambar yang belum dipilih. --}}
+            <form id="formHapusGambarStruktur" method="POST"
+                  action="{{ route('admin.beranda.struktur.gambar.hapus') }}"
+                  class="hidden"
+                  data-konfirmasi="Hapus gambar struktur organisasi? Berkas gambar juga akan dihapus dari server.">
+                @csrf
+                @method('DELETE')
+            </form>
+        </div>
+    @endif
 </section>
+
+@push('scripts')
+<script>
+    // Konfirmasi hapus dibaca dari atribut data-konfirmasi, bukan disisipkan
+    // ke dalam string confirm(). Nama berkas bisa mengandung tanda kutip,
+    // sehingga penyisipan teks ke JS akan merusak halamannya.
+    document.addEventListener('submit', function (e) {
+        const pesan = e.target.getAttribute('data-konfirmasi');
+        if (!pesan) return;
+        if (!confirm(pesan)) e.preventDefault();
+    });
+</script>
+@endpush

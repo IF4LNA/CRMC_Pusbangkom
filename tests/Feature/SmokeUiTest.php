@@ -2,6 +2,11 @@
 
 namespace Tests\Feature;
 
+use App\Models\Bidang;
+use App\Models\DokumenCrmc;
+use App\Models\LampiranCrmc;
+use App\Models\SubMenu;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -11,9 +16,9 @@ class SmokeUiTest extends TestCase
 
     public function test_halaman_publik_render()
     {
-        $this->seedStrukturOrganisasi();
+        $this->seedData();
 
-        foreach (['/', '/home', '/login'] as $url) {
+        foreach (['/', '/home', '/login', '/sop'] as $url) {
             $res = $this->get($url);
             $this->assertTrue(
                 $res->isOk() || $res->isRedirect(),
@@ -24,9 +29,9 @@ class SmokeUiTest extends TestCase
 
     public function test_halaman_terlogin_render()
     {
-        $this->seedStrukturOrganisasi();
+        $bidang = $this->seedData();
 
-        $user = \App\Models\User::create([
+        $user = User::create([
             'name' => 'Uji Coba',
             'nip' => '198001011994031001',
             'jabatan' => 'Penguji',
@@ -38,14 +43,15 @@ class SmokeUiTest extends TestCase
 
         $urls = [
             // Dashboard CRMC + tiap tabnya (tab hanya tersembunyi lewat JS,
-            // jadi seluruh partial tetap dirender di server).
+            // jadi seluruh partial tetap dirender di server). Tab bidang
+            // memakai id bidang, mis. "bidang-1".
             '/',
             '/?tab=dasar-hukum',
-            '/?tab=umum-tu',
-            '/?tab=sda',
-            '/?tab=ckps',
+            '/?tab=bidang-' . $bidang->id,
             // Halaman beranda
             '/home',
+            // Kumpulan SOP
+            '/sop',
             // Admin
             '/admin/pegawai',
             // Halaman 8 komponen per sub-bidang
@@ -62,41 +68,31 @@ class SmokeUiTest extends TestCase
     }
 
     /**
-     * Isi tabel struktur organisasi supaya cabang org chart yang "berisi"
-     * ikut teruji, bukan hanya tampilan kosongnya.
+     * Isi tabel inti supaya halaman yang diuji punya data sungguhan, bukan
+     * hanya cabang tampilan kosong.
+     *
+     * @return \App\Models\Bidang bidang yang dipakai pada tab dashboard
      */
-    private function seedStrukturOrganisasi(): void
+    private function seedData(): Bidang
     {
-        $buatUser = function (string $nip, string $nama): \App\Models\User {
-            return \App\Models\User::create([
-                'name' => $nama,
-                'nip' => $nip,
-                'jabatan' => 'Staf',
-                'email' => $nip . '@crmc.test',
-                'password' => 'rahasia123',
-                'role' => 'pegawai',
-            ]);
-        };
+        $bidang = Bidang::create(['nama_bidang' => 'Bidang Uji']);
 
-        $bidang = \App\Models\Bidang::create(['nama_bidang' => 'Bidang Uji']);
-
-        // Sub-bilang + dokumen, supaya halaman 8 komponen ikut teruji pada
+        // Sub-bidang + dokumen, supaya halaman 8 komponen ikut teruji pada
         // jalur yang benar-benar punya data (bukan cuma fallback slug).
-        $subMenu = \App\Models\SubMenu::create([
+        $subMenu = SubMenu::create([
             'bidang_id' => $bidang->id,
             'nama_sub_menu' => 'Manajemen Risiko',
         ]);
 
-        $dokumen = \App\Models\DokumenCrmc::create([
+        $dokumen = DokumenCrmc::create([
             'sub_menu_id' => $subMenu->id,
             'tahun_pelaksanaan' => 2026,
-            'residu' => 'Rendah',
         ]);
 
-        \App\Models\LampiranCrmc::create([
+        LampiranCrmc::create([
             'dokumen_crmc_id' => $dokumen->id,
-            'kategori_komponen' => 'risk_register',
-            'nama_file' => 'Risk Register Uji.pdf',
+            'kategori_komponen' => 'sop',
+            'nama_file' => 'SOP Uji.pdf',
             'file_path' => 'lampiran/uji.pdf',
             'tipe_file' => 'pdf',
             'keterangan' => 'Keterangan uji',
@@ -113,21 +109,6 @@ class SmokeUiTest extends TestCase
             ]);
         }
 
-        $struktur = [
-            ['198001010000000001', 'Pemilik Risiko Uji', 'pemilik_risiko', null],
-            ['198001010000000002', 'Mutu Uji', 'pengendali_mutu', $bidang->id],
-            ['198001010000000003', 'Risiko Uji A', 'pengendali_risiko', $bidang->id],
-            ['198001010000000004', 'Risiko Uji B', 'pengendali_risiko', null],
-        ];
-
-        foreach ($struktur as $i => [$nip, $nama, $peran, $bidangId]) {
-            \App\Models\StrukturOrganisasi::create([
-                'user_id' => $buatUser($nip, $nama)->id,
-                'peran' => $peran,
-                'nama_jabatan' => $peran,
-                'bidang_id' => $bidangId,
-                'urutan' => $i + 1,
-            ]);
-        }
+        return $bidang;
     }
 }

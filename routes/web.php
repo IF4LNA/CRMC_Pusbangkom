@@ -1,16 +1,21 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\BidangController;
 use App\Http\Controllers\CrmcController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\HomeController;
+use App\Http\Controllers\SopController;
 
-Route::get('/', function () {
-    return view('crmc.index');
-})->name('home');
+// Dashboard utama CRMC. Daftar bidang & sub-bidang dibaca dari database
+// sehingga admin bisa menambah sub-bidang tanpa mengubah kode.
+Route::get('/', [BidangController::class, 'dashboard'])->name('home');
 
-// Halaman Beranda: penjelasan CRMC, struktur organisasi, galeri, dan peta
+// Halaman Beranda: penjelasan CRMC, gambar struktur, galeri, dan peta
 Route::get('/home', [HomeController::class, 'index'])->name('beranda');
+
+// Kumpulan seluruh dokumen SOP (Komponen 3) dari semua sub-bidang
+Route::get('/sop', [SopController::class, 'index'])->name('sop.index');
 
 // Autentikasi Pengguna (Login & Logout)
 Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
@@ -24,6 +29,15 @@ Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 // "/crmc/{slug}" akan tertangkap sebagai slug="tahun" dan
 // memanggil crmc.update(), bukan crmc.tahun.store().
 // ============================================================
+
+// ========================
+// ADMIN: Kelola Sub-Bidang (kartu pada tab tiap bidang)
+// ========================
+Route::middleware('auth')->prefix('bidang/sub-bidang')->name('bidang.sub-bidang.')->group(function () {
+    Route::post('/', [BidangController::class, 'simpanSubBidang'])->name('simpan');
+    Route::put('/{id}', [BidangController::class, 'ubahSubBidang'])->name('ubah');
+    Route::delete('/{id}', [BidangController::class, 'hapusSubBidang'])->name('hapus');
+});
 
 // ========================
 // ADMIN: Management Tahun Anggaran
@@ -77,11 +91,9 @@ Route::middleware('auth')->group(function () {
 // diarahkan ke form login. Otorisasi admin ditegur ulang di dalam
 // HomeController::wajibAdmin() pada setiap aksi ubah/hapus.
 Route::middleware('auth')->prefix('admin/beranda')->name('admin.beranda.')->group(function () {
-    // Struktur Organisasi
-    Route::post('/struktur', [HomeController::class, 'simpanStruktur'])->name('struktur.simpan');
-    Route::put('/struktur/{id}', [HomeController::class, 'ubahStruktur'])->name('struktur.ubah');
-    Route::delete('/struktur/{id}', [HomeController::class, 'hapusStruktur'])->name('struktur.hapus');
-    Route::post('/struktur/urutan', [HomeController::class, 'urutkanStruktur'])->name('struktur.urutan');
+    // Gambar bagan Struktur Organisasi (menggantikan input manual peran)
+    Route::post('/struktur/gambar', [HomeController::class, 'simpanGambarStruktur'])->name('struktur.gambar.simpan');
+    Route::delete('/struktur/gambar', [HomeController::class, 'hapusGambarStruktur'])->name('struktur.gambar.hapus');
 
     // Galeri Sarana dan Prasarana
     Route::post('/galeri', [HomeController::class, 'simpanGaleri'])->name('galeri.simpan');

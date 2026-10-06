@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Masuk Sistem CRMC | Kementerian Pekerjaan Umum</title>
+    {{-- Favicon memakai logo Kementerian Pekerjaan Umum, bukan ikon
+         bawaan Laravel. --}}
+    <link rel="icon" type="image/svg+xml" href="{{ asset('images/Logo_PU.svg') }}">
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Lucide Icons -->
@@ -116,18 +119,28 @@
         .btn-on-dark:hover { background: rgba(255, 255, 255, .22); }
     </style>
 </head>
-<body class="h-full font-sans antialiased text-slate-700 bg-slate-100 flex flex-col justify-between">
+<body class="h-full font-sans antialiased text-slate-700 bg-blue-950 flex flex-col justify-between">
+
+    {{-- Latar foto gedung PUSBANGKOM, treatment-nya sama dengan banner di
+         halaman Beranda: gambar menutupi layar penuh, lalu dilapisi gradien
+         biru tua supaya teks putih tetap terbaca. --}}
+    <div class="fixed inset-0 -z-10 overflow-hidden">
+        <img src="{{ asset('images/gedung_pusbangkom.jpg') }}"
+             alt="Gedung PUSBANGKOM"
+             class="absolute inset-0 h-full w-full object-cover object-center">
+        <div class="absolute inset-0 bg-gradient-to-r from-blue-950/95 via-blue-950/90 to-blue-900/70"></div>
+    </div>
 
     <!-- TOP HEADER BAR -->
     <header class="w-full px-4 sm:px-6 py-3 flex items-center justify-between">
         <a href="{{ url('/') }}" class="flex items-center gap-2.5 min-w-0">
             <img src="{{ asset('images/Logo_PU.svg') }}" alt="Logo PUPR" class="w-8 h-8 object-contain shrink-0">
             <span class="min-w-0">
-                <span class="block text-[10px] font-bold tracking-widest text-slate-500 uppercase leading-tight">Kementerian Pekerjaan Umum</span>
-                <span class="block text-sm font-bold text-slate-900 leading-tight truncate">BPSDM</span>
+                <span class="block text-[10px] font-bold tracking-widest text-yellow-400 uppercase leading-tight">Kementerian Pekerjaan Umum</span>
+                <span class="block text-sm font-bold text-white leading-tight truncate">BPSDM</span>
             </span>
         </a>
-        <a href="{{ url('/') }}" class="btn btn-outline shrink-0">
+        <a href="{{ url('/') }}" class="btn btn-on-dark shrink-0">
             <i data-lucide="arrow-left" class="w-4 h-4"></i>
             <span>Beranda</span>
         </a>
@@ -135,7 +148,7 @@
 
     <!-- MAIN LOGIN CONTAINER -->
     <main class="flex-1 flex items-center justify-center p-4 sm:p-6">
-        <div class="w-full max-w-sm card">
+        <div class="w-full max-w-sm card shadow-2xl shadow-blue-950/40">
 
             <!-- CARD HEADER -->
             <div class="px-5 py-5 border-b border-slate-200">
@@ -238,7 +251,7 @@
     </main>
 
     <!-- FOOTER -->
-    <footer class="w-full text-center py-4 text-[11px] text-slate-500">
+    <footer class="w-full text-center py-4 text-[11px] text-blue-200/80">
         &copy; {{ date('Y') }} Kementerian Pekerjaan Umum &bull; Badan Pengembangan Sumber Daya Manusia (BPSDM)
     </footer>
 

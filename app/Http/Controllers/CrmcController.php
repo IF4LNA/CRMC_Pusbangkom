@@ -58,9 +58,18 @@ class CrmcController extends Controller
 
         $dariAdmin = TahunAnggaran::pluck('tahun')->all();
 
+        // Komponen 1 (identitas pegawai) juga bisa diisi lebih awal, sebelum
+        // ada dokumen maupun tahun yang sengaja ditambahkan admin. Kalau
+        // tahun penugasan tidak ikut ke daftar, admin tidak akan pernah
+        // bisa membuka tahun itu lewat halaman.
+        $dariPenugasan = $subMenu
+            ? PenugasanCrmc::where('sub_menu_id', $subMenu->id)->distinct()->pluck('tahun_pelaksanaan')->all()
+            : PenugasanCrmc::distinct()->pluck('tahun_pelaksanaan')->all();
+
         return collect([$tahunSekarang, $tahunSekarang + 1])
             ->merge($dariDokumen)
             ->merge($dariAdmin)
+            ->merge($dariPenugasan)
             ->map(fn ($t) => (int) $t)
             // Batas atas longgar sampai 2100, sama dengan batas validasi
             // tambahTahun(). Kalau lebih kecil, tahun yang berhasil
@@ -74,27 +83,29 @@ class CrmcController extends Controller
 
     public function show(Request $request, $slug)
     {
-        // Normalisasi slug ke teks biasa
-        $cleanSlug = str_replace('-', ' ', $slug);
-
-        // Cari SubMenu di database yang cocok dengan nama atau format slug
+        // Cari SubMenu di database yang cocok dengan nama atau format slug.
+        // Sengaja memakai cariSubMenuTersedia() (tidak membuat baris baru),
+        // sehingga sub-bidang yang sudah admin hapus tidak muncul lagi
+        // hanya karena tautan lamanya dibuka.
         $subMenu = null;
         try {
-            $subMenu = SubMenu::with(['bidang', 'penugasan.user', 'dokumen.lampiran'])
-                ->where('nama_sub_menu', 'like', "%{$cleanSlug}%")
-                ->orWhereRaw("LOWER(REPLACE(REPLACE(nama_sub_menu, ' ', '-'), '/', '-')) = ?", [strtolower($slug)])
-                ->first();
+            $subMenu = $this->cariSubMenuTersedia($slug);
         } catch (\Throwable $e) {
             $subMenu = null;
         }
+
+        // Hanya nama bidang yang dimuat di sini. Penugasan sengaja dimuat
+        // terpisah setelah tahun ditentukan (lihat bawah), supaya yang
+        // terbaca benar-benar penugasan tahun yang sedang dibuka.
+        $subMenu?->load('bidang');
 
         // Tentukan nama sub-bidang & parent bidang
         if ($subMenu) {
             $subBidangName = $subMenu->nama_sub_menu;
             $parentBidang = $subMenu->bidang?->nama_bidang ?? 'Bagian Umum Program & Tata Usaha';
         } else {
-            $subBidangName = ucwords(str_replace(['-', '_'], ' ', $slug));
-            
+            $subBidangName = Str::headline($slug);
+
             // Prediksi parent kategori berdasarkan nama
             if (str_contains(strtolower($subBidangName), 'sda')) {
                 $parentBidang = 'Bidang SDA';
@@ -105,29 +116,11 @@ class CrmcController extends Controller
             }
         }
 
-        // 1. Pemilik Risiko: HANYA ADA 1 ORANG untuk seluruh CRMC.
-        //    Penugasan sudah disalin ke setiap sub-bidang saat disimpan
-        //    (lihat updatePenugasan), jadi cukup ambil yang pertama di sini.
-        $pemilikRisiko = $subMenu?->penugasan?->firstWhere('peran', 'pemilik_risiko')?->user;
-
-        // 2. Pengendali Mutu: HANYA ADA 1 ORANG per bidang, berlaku untuk
-        //    semua sub-bidang di bawah bidang tersebut.
-        $pengendaliMutu = $subMenu?->penugasan?->firstWhere('peran', 'pengendali_mutu')?->user;
-
-        // 3. Pengendali Risiko: BISA BANYAK ORANG (Multiple Risk Controllers)
-        // Hanya menampilkan yang benar-benar ditugaskan. Tanpa penugasan -> kosong,
-        // dan view menampilkan empty state (bukan daftar semua pegawai).
-        $pengendaliRisikoList = collect();
-        if ($subMenu && $subMenu->penugasan) {
-            $pengendaliRisikoList = $subMenu->penugasan
-                ->where('peran', 'pengendali_risiko')
-                ->map(fn($p) => $p->user)
-                ->filter()
-                ->unique('id')
-                ->values();
-        }
-
         // === TAHUN ===
+        // Ditentukan lebih dulu karena Komponen 1 (identitas pegawai) punya
+        // tahun sendiri: penugasan PIC berbeda tiap tahun, jadi kartu ini
+        // harus menampilkan orang yang bertugas pada tahun yang sedang dibuka,
+        // bukan penugasan terakhir yang tersimpan.
         $daftarTahun = $this->daftarTahun($subMenu);
 
         // Tahun default = tahun terbaru di daftar (cenderung ke tahun berjalan).
@@ -137,6 +130,31 @@ class CrmcController extends Controller
         if (!in_array($selectedTahun, $daftarTahun, true)) {
             $selectedTahun = $defaultTahun;
         }
+
+        // === IDENTITAS PEGAWAI TAHUN INI (KOMPONEN 1) ===
+        // Penugasan dibatasi pada $selectedTahun. Penugasan tetap ditulis ke
+        // setiap sub-bidang yang relevan (lihat updatePenugasan), jadi cukup
+        // satu baris per peran yang terambil di sini.
+        $penugasanTahunIni = $subMenu
+            ? $subMenu->penugasan()->with('user')->tahun($selectedTahun)->get()
+            : collect();
+
+        // 1. Pemilik Risiko: HANYA ADA 1 ORANG untuk seluruh CRMC.
+        $pemilikRisiko = $penugasanTahunIni->firstWhere('peran', 'pemilik_risiko')?->user;
+
+        // 2. Pengendali Mutu: HANYA ADA 1 ORANG per bidang, berlaku untuk
+        //    semua sub-bidang di bawah bidang tersebut.
+        $pengendaliMutu = $penugasanTahunIni->firstWhere('peran', 'pengendali_mutu')?->user;
+
+        // 3. Pengendali Risiko: BISA BANYAK ORANG (Multiple Risk Controllers)
+        // Hanya menampilkan yang benar-benar ditugaskan. Tanpa penugasan ->
+        // kosong, dan view menampilkan empty state (bukan daftar semua pegawai).
+        $pengendaliRisikoList = $penugasanTahunIni
+            ->where('peran', 'pengendali_risiko')
+            ->map(fn ($p) => $p->user)
+            ->filter()
+            ->unique('id')
+            ->values();
 
         // Setiap komponen punya pilihan tahun sendiri (?t[kategori]=YYYY),
         // sehingga admin/pegawai bisa membandingkan dokumen antar tahun
@@ -231,6 +249,11 @@ class CrmcController extends Controller
             ? TahunAnggaran::orderByDesc('tahun')->get()
             : collect();
 
+        // Tahun yang sedang dibuka pada Komponen 1 diberi nama terpisah dari
+        // $selectedTahun, supaya form penugasan dan badge tahun jelas merujuk
+        // tahun identitas, bukan tahun dokumen.
+        $tahunPenugasan = $selectedTahun;
+
         return view('crmc.show', compact(
             'subBidangName',
             'parentBidang',
@@ -242,6 +265,7 @@ class CrmcController extends Controller
             'allUsers',
             'selectedTahun',
             'daftarTahun',
+            'tahunPenugasan',
             'dokumenTahun',
             'dokumenTahunTerpilih',
             'komponen',
@@ -270,24 +294,31 @@ class CrmcController extends Controller
             'tahun_pelaksanaan' => 'required|numeric|min:2000|max:2100',
         ]);
 
-        $cleanSlug = str_replace('-', ' ', $slug);
         try {
-            $subMenu = SubMenu::where('nama_sub_menu', 'like', "%{$cleanSlug}%")
-                ->orWhereRaw("LOWER(REPLACE(REPLACE(nama_sub_menu, ' ', '-'), '/', '-')) = ?", [strtolower($slug)])
-                ->first();
+            // Sama seperti show(): sub-bidang dicari lewat normalisasi slug,
+            // bukan LIKE, supaya nama bertanda baca (mis. "Kerjasama
+            // Pendidikan (MSS)") tetap ketemu.
+            $subMenu = $this->cariSubMenuTersedia($slug);
+        } catch (\Throwable $e) {
+            // Abaikan error DB jika tabel tidak tersedia
+            $subMenu = null;
+        }
 
-            if ($subMenu) {
-                DokumenCrmc::updateOrCreate(
-                    [
-                        'sub_menu_id' => $subMenu->id,
-                        'tahun_pelaksanaan' => $request->input('tahun_pelaksanaan'),
-                    ],
-                    [
-                        'status_residu_risiko' => $request->input('residu') ?: null,
-                        'evaluasi_dan_rencana' => $request->input('evaluasi') ?: null,
-                    ]
-                );
-            }
+        // Slug yang tidak dikenal harus ditolak, bukan diam-diam diabaikan:
+        // kalau tidak, admin mengira ringkasan tersimpan padahal tidak ada.
+        abort_if($subMenu === null, 404, 'Sub-bidang tidak ditemukan.');
+
+        try {
+            DokumenCrmc::updateOrCreate(
+                [
+                    'sub_menu_id' => $subMenu->id,
+                    'tahun_pelaksanaan' => $request->input('tahun_pelaksanaan'),
+                ],
+                [
+                    'status_residu_risiko' => $request->input('residu') ?: null,
+                    'evaluasi_dan_rencana' => $request->input('evaluasi') ?: null,
+                ]
+            );
         } catch (\Throwable $e) {
             // Abaikan error DB jika tabel tidak tersedia
         }
@@ -690,14 +721,27 @@ class CrmcController extends Controller
 
     /**
      * Cari SubMenu berdasarkan slug tanpa membuatnya. Null kalau tidak ada.
+     *
+     * Perbandingan dilakukan di sisi PHP lewat SubMenu::normalisasiSlug(),
+     * bukan dengan LIKE/REPLACE di SQL. Alasannya, tanda baca pada nama
+     * sub-bidang (mis. "Kerjasama Pendidikan (MSS)") tidak boleh membuat
+     * tautan yang dibuat di dashboard tidak pernah ketemu.
+     *
+     * Jumlah sub-bidang kecil (puluhan baris), jadi memuat semuanya sekali
+     * jalan tidak membebani.
      */
     private function cariSubMenuTersedia(string $slug): ?SubMenu
     {
-        $cleanSlug = str_replace('-', ' ', $slug);
+        $target = SubMenu::normalisasiSlug($slug);
 
-        return SubMenu::where('nama_sub_menu', 'like', "%{$cleanSlug}%")
-            ->orWhereRaw("LOWER(REPLACE(REPLACE(nama_sub_menu, ' ', '-'), '/', '-')) = ?", [strtolower($slug)])
-            ->first();
+        if ($target === '') {
+            return null;
+        }
+
+        return SubMenu::query()
+            ->orderBy('id')
+            ->get()
+            ->first(fn (SubMenu $row) => $row->slug === $target);
     }
 
     private function nomorKomponen(string $kategori): int
@@ -786,20 +830,22 @@ class CrmcController extends Controller
         }
 
         $request->validate([
+            'tahun_pelaksanaan' => 'required|numeric|min:2000|max:2100',
             'pemilik_risiko_id' => 'required|exists:users,id',
             'pengendali_mutu_id' => 'required|exists:users,id',
             'pengendali_risiko_ids' => 'required|array|min:1',
             'pengendali_risiko_ids.*' => 'exists:users,id',
         ], [
+            'tahun_pelaksanaan.required' => 'Tahun pelaksanaan wajib diisi.',
             'pemilik_risiko_id.required' => 'Pemilik risiko (1 orang) wajib dipilih.',
             'pengendali_mutu_id.required' => 'Pengendali mutu (1 orang) wajib dipilih.',
             'pengendali_risiko_ids.required' => 'Paling sedikit pilih 1 staf Pengendali Risiko.',
         ]);
 
+        $tahun = (int) $request->input('tahun_pelaksanaan');
+
         $cleanSlug = str_replace('-', ' ', $slug);
-        $subMenu = SubMenu::where('nama_sub_menu', 'like', "%{$cleanSlug}%")
-            ->orWhereRaw("LOWER(REPLACE(REPLACE(nama_sub_menu, ' ', '-'), '/', '-')) = ?", [strtolower($slug)])
-            ->first();
+        $subMenu = $this->cariSubMenuTersedia($slug);
 
         if (!$subMenu) {
             $defaultBidang = Bidang::first();
@@ -818,20 +864,26 @@ class CrmcController extends Controller
         // Diimplementasikan dengan menulis peran ke seluruh sub_menu_id
         // yang relevan, sehingga pembacaan di `show()` tetap sederhana
         // (cukup query satu sub-bidang).
-        DB::transaction(function () use ($subMenu, $request) {
+        //
+        // Semua penulisan dibatasi pada tahun yang dipilih: mengisi tahun
+        // 2027 tidak boleh menghapus penugasan 2026.
+        DB::transaction(function () use ($subMenu, $request, $tahun) {
             $semuaSubMenu = SubMenu::pluck('id');
             $subMenuBidangIni = SubMenu::where('bidang_id', $subMenu->bidang_id)->pluck('id');
 
-            // 1. Bersihkan penugasan lama pada tiga cakupannya, supaya
-            //    tidak ada data lama yang tertinggal setelah diganti.
+            // 1. Bersihkan penugasan lama pada tahun ini saja, supaya
+            //    tidak ada data lama yang tertinggal setelah diganti dan
+            //    penugasan tahun lain tetap utuh.
             //    a. pemilik_risiko  -> seluruh CRMC, bukan hanya sub-bidang ini
             //    b. pengendali_mutu -> bidang ini saja, jangan ganggu bidang lain
             //    c. peran lainnya   -> sub-bidang ini saja
-            PenugasanCrmc::where('peran', 'pemilik_risiko')->delete();
-            PenugasanCrmc::whereIn('sub_menu_id', $subMenuBidangIni)
+            PenugasanCrmc::tahun($tahun)->where('peran', 'pemilik_risiko')->delete();
+            PenugasanCrmc::tahun($tahun)
+                ->whereIn('sub_menu_id', $subMenuBidangIni)
                 ->where('peran', 'pengendali_mutu')
                 ->delete();
-            PenugasanCrmc::where('sub_menu_id', $subMenu->id)
+            PenugasanCrmc::tahun($tahun)
+                ->where('sub_menu_id', $subMenu->id)
                 ->whereNotIn('peran', ['pemilik_risiko', 'pengendali_mutu'])
                 ->delete();
 
@@ -842,6 +894,7 @@ class CrmcController extends Controller
                     'sub_menu_id' => $id,
                     'user_id' => $pemilikId,
                     'peran' => 'pemilik_risiko',
+                    'tahun_pelaksanaan' => $tahun,
                 ]);
             }
 
@@ -852,6 +905,7 @@ class CrmcController extends Controller
                     'sub_menu_id' => $id,
                     'user_id' => $mutuId,
                     'peran' => 'pengendali_mutu',
+                    'tahun_pelaksanaan' => $tahun,
                 ]);
             }
 
@@ -861,12 +915,14 @@ class CrmcController extends Controller
                     'sub_menu_id' => $subMenu->id,
                     'user_id' => $stafId,
                     'peran' => 'pengendali_risiko',
+                    'tahun_pelaksanaan' => $tahun,
                 ]);
             }
         });
 
         $ringkasan = sprintf(
-            'Penanggung jawab identitas pegawai Komponen 1 diperbarui. Pemilik Risiko (%s) berlaku untuk seluruh %d sub-bidang; Pengendali Mutu (%s) berlaku untuk %d sub-bidang bidang "%s"; Tim Pengendali Risiko (%d orang) khusus sub-bidang ini.',
+            'Penanggung jawab identitas pegawai Komponen 1 tahun %d diperbarui. Pemilik Risiko (%s) berlaku untuk seluruh %d sub-bidang; Pengendali Mutu (%s) berlaku untuk %d sub-bidang bidang "%s"; Tim Pengendali Risiko (%d orang) khusus sub-bidang ini.',
+            $tahun,
             User::find($request->input('pemilik_risiko_id'))?->name ?? '-',
             SubMenu::count(),
             User::find($request->input('pengendali_mutu_id'))?->name ?? '-',
@@ -875,7 +931,11 @@ class CrmcController extends Controller
             count(array_unique($request->input('pengendali_risiko_ids', [])))
         );
 
-        return redirect()->route('crmc.show', $slug)->with('success', $ringkasan);
+        // Kembali ke tahun yang sama supaya admin langsung melihat hasil
+        // simpanannya, bukan lompat ke tahun default.
+        return redirect()
+            ->route('crmc.show', ['slug' => $slug, 'tahun' => $tahun])
+            ->with('success', $ringkasan);
     }
 
     // ========================
@@ -884,15 +944,48 @@ class CrmcController extends Controller
 
     /**
      * Tampilkan daftar seluruh akun pegawai (Khusus Admin).
+     *
+     * Pencarian dilakukan di server (?q=) supaya tetap ringan pada daftar yang
+     * panjang dan tidak perlu memuat seluruh baris ke browser. Yang dicari
+     * adalah nama, NIP, jabatan, dan email, karena itulah kolom yang
+     * sering diingat admin saat mencari pegawai tertentu.
      */
-    public function kelolaAkun()
+    public function kelolaAkun(Request $request)
     {
         if (!Auth::check() || !Auth::user()->isAdmin()) {
             abort(403, 'Akses Ditolak: Hanya Administrator.');
         }
 
-        $users = User::orderBy('name')->get();
-        return view('admin.pegawai', compact('users'));
+        $kataKunci = trim((string) $request->input('q'));
+        $peran = (string) $request->input('peran');
+
+        $users = User::query()
+            // Escape wildcard LIKE supaya "%" atau "_" yang diketik user
+            // dicari apa adanya, bukan jadi pola bebas.
+            ->when($kataKunci !== '', function ($q) use ($kataKunci) {
+                $saya = '%' . str_replace(['\\', '%', '_'], ['\\\\', '\%', '\_'], $kataKunci) . '%';
+                $q->where(function ($dalam) use ($saya) {
+                    $dalam->where('name', 'like', $saya)
+                        ->orWhere('nip', 'like', $saya)
+                        ->orWhere('jabatan', 'like', $saya)
+                        ->orWhere('email', 'like', $saya);
+                });
+            })
+            ->when(in_array($peran, ['admin', 'pegawai'], true), fn ($q) => $q->where('role', $peran))
+            ->orderBy('name')
+            ->get();
+
+        // Angka pada kartu statistik selalu menggambarkan seluruh pegawai,
+        // bukan hasil pencarian. Kalau ikut terfilter, nilainya berubah
+        // setiap kali mengetik dan jadi tidak berguna sebagai pembanding.
+        return view('admin.pegawai', [
+            'users' => $users,
+            'kataKunci' => $kataKunci,
+            'peran' => $peran,
+            'totalPegawai' => User::count(),
+            'totalAdmin' => User::where('role', 'admin')->count(),
+            'totalPegawaiRole' => User::where('role', 'pegawai')->count(),
+        ]);
     }
 
     /**

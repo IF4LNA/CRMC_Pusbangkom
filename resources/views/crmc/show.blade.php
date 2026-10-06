@@ -1,4 +1,4 @@
-@extends('layouts.app')
+﻿@extends('layouts.app')
 
 @php
     // Skala status residu dipakai langsung di dalam @php block (untuk
@@ -228,7 +228,7 @@
             Admin juga bisa menambah tahun khusus di luar rentang itu lewat tombol <strong>"+ Tambah Tahun"</strong>.
         </p>
         <p class="mt-1">
-            Komponen hanya menampilkan berkas yang diunggah pada tahun yang dipilih. Belum ada dokumen? Kotaknya kosong — bukan data contoh.
+            Komponen hanya menampilkan berkas yang diunggah pada tahun yang dipilih. Belum ada dokumen? Kotaknya kosong â€” bukan data contoh.
         </p>
     </div>
 
@@ -332,21 +332,50 @@
                     <div class="flex items-center space-x-2">
                         <span class="badge badge-accent">Komponen 1</span>
                         <span class="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Identitas Pegawai</span>
+                        {{-- Tahun penugasan ditampilkan eksplisit karena Komponen 1
+                             punya penugasan sendiri per tahun, terpisah dari
+                             tahun per komponen dokumen. --}}
+                        <span class="badge bg-slate-800 !text-white border-0">
+                            Tahun {{ $tahunPenugasan }}
+                        </span>
                     </div>
+
+                    {{-- Ganti tahun penugasan tanpa keluar dari halaman. --}}
+                    <form method="GET" action="{{ route('crmc.show', $slug) }}"
+                          class="flex items-center gap-2">
+                        @foreach ($komponen as $kategori => $meta)
+                            <input type="hidden" name="t[{{ $kategori }}]" value="{{ $meta['tahun'] }}">
+                        @endforeach
+                        <label for="tahunPenugasanSelect" class="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                            Tahun identitas
+                        </label>
+                        <select name="tahun" id="tahunPenugasanSelect" onchange="this.form.submit()"
+                                class="input !py-1 !text-[11px] !w-auto">
+                            @foreach ($daftarTahun as $t)
+                                <option value="{{ $t }}" {{ (int) $t === (int) $tahunPenugasan ? 'selected' : '' }}>
+                                    {{ $t }}
+                                </option>
+                            @endforeach
+                        </select>
+                        <noscript>
+                            <button type="submit" class="btn btn-sm btn-primary">Buka</button>
+                        </noscript>
+                    </form>
 
                     @if($isAdmin)
                         <button onclick="openPenugasanModal()" class="btn btn-sm btn-primary">
                             <i data-lucide="user-plus" class="w-3.5 h-3.5"></i>
-                            <span>Atur Penugasan (Admin)</span>
+                            <span>Atur Penugasan ({{ $tahunPenugasan }})</span>
                         </button>
                     @endif
                 </div>
 
                 <div>
-                    <h3 class="text-sm sm:text-base font-bold text-slate-900">1. Identitas Pegawai &amp; Penugasan PIC (3 Lapis)</h3>
+                    <h3 class="text-sm sm:text-base font-bold text-slate-900">1. Identitas Pegawai &amp; Penugasan PIC (3 Lapis) &mdash; Tahun {{ $tahunPenugasan }}</h3>
                     <p class="text-xs text-slate-500 mt-0.5">
                         Hierarki pertanggungjawaban tersusun ke bawah: lapis 1 Pemilik Risiko, lapis 2 Pengendali Mutu,
-                        lapis 3 Tim Pengendali Risiko (banyak orang, digeser ke samping).
+                        lapis 3 Tim Pengendali Risiko (banyak orang, digeser ke samping). Penugasan di bawah berlaku
+                        khusus untuk tahun {{ $tahunPenugasan }} dan tidak mengubah tahun lain.
                     </p>
                 </div>
 
@@ -500,7 +529,7 @@
                     </div>
                     <div class="flex items-center gap-2 shrink-0">
                         @auth
-                            <button onclick="openUploadModal(@js($kategori), @js('Komponen ' . $meta['nomor'] . ' — ' . $meta['judul']), {{ $tahunK }})"
+                            <button onclick="openUploadModal(@js($kategori), @js('Komponen ' . $meta['nomor'] . ' â€” ' . $meta['judul']), {{ $tahunK }})"
                                     class="btn btn-sm btn-quiet">
                                 <i data-lucide="upload" class="w-3 h-3"></i><span>Upload</span>
                             </button>
@@ -543,7 +572,7 @@
                             <p class="text-xs font-bold text-slate-600">Belum ada dokumen tahun {{ $tahunK }}</p>
                             <p class="text-[11px] text-slate-400">Komponen ini hanya menampilkan berkas yang benar-benar diunggah.</p>
                             @auth
-                                <button onclick="openUploadModal(@js($kategori), @js('Komponen ' . $meta['nomor'] . ' — ' . $meta['judul']), {{ $tahunK }})"
+                                <button onclick="openUploadModal(@js($kategori), @js('Komponen ' . $meta['nomor'] . ' â€” ' . $meta['judul']), {{ $tahunK }})"
                                         class="btn btn-sm btn-primary mt-1">
                                     <i data-lucide="upload" class="w-3 h-3"></i><span>Upload {{ $tahunK }}</span>
                                 </button>
@@ -682,7 +711,7 @@
                     </div>
                     <div class="flex items-center gap-2 shrink-0">
                         @auth
-                            <button onclick="openUploadModal('evaluasi', @js('Komponen 8 — ' . $meta8['judul']), {{ $tahun8 }})"
+                            <button onclick="openUploadModal('evaluasi', @js('Komponen 8 â€” ' . $meta8['judul']), {{ $tahun8 }})"
                                     class="btn btn-sm btn-quiet">
                                 <i data-lucide="upload" class="w-3 h-3"></i><span>Upload</span>
                             </button>
@@ -753,7 +782,7 @@
                             <p class="text-xs font-bold text-slate-600">Belum ada dokumen tahun {{ $tahun8 }}</p>
                             <p class="text-[11px] text-slate-400">Komponen ini hanya menampilkan berkas yang benar-benar diunggah.</p>
                             @auth
-                                <button onclick="openUploadModal('evaluasi', @js('Komponen 8 — ' . $meta8['judul']), {{ $tahun8 }})"
+                                <button onclick="openUploadModal('evaluasi', @js('Komponen 8 â€” ' . $meta8['judul']), {{ $tahun8 }})"
                                         class="btn btn-sm btn-primary mt-1">
                                     <i data-lucide="upload" class="w-3 h-3"></i><span>Upload {{ $tahun8 }}</span>
                                 </button>
@@ -859,7 +888,7 @@
                         <select name="kategori" class="input">
                             <option value="">Semua komponen (2,3,4,5,6,8)</option>
                             @foreach($komponen as $kat => $m)
-                                <option value="{{ $kat }}">Hanya Komponen {{ $m['nomor'] }} — {{ $m['judul'] }}</option>
+                                <option value="{{ $kat }}">Hanya Komponen {{ $m['nomor'] }} â€” {{ $m['judul'] }}</option>
                             @endforeach
                         </select>
                     </div>
@@ -1221,6 +1250,7 @@
                     <li><strong>Pemilik Risiko:</strong> Hanya ada <strong>1 orang</strong> (Kepala Pusat).</li>
                     <li><strong>Pengendali Mutu:</strong> Hanya ada <strong>1 orang</strong> di tiap bidang (Kabag / Kabid).</li>
                     <li><strong>Pengendali Risiko:</strong> Dapat ditugaskan <strong>banyak orang</strong> (Tim Pelaksana Staf).</li>
+                    <li><strong>Per tahun:</strong> Seluruh penugasan di bawah berlaku untuk tahun yang dipilih di form ini.</li>
                 </ul>
             </div>
 
@@ -1228,11 +1258,30 @@
                 <div class="modal-body space-y-3">
                     @csrf
 
+                    {{-- Tahun penugasan. Disimpan bersama penugasan, jadi
+                         mengisi untuk satu tahun tidak mengubah tahun lain. --}}
                     <div>
-                        <label class="label">1. Pemilik Risiko (Pilih 1 Orang) *</label>
-                        <select name="pemilik_risiko_id" required class="input">
+                        <label class="label" for="inputTahunPenugasan">Tahun Pelaksanaan Penugasan *</label>
+                        <select name="tahun_pelaksanaan" id="inputTahunPenugasan" required class="input">
+                            @foreach ($daftarTahun as $t)
+                                <option value="{{ $t }}" {{ (int) $t === (int) $tahunPenugasan ? 'selected' : '' }}>
+                                    {{ $t }}
+                                </option>
+                            @endforeach
+                        </select>
+                        <div class="hint flex items-start gap-1.5">
+                            <i data-lucide="calendar-range" class="w-3 h-3 shrink-0 mt-0.5"></i>
+                            <span>Penugasan disimpan terpisah per tahun. Memilih tahun lain
+                                tidak mengubah penugasan tahun ini.</span>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="label" for="inputPemilikRisiko">1. Pemilik Risiko (Pilih 1 Orang) *</label>
+                        <select name="pemilik_risiko_id" id="inputPemilikRisiko" required class="input">
                             @foreach($allUsers as $u)
-                                <option value="{{ $u->id }}" {{ (isset($pemilikRisiko) && $pemilikRisiko->id == $u->id) ? 'selected' : '' }}>
+                                <option value="{{ $u->id }}" data-cari="{{ $u->name }} {{ $u->jabatan }} {{ $u->nip }}"
+                                        {{ (isset($pemilikRisiko) && $pemilikRisiko->id == $u->id) ? 'selected' : '' }}>
                                     {{ $u->name }} - {{ $u->jabatan }} (NIP. {{ $u->nip }})
                                 </option>
                             @endforeach
@@ -1244,10 +1293,11 @@
                     </div>
 
                     <div>
-                        <label class="label">2. Pengendali Mutu (Pilih 1 Orang per Bidang) *</label>
-                        <select name="pengendali_mutu_id" required class="input">
+                        <label class="label" for="inputPengendaliMutu">2. Pengendali Mutu (Pilih 1 Orang per Bidang) *</label>
+                        <select name="pengendali_mutu_id" id="inputPengendaliMutu" required class="input">
                             @foreach($allUsers as $u)
-                                <option value="{{ $u->id }}" {{ (isset($pengendaliMutu) && $pengendaliMutu->id == $u->id) ? 'selected' : '' }}>
+                                <option value="{{ $u->id }}" data-cari="{{ $u->name }} {{ $u->jabatan }} {{ $u->nip }}"
+                                        {{ (isset($pengendaliMutu) && $pengendaliMutu->id == $u->id) ? 'selected' : '' }}>
                                     {{ $u->name }} - {{ $u->jabatan }} (NIP. {{ $u->nip }})
                                 </option>
                             @endforeach
@@ -1264,11 +1314,33 @@
                             <span class="badge badge-ok">Multi-Selection</span>
                         </div>
 
+                        {{-- Pencarian HANYA untuk Lapis 3. Dua <select> di
+                             atasnya dibiarkan utuh: masing-masing hanya
+                             memilih satu orang, jadi tidak perlu menggulir
+                             daftar. Yang butuh pencarian justru Tim
+                             Pengendali Risiko karena bisa banyak orang. --}}
+                        <div class="rounded-lg border border-blue-100 bg-blue-50/50 p-3">
+                            <label class="label !mb-1.5" for="cariPegawaiPenugasan">Cari Staf Pengendali Risiko</label>
+                            <div class="relative">
+                                <input type="search" id="cariPegawaiPenugasan" autocomplete="off"
+                                       placeholder="Ketik nama, jabatan, atau NIP..."
+                                       class="input pl-8">
+                                <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-2.5 top-2.5"></i>
+                                <button type="button" id="bersihkanCariPegawai" title="Bersihkan pencarian"
+                                        class="hidden absolute right-2 top-2 icon-btn !w-6 !h-6">
+                                    <i data-lucide="x" class="w-3 h-3"></i>
+                                </button>
+                            </div>
+                            <p class="hint mt-2" id="ringkasanCariPegawai"></p>
+                        </div>
+
                         @php $selectedPengendaliIds = $pengendaliRisikoList->pluck('id')->toArray(); @endphp
 
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-56 overflow-y-auto p-1 border border-slate-200 rounded-lg bg-slate-50">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-56 overflow-y-auto p-1 border border-slate-200 rounded-lg bg-slate-50"
+                                 id="daftarTimPengendali">
                             @foreach($allUsers as $u)
-                            <label class="flex items-center space-x-3 p-2.5 rounded-lg bg-white border border-slate-200 hover:border-blue-400 cursor-pointer transition select-none">
+                            <label data-cari="{{ $u->name }} {{ $u->jabatan }} {{ $u->nip }}"
+                                   class="flex items-center space-x-3 p-2.5 rounded-lg bg-white border border-slate-200 hover:border-blue-400 cursor-pointer transition select-none">
                                 <input type="checkbox" name="pengendali_risiko_ids[]" value="{{ $u->id }}"
                                        {{ in_array($u->id, $selectedPengendaliIds) ? 'checked' : '' }}
                                        class="w-4 h-4 rounded text-blue-600 focus:ring-blue-400 border-slate-300 shrink-0">
@@ -1279,6 +1351,12 @@
                                 </div>
                             </label>
                             @endforeach
+
+                            {{-- Muncul hanya bila tidak ada satu pun pegawai
+                                 yang cocok dengan kata kunci. --}}
+                            <p id="timPengendaliKosong" class="hidden col-span-full p-3 text-center text-xs text-slate-400">
+                                Tidak ada pegawai yang cocok dengan pencarian.
+                            </p>
                         </div>
                     </div>
                 </div>
@@ -1313,6 +1391,91 @@
             e.preventDefault();
         }
     }, true);
+
+    // ======================================================
+    // PENCARIAN PEGAWAI DI MODAL PENUGASAN (KOMPONEN 1)
+    // ======================================================
+    // Hanya Lapis 3 (Tim Pengendali Risiko) yang difilter.
+    //
+    // Dua <select> di atasnya dibiarkan utuh: masing-masing hanya memilih
+    // satu orang, jadi tidak perlu menggulir daftar. Yang bisa banyak
+    // orang justru Lapis 3, dan itulah yang labored mencari staf yang tepat.
+    (function pasangCariPegawai() {
+        const input = document.getElementById('cariPegawaiPenugasan');
+        const tombolBersihkan = document.getElementById('bersihkanCariPegawai');
+        const ringkasan = document.getElementById('ringkasanCariPegawai');
+        const daftarTim = document.getElementById('daftarTimPengendali');
+        const timKosong = document.getElementById('timPengendaliKosong');
+
+        if (!input || !daftarTim) return;
+
+        const labelTim = Array.from(daftarTim.querySelectorAll('label[data-cari]'));
+        const keadaanAwal = {};
+
+        labelTim.forEach(function (l) {
+            const cbs = l.querySelectorAll('input[type="checkbox"]');
+            keadaanAwal['tim-' + cbs[0].value] = Array.from(cbs).map(function (c) {
+                return c.checked;
+            });
+        });
+
+        function cocok(teks, q) {
+            return (teks || '').toLowerCase().indexOf(q) !== -1;
+        }
+
+        function terapkan() {
+            const q = input.value.trim().toLowerCase();
+
+            if (tombolBersihkan) tombolBersihkan.classList.toggle('hidden', q === '');
+
+            // Sembunyikan yang tidak cocok, dan kembalikan centangnya ke
+            // keadaan awal. Kalau tidak, centang yang tersembunyi ikut
+            // terkirim saat form disimpan tanpa disadari admin.
+            const jumlahTim = { nilai: 0 };
+            labelTim.forEach(function (l) {
+                const satuCocok = q === '' || cocok(l.dataset.cari, q);
+                l.classList.toggle('hidden', !satuCocok);
+                if (satuCocok) jumlahTim.nilai++;
+
+                if (!satuCocok) {
+                    const cbs = l.querySelectorAll('input[type="checkbox"]');
+                    const awal = keadaanAwal['tim-' + cbs[0].value] || [];
+                    Array.from(cbs).forEach(function (c, i) {
+                        c.checked = awal[i] === true;
+                    });
+                }
+            });
+
+            if (timKosong) timKosong.classList.toggle('hidden', jumlahTim.nilai > 0);
+
+            if (ringkasan) {
+                ringkasan.textContent = q === '' || jumlahTim.nilai === 0
+                    ? jumlahTim.nilai + ' dari ' + labelTim.length + ' staf ditampilkan.'
+                    : jumlahTim.nilai + ' dari ' + labelTim.length + ' staf cocok dengan "' + input.value.trim() + '".';
+            }
+        }
+
+        input.addEventListener('input', terapkan);
+
+        if (tombolBersihkan) {
+            tombolBersihkan.addEventListener('click', function () {
+                input.value = '';
+                terapkan();
+                input.focus();
+            });
+        }
+
+        // Buka modal -> bersihkan filter supaya seluruh staf tampil lagi.
+        const tombolAtur = document.querySelector('[onclick="openPenugasanModal()"]');
+        if (tombolAtur) {
+            tombolAtur.addEventListener('click', function () {
+                input.value = '';
+                terapkan();
+            });
+        }
+
+        terapkan();
+    })();
 
     // ======================================================
     // MODAL UPLOAD DENGAN KETERANGAN PER BERKAS
@@ -1380,7 +1543,7 @@
             textarea.name = `keterangan[${idx}]`;
             textarea.rows = 2;
             textarea.maxLength = 1000;
-            textarea.placeholder = 'Keterangan berkas ini (mis. tanggal, penanggung jawab, nomor surat)…';
+            textarea.placeholder = 'Keterangan berkas ini (mis. tanggal, penanggung jawab, nomor surat)â€¦';
             textarea.className = 'input !text-[11px]';
 
             row.appendChild(head);

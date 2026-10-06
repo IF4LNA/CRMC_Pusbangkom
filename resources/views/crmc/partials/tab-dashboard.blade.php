@@ -64,38 +64,42 @@
     <div>
         <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
             <h3 class="section-title">Eksplorasi Bidang &amp; Sub-Kategori CRMC</h3>
-            <span class="page-sub">Pilih salah satu divisi untuk melihat 8 komponen CRMC</span>
+            <span class="page-sub">Pilih salah satu bidang untuk melihat 8 komponen CRMC</span>
         </div>
 
+        {{-- Jumlah sub-bidang dibaca dari database, jadi ikut bertambah
+             otomatis saat admin menambah sub-bidang baru. --}}
         <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-            @php
-                $divisi = [
-                    ['umum-tu', 'briefcase', '29 Sub-Bidang', 'Bagian Umum &amp; Tata Usaha',
-                     'Manajemen Risiko, SAKIP, Keuangan, Pengadaan BJ, Arsip, BMN, Perjalanan Dinas, &amp; Layanan Umum.'],
-                    ['sda', 'waves', '5 Sub-Bidang', 'Bidang Sumber Daya Air (SDA)',
-                     'Bangkom SDA, Kerjasama Pendidikan (MSS), Evaluasi Pasca Pelatihan, E-Learning, Kurikulum &amp; Modul.'],
-                    ['ckps', 'building-2', '7 Sub-Bidang', 'Bidang Cipta Karya &amp; Permukiman (CKPS)',
-                     'Kurikulum CKPS, Monitoring &amp; Evaluasi, Kerjasama Pelatihan, Penyiapan E-Learning, Skema Sertifikasi.'],
-                ];
-            @endphp
-            @foreach ($divisi as [$tab, $ikon, $jumlah, $judul, $deskripsi])
-                <div onclick="switchTab('{{ $tab }}')" class="card click-card p-4 flex flex-col justify-between gap-4 min-h-[9rem]">
+            @forelse ($daftarBidang as $bidang)
+                <div onclick="switchTab('bidang-{{ $bidang->id }}')" class="card click-card p-4 flex flex-col justify-between gap-4 min-h-[9rem]">
                     <div>
                         <div class="flex items-center justify-between mb-3">
                             <div class="w-9 h-9 bg-blue-50 text-blue-700 rounded-md flex items-center justify-center">
-                                <i data-lucide="{{ $ikon }}" class="w-4 h-4"></i>
+                                <i data-lucide="{{ $bidang->ikon() }}" class="w-4 h-4"></i>
                             </div>
-                            <span class="badge">{{ $jumlah }}</span>
+                            <span class="badge">{{ $bidang->sub_menus_count }} Sub-Bidang</span>
                         </div>
-                        <h4 class="section-title text-base">{!! $judul !!}</h4>
-                        <p class="page-sub mt-1 leading-relaxed">{!! $deskripsi !!}</p>
+                        <h4 class="section-title text-base">{{ $bidang->nama_bidang }}</h4>
+                        <p class="page-sub mt-1 leading-relaxed">
+                            {{ $bidang->jumlah_dokumen }} sub-bidang sudah punya dokumen CRMC
+                            pada satu atau lebih tahun pelaksanaan.
+                        </p>
                     </div>
                     <div class="pt-3 border-t border-slate-200 flex items-center justify-between text-[11px] font-semibold text-slate-700">
                         <span>Buka Daftar Lengkap</span>
                         <i data-lucide="chevron-right" class="w-4 h-4"></i>
                     </div>
                 </div>
-            @endforeach
+            @empty
+                <div class="empty md:col-span-3">
+                    <i data-lucide="folder-plus" class="w-7 h-7 text-slate-300 mx-auto mb-2"></i>
+                    <p class="font-semibold text-slate-600">Belum Ada Bidang</p>
+                    <p class="text-[11px] text-slate-400 mt-1">
+                        Tambahkan data pada tabel <span class="font-mono">bidang</span> untuk
+                        menampilkan bidang di dashboard.
+                    </p>
+                </div>
+            @endforelse
         </div>
     </div>
 </div>

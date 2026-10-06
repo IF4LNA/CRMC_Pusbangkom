@@ -36,7 +36,9 @@ class ExampleTest extends TestCase
     {
         $response = $this->get('/login');
         $response->assertStatus(200);
-        $response->assertSee('Masuk ke Sistem CRMC');
+        $response->assertSee('Masuk Sistem CRMC');
+        // Latar foto gedung memakai aset yang sama dengan banner Beranda.
+        $response->assertSee('images/gedung_pusbangkom.jpg', false);
     }
 
     public function test_user_can_login_with_valid_credentials(): void
@@ -64,20 +66,32 @@ class ExampleTest extends TestCase
         $response = $this->get('/crmc/manajemen-risiko');
 
         $response->assertStatus(200);
-        $response->assertSee('Rincian 8 Komponen Wajib');
+        $response->assertSee('Rincian 8 Komponen');
         $response->assertSee('Manajemen Risiko');
     }
 
     public function test_crmc_update_redirects_successfully(): void
     {
-        $response = $this->post('/crmc/manajemen-risiko', [
-            'pegawai' => 'Fajar Fikri',
-            'risk_register' => 'RR-TEST-001',
-            'residu' => 'Rendah',
-            'evaluasi' => 'Pengujian berhasil.',
+        $pegawai = User::create([
+            'name' => 'Fajar Fikri',
+            'nip' => '199001012026011234',
+            'jabatan' => 'Staf',
+            'email' => 'fajar@pu.go.id',
+            'password' => Hash::make('password123'),
+            'role' => 'pegawai',
         ]);
 
-        $response->assertRedirect('/crmc/manajemen-risiko');
+        // Penyimpanan ringkasan hanya boleh dilakukan pengguna yang login,
+        // jadi test harus menyamar sebagai pegawai.
+        $response = $this->actingAs($pegawai)->post('/crmc/manajemen-risiko', [
+            'pegawai' => 'Fajar Fikri',
+            'risk_register' => 'RR-TEST-001',
+            'residu' => 'waspada_i',
+            'evaluasi' => 'Pengujian berhasil.',
+            'tahun_pelaksanaan' => 2026,
+        ]);
+
+        $response->assertRedirect('/crmc/manajemen-risiko?tahun=2026');
         $response->assertSessionHas('success');
     }
 
@@ -128,19 +142,23 @@ class ExampleTest extends TestCase
             'role' => 'pegawai',
         ]);
 
+        // Penugasan Komponen 1 disimpan per tahun, jadi formnya menyertakan
+        // tahun pelaksanaan.
         $response = $this->actingAs($admin)->post('/crmc/manajemen-risiko/penugasan', [
             'pemilik_risiko_id' => $kapus->id,
             'pengendali_mutu_id' => $kabag->id,
             'pengendali_risiko_ids' => [$staf1->id, $staf2->id],
+            'tahun_pelaksanaan' => 2026,
         ]);
 
-        $response->assertRedirect('/crmc/manajemen-risiko');
+        $response->assertRedirect('/crmc/manajemen-risiko?tahun=2026');
         $response->assertSessionHas('success');
 
         // Pastikan penugasan tersimpan di database
         $this->assertDatabaseHas('penugasan_crmc', [
             'user_id' => $kapus->id,
             'peran' => 'pemilik_risiko',
+            'tahun_pelaksanaan' => 2026,
         ]);
         $this->assertDatabaseHas('penugasan_crmc', [
             'user_id' => $kabag->id,

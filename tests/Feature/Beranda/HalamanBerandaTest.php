@@ -4,7 +4,7 @@ namespace Tests\Feature\Beranda;
 
 use App\Models\Bidang;
 use App\Models\GaleriSarana;
-use App\Models\StrukturOrganisasi;
+use App\Models\GambarStruktur;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -16,7 +16,10 @@ use Tests\TestCase;
  *
  * Berjalan di atas database in-memory bawaan PHPUnit, jadi tidak menyentuh
  * data pengembangan. Penyimpanan berkas disorot ke disk "public" semu agar
- * unggahan galeri bisa diperiksa tanpa menyentuh storage yang sebenarnya.
+ * unggahan gambar bisa diperiksa tanpa menyentuh storage yang sebenarnya.
+ *
+ * Catatan: section "Struktur Organize" diuji lewat gambar bagan, bukan lewat
+ * kartu orang. Form datanya sudah tidak ada lagi (lihat HomeController).
  */
 class HalamanBerandaTest extends TestCase
 {
@@ -112,257 +115,179 @@ class HalamanBerandaTest extends TestCase
         $res->assertSee('href="' . route('beranda') . '"', false);
     }
 
+    public function test_navbar_beranda_sama_dengan_navigasi_dashboard(): void
+    {
+        // Navigasi utama diambil dari satu partial, jadi halaman Beranda dan
+        // dashboard CRMC harus memuat tautan yang sama persis.
+        $ambil = fn (string $html) => $this->parseNavLinks($html);
+
+        $beranda = $ambil($this->get('/home')->getContent());
+        $dashboard = $ambil($this->get('/')->getContent());
+
+        $this->assertNotEmpty($beranda);
+        $this->assertSame($beranda, $dashboard);
+    }
+
+    public function test_navbar_memuat_tautan_sop(): void
+    {
+        $res = $this->get('/home');
+
+        $res->assertOk();
+        $res->assertSee('href="' . route('sop.index') . '"', false);
+    }
+
     public function test_dashboard_lama_tetap_di_slash(): void
     {
         $this->get('/')->assertOk();
     }
 
-    // ====================
-    // Org chart
-    // ====================
-
-    public function test_org_chart_kosong_menampilkan_pesan(): void
+    /**
+     * Kumpulkan href dari elemen nav utama (#navUtama) supaya dua halaman
+     * bisa dibandingkan tanpa ikut menghitung markup di luar navigasi.
+     */
+    private function parseNavLinks(string $html): array
     {
-        $res = $this->get('/home');
+        if (!preg_match('/<nav id="navUtama".*?<\/nav>/s', $html, $blok)) {
+            return [];
+        }
 
-        $res->assertOk();
-        $res->assertSee('Belum Ada Struktur Organisasi');
-    }
+        preg_match_all('/href="([^"]+)"/', $blok[0], $cocok);
 
-    public function test_org_chart_menampilkan_ketiga_tingkat(): void
-    {
-        $pemilik = $this->buatUser('pegawai', 'Bapak Pemilik');
-        $mutu = $this->buatUser('pegawai', 'Bapak Mutu');
-        $risiko = $this->buatUser('pegawai', 'Bapak Risiko');
-
-        StrukturOrganisasi::create([
-            'peran' => 'pemilik_risiko',
-            'nama_jabatan' => 'Pemilik Risiko',
-            'user_id' => $pemilik->id,
-        ]);
-        StrukturOrganisasi::create([
-            'peran' => 'pengendali_mutu',
-            'nama_jabatan' => 'Pengendali Mutu',
-            'bidang_id' => $this->bidang['Bidang SDA'],
-            'user_id' => $mutu->id,
-        ]);
-        StrukturOrganisasi::create([
-            'peran' => 'pengendali_risiko',
-            'nama_jabatan' => 'Pengendali Risiko',
-            'bidang_id' => $this->bidang['Bidang SDA'],
-            'user_id' => $risiko->id,
-        ]);
-
-        $res = $this->get('/home');
-
-        $res->assertOk();
-        $res->assertSee('Tingkat 1');
-        $res->assertSee('Tingkat 2');
-        $res->assertSee('Tingkat 3');
-        $res->assertSee('Bapak Pemilik');
-        $res->assertSee('Bapak Mutu');
-        $res->assertSee('Bapak Risiko');
-        // Pengendali mutu pengendali risiko harus berada dalam satu blok bidang.
-        $res->assertSee('Tim Pengendali Risiko');
-    }
-
-    public function test_kursi_kosong_ditampilkan_sebagai_belum_ditunjuk(): void
-    {
-        StrukturOrganisasi::create([
-            'peran' => 'pemilik_risiko',
-            'nama_jabatan' => 'Pemilik Risiko',
-        ]);
-
-        $res = $this->get('/home');
-
-        $res->assertOk();
-        $res->assertSee('Belum Ditunjuk');
-        $res->assertSee('Kursi kosong');
-    }
-
-    public function test_pengendali_risiko_tanpa_pengendali_mutu_tetap_ditampilkan(): void
-    {
-        // Tidak ada pengendali mutu sama sekali, jadi pengendali risiko
-        // tidak boleh hilang dari halaman.
-        StrukturOrganisasi::create([
-            'peran' => 'pengendali_risiko',
-            'nama_jabatan' => 'Pengendali Risiko',
-            'bidang_id' => $this->bidang['Bidang SDA'],
-        ]);
-
-        $res = $this->get('/home');
-
-        $res->assertOk();
-        $res->assertSee('Pengendali Risiko Belum Ditempatkan');
-    }
-
-    public function test_bidang_tanpa_pengendali_mutu_muncul_sebagai_kartu(): void
-    {
-        $mutu = $this->buatUser('pegawai', 'Mutu SDA');
-        StrukturOrganisasi::create([
-            'peran' => 'pengendali_mutu',
-            'nama_jabatan' => 'Pengendali Mutu SDA',
-            'bidang_id' => $this->bidang['Bidang SDA'],
-            'user_id' => $mutu->id,
-        ]);
-
-        $res = $this->get('/home');
-
-        $res->assertOk();
-        $res->assertSee('Bidang SDA');
-        $res->assertSee('Mutu SDA');
-        // Bidang lain tidak punya pengendali mutu, jadi tidak boleh muncul
-        // sebagai blok bidang tersendiri.
-        $res->assertDontSee('Mutu CKPS');
+        return $cocok[1];
     }
 
     // ====================
-    // Endpoint admin: struktur
+    // Gambar struktur organisasi
     // ====================
 
-    public function test_admin_bisa_menambah_struktur(): void
+    public function test_bagan_kosong_menampilkan_pesan(): void
     {
-        $user = $this->buatUser('pegawai', 'Pegawai Termasuk');
+        $res = $this->get('/home');
 
-        $res = $this->actingAs($this->admin)->from('/home')->post('/admin/beranda/struktur', [
-            'peran' => 'pengendali_mutu',
-            'nama_jabatan' => 'Pengendali Mutu SDA',
-            'bidang_id' => $this->bidang['Bidang SDA'],
-            'user_id' => $user->id,
+        $res->assertOk();
+        $res->assertSee('Bagan Belum Diunggah');
+    }
+
+    public function test_bagan_yang_diunggah_ditampilkan(): void
+    {
+        GambarStruktur::create([
+            'path' => 'struktur-organisasi/bagan.jpg',
+            'keterangan' => 'Bagan per 1 Januari 2026',
+        ]);
+
+        $res = $this->get('/home');
+
+        $res->assertOk();
+        $res->assertDontSee('Bagan Belum Diunggah');
+        $res->assertSee('struktur-organisasi/bagan.jpg');
+        $res->assertSee('Bagan per 1 Januari 2026');
+    }
+
+    public function test_halaman_beranda_tidak_lagi_menampilkan_form_peran(): void
+    {
+        $res = $this->get('/home');
+
+        $res->assertOk();
+        $res->assertDontSee('Tambah Peran');
+        $res->assertDontSee('modalStruktur', false);
+    }
+
+    // ====================
+    // Endpoint admin: gambar struktur
+    // ====================
+
+    public function test_admin_bisa_mengunggah_gambar_struktur(): void
+    {
+        $res = $this->actingAs($this->admin)->from('/home')->post('/admin/beranda/struktur/gambar', [
+            'gambar' => UploadedFile::fake()->image('bagan.jpg', 1600, 1200),
+            'keterangan' => 'Bagan awal',
         ]);
 
         $res->assertRedirect('/home');
-        $this->assertDatabaseHas('struktur_organisasi', [
-            'peran' => 'pengendali_mutu',
-            'nama_jabatan' => 'Pengendali Mutu SDA',
-            'bidang_id' => $this->bidang['Bidang SDA'],
-        ]);
+        $res->assertSessionHasNoErrors();
+
+        $this->assertDatabaseCount('gambar_struktur', 1);
+        $this->assertDatabaseHas('gambar_struktur', ['keterangan' => 'Bagan awal']);
+
+        Storage::disk('public')->assertExists(GambarStruktur::first()->path);
     }
 
-    public function test_pemilik_risiko_tidak_bisa_punya_bidang(): void
+    public function test_gambar_struktur_wajib_diisi(): void
     {
-        $this->actingAs($this->admin)->from('/home')->post('/admin/beranda/struktur', [
-            'peran' => 'pemilik_risiko',
-            'nama_jabatan' => 'Pemilik Risiko',
-            'bidang_id' => $this->bidang['Bidang SDA'],
+        $this->actingAs($this->admin)
+            ->post('/admin/beranda/struktur/gambar', [])
+            ->assertSessionHasErrors('gambar');
+
+        $this->assertDatabaseCount('gambar_struktur', 0);
+    }
+
+    public function test_gambar_struktur_bukan_gambar_ditolak(): void
+    {
+        $this->actingAs($this->admin)
+            ->post('/admin/beranda/struktur/gambar', [
+                'gambar' => UploadedFile::fake()->create('bagan.pdf', 20, 'application/pdf'),
+            ])
+            ->assertSessionHasErrors('gambar');
+
+        $this->assertDatabaseCount('gambar_struktur', 0);
+    }
+
+    public function test_menggambar_struktur_menggantikan_yang_lama(): void
+    {
+        $this->actingAs($this->admin)->from('/home')->post('/admin/beranda/struktur/gambar', [
+            'gambar' => UploadedFile::fake()->image('lama.jpg', 800, 600),
+        ]);
+        $pathLama = GambarStruktur::first()->path;
+
+        $this->actingAs($this->admin)->from('/home')->post('/admin/beranda/struktur/gambar', [
+            'gambar' => UploadedFile::fake()->image('baru.jpg', 800, 600),
+            'keterangan' => 'Bagan baru',
         ])->assertRedirect('/home');
 
-        $this->assertDatabaseHas('struktur_organisasi', [
-            'peran' => 'pemilik_risiko',
-            'bidang_id' => null,
-        ]);
+        // Hanya satu bagan yang boleh aktif, dan file lamanya harus hilang.
+        $this->assertDatabaseCount('gambar_struktur', 1);
+        Storage::disk('public')->assertMissing($pathLama);
+        Storage::disk('public')->assertExists(GambarStruktur::first()->path);
+        $this->assertSame('Bagan baru', GambarStruktur::first()->keterangan);
     }
 
-    public function test_admin_bisa_mengubah_struktur(): void
+    public function test_admin_bisa_menghapus_gambar_struktur_dan_berkasnya(): void
     {
-        $row = StrukturOrganisasi::create([
-            'peran' => 'pengendali_risiko',
-            'nama_jabatan' => 'Pengendali Risiko',
-            'bidang_id' => $this->bidang['Bidang SDA'],
+        $this->actingAs($this->admin)->from('/home')->post('/admin/beranda/struktur/gambar', [
+            'gambar' => UploadedFile::fake()->image('hapus.jpg', 800, 600),
         ]);
-
-        $this->actingAs($this->admin)->from('/home')->put('/admin/beranda/struktur/' . $row->id, [
-            'peran' => 'pengendali_mutu',
-            'nama_jabatan' => 'Pengendali Mutu CKPS',
-            'bidang_id' => $this->bidang['Bidang CKPS'],
-        ])->assertRedirect('/home');
-
-        $this->assertDatabaseHas('struktur_organisasi', [
-            'id' => $row->id,
-            'peran' => 'pengendali_mutu',
-            'bidang_id' => $this->bidang['Bidang CKPS'],
-        ]);
-    }
-
-    public function test_admin_bisa_menghapus_struktur(): void
-    {
-        $row = StrukturOrganisasi::create([
-            'peran' => 'pemilik_risiko',
-            'nama_jabatan' => 'Pemilik Risiko',
-        ]);
+        $path = GambarStruktur::first()->path;
 
         $this->actingAs($this->admin)
-            ->from('/home')->delete('/admin/beranda/struktur/' . $row->id)
+            ->from('/home')->delete('/admin/beranda/struktur/gambar')
             ->assertRedirect('/home');
 
-        $this->assertDatabaseMissing('struktur_organisasi', ['id' => $row->id]);
+        $this->assertDatabaseCount('gambar_struktur', 0);
+        Storage::disk('public')->assertMissing($path);
     }
 
-    public function test_admin_bisa_mengurutkan_ulang_struktur(): void
+    public function test_pegawai_tidak_boleh_mengelola_gambar_struktur(): void
     {
-        $a = StrukturOrganisasi::create(['peran' => 'pemilik_risiko', 'nama_jabatan' => 'A', 'urutan' => 1]);
-        $b = StrukturOrganisasi::create(['peran' => 'pemilik_risiko', 'nama_jabatan' => 'B', 'urutan' => 2]);
-        $c = StrukturOrganisasi::create(['peran' => 'pemilik_risiko', 'nama_jabatan' => 'C', 'urutan' => 3]);
-
-        $this->actingAs($this->admin)->from('/home')->post('/admin/beranda/struktur/urutan', [
-            'urutan' => [$c->id, $a->id, $b->id],
-        ])->assertRedirect('/home');
-
-        $this->assertSame(1, StrukturOrganisasi::find($c->id)->urutan);
-        $this->assertSame(2, StrukturOrganisasi::find($a->id)->urutan);
-        $this->assertSame(3, StrukturOrganisasi::find($b->id)->urutan);
-    }
-
-    public function test_peran_tak_dikenal_ditolak(): void
-    {
-        $this->actingAs($this->admin)
-            ->post('/admin/beranda/struktur', ['peran' => 'ketua', 'nama_jabatan' => 'X'])
-            ->assertSessionHasErrors('peran');
-
-        $this->assertDatabaseCount('struktur_organisasi', 0);
-    }
-
-    public function test_nama_jabatan_wajib_diisi(): void
-    {
-        $this->actingAs($this->admin)
-            ->post('/admin/beranda/struktur', ['peran' => 'pemilik_risiko'])
-            ->assertSessionHasErrors('nama_jabatan');
-    }
-
-    public function test_bidang_tak_dikenal_ditolak(): void
-    {
-        $this->actingAs($this->admin)
-            ->post('/admin/beranda/struktur', [
-                'peran' => 'pengendali_mutu',
-                'nama_jabatan' => 'X',
-                'bidang_id' => 9999,
-            ])
-            ->assertSessionHasErrors('bidang_id');
-    }
-
-    public function test_pegawai_tidak_boleh_mengubah_struktur(): void
-    {
-        $row = StrukturOrganisasi::create([
-            'peran' => 'pemilik_risiko',
-            'nama_jabatan' => 'Pemilik Risiko',
-        ]);
+        GambarStruktur::create(['path' => 'struktur-organisasi/ada.jpg']);
 
         $this->actingAs($this->pegawai)
-            ->post('/admin/beranda/struktur', ['peran' => 'pemilik_risiko', 'nama_jabatan' => 'X'])
-            ->assertForbidden();
-
-        $this->actingAs($this->pegawai)
-            ->from('/home')->put('/admin/beranda/struktur/' . $row->id, [
-                'peran' => 'pemilik_risiko',
-                'nama_jabatan' => 'X',
+            ->post('/admin/beranda/struktur/gambar', [
+                'gambar' => UploadedFile::fake()->image('x.jpg', 100, 100),
             ])
             ->assertForbidden();
 
         $this->actingAs($this->pegawai)
-            ->from('/home')->delete('/admin/beranda/struktur/' . $row->id)
+            ->from('/home')->delete('/admin/beranda/struktur/gambar')
             ->assertForbidden();
 
-        $this->actingAs($this->pegawai)
-            ->post('/admin/beranda/struktur/urutan', ['urutan' => [$row->id]])
-            ->assertForbidden();
-
-        $this->assertDatabaseHas('struktur_organisasi', ['id' => $row->id, 'nama_jabatan' => 'Pemilik Risiko']);
+        $this->assertDatabaseCount('gambar_struktur', 1);
     }
 
     public function test_tamu_diarahkan_ke_login(): void
     {
-        $this->post('/admin/beranda/struktur', ['peran' => 'pemilik_risiko', 'nama_jabatan' => 'X'])
-            ->assertRedirect('/login');
+        $this->post('/admin/beranda/struktur/gambar', [
+            'gambar' => UploadedFile::fake()->image('x.jpg', 100, 100),
+        ])->assertRedirect('/login');
     }
 
     // ====================
@@ -526,9 +451,9 @@ class HalamanBerandaTest extends TestCase
         $res = $this->actingAs($this->admin)->get('/home');
 
         $res->assertOk();
-        $res->assertSee('Tambah Peran');
         $res->assertSee('Unggah Gambar');
-        $res->assertSee('bukaModalStruktur');
+        $res->assertSee('formGambarStruktur', false);
+        $res->assertSee('bukaModalGaleri', false);
     }
 
     public function test_pegawai_tidak_melihat_tombol_kelola(): void
@@ -536,8 +461,7 @@ class HalamanBerandaTest extends TestCase
         $res = $this->actingAs($this->pegawai)->get('/home');
 
         $res->assertOk();
-        $res->assertDontSee('Tambah Peran');
-        $res->assertDontSee('bukaModalStruktur');
-        $res->assertDontSee('modalStruktur', false);
+        $res->assertDontSee('formGambarStruktur', false);
+        $res->assertDontSee('bukaModalGaleri', false);
     }
 }
