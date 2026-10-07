@@ -123,31 +123,36 @@
 
     {{-- Latar foto gedung PUSBANGKOM, treatment-nya sama dengan banner di
          halaman Beranda: gambar menutupi layar penuh, lalu dilapisi gradien
-         biru tua supaya teks putih tetap terbaca. --}}
-    <div class="fixed inset-0 -z-10 overflow-hidden">
+         biru tua supaya teks putih tetap terbaca.
+
+         Lapis latar memakai `z-0`, bukan `-z-10`. <body> punya kelas
+         `bg-blue-950` yang opaque, jadi elemen ber-z-index negatif dilukis
+         di belakang warna body dan fotonya tidak terlihat sama sekali.
+         Karena itu header, main, dan footer diberi `relative z-10`. --}}
+    <div class="fixed inset-0 z-0 overflow-hidden">
         <img src="{{ asset('images/gedung_pusbangkom.jpg') }}"
              alt="Gedung PUSBANGKOM"
              class="absolute inset-0 h-full w-full object-cover object-center">
-        <div class="absolute inset-0 bg-gradient-to-r from-blue-950/95 via-blue-950/90 to-blue-900/70"></div>
+        <div class="absolute inset-0 bg-gradient-to-r from-blue-950/95 via-blue-950/85 to-blue-900/50"></div>
     </div>
 
     <!-- TOP HEADER BAR -->
-    <header class="w-full px-4 sm:px-6 py-3 flex items-center justify-between">
-        <a href="{{ url('/') }}" class="flex items-center gap-2.5 min-w-0">
+    <header class="relative z-10 w-full px-4 sm:px-6 py-3 flex items-center justify-between">
+        <a href="{{ route('beranda') }}" class="flex items-center gap-2.5 min-w-0">
             <img src="{{ asset('images/Logo_PU.svg') }}" alt="Logo PUPR" class="w-8 h-8 object-contain shrink-0">
             <span class="min-w-0">
                 <span class="block text-[10px] font-bold tracking-widest text-yellow-400 uppercase leading-tight">Kementerian Pekerjaan Umum</span>
                 <span class="block text-sm font-bold text-white leading-tight truncate">BPSDM</span>
             </span>
         </a>
-        <a href="{{ url('/') }}" class="btn btn-on-dark shrink-0">
+        <a href="{{ route('beranda') }}" class="btn btn-on-dark shrink-0">
             <i data-lucide="arrow-left" class="w-4 h-4"></i>
             <span>Beranda</span>
         </a>
     </header>
 
     <!-- MAIN LOGIN CONTAINER -->
-    <main class="flex-1 flex items-center justify-center p-4 sm:p-6">
+    <main class="relative z-10 flex-1 flex items-center justify-center p-4 sm:p-6">
         <div class="w-full max-w-sm card shadow-2xl shadow-blue-950/40">
 
             <!-- CARD HEADER -->
@@ -156,7 +161,10 @@
                     <i data-lucide="shield-check" class="w-3.5 h-3.5"></i>
                     Autentikasi Pegawai
                 </span>
-                <h1 class="page-title">PUSBANGKOM ACP</h1>
+                <h1 class="page-title">PUSBANGKOM SDA CKPS</h1>
+                                <p class="page-sub mt-1 leading-relaxed">
+                    Continuous Monitoring on Risk Control (CRMC)
+                </p>
                 <p class="page-sub mt-1 leading-relaxed">
                     Pusat Pengembangan Kompetensi Sumber Daya Air, Cipta Karya dan Prasarana Strategis
                 </p>
@@ -251,7 +259,7 @@
     </main>
 
     <!-- FOOTER -->
-    <footer class="w-full text-center py-4 text-[11px] text-blue-200/80">
+    <footer class="relative z-10 w-full text-center py-4 text-[11px] text-blue-200/80">
         &copy; {{ date('Y') }} Kementerian Pekerjaan Umum &bull; Badan Pengembangan Sumber Daya Manusia (BPSDM)
     </footer>
 

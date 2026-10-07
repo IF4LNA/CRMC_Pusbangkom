@@ -4,8 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Models\Bidang;
 use App\Models\DokumenCrmc;
+use App\Models\DokumenDasarHukum;
 use App\Models\LampiranCrmc;
+use App\Models\PenugasanCrmc;
 use App\Models\SubMenu;
+use App\Models\User;
 use App\Support\PenyimpananGambar;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -21,7 +24,7 @@ use Illuminate\Support\Facades\Storage;
  */
 class BidangController extends Controller
 {
-    /** Halaman dashboard utama CRMC (route "/"). */
+    /** Halaman dashboard utama CRMC (route "/dashboard"). */
     public function dashboard()
     {
         $daftarBidang = $this->daftarBidang();
@@ -29,7 +32,51 @@ class BidangController extends Controller
         return view('crmc.index', [
             'daftarBidang' => $daftarBidang,
             'isAdmin' => $this->bolehKelola(),
+            'ringkasanPersonel' => $this->ringkasanPersonel((int) date('Y')),
+            // Tab "Dasar Hukum" memakai daftar ini. Dimuat di sini, bukan di
+            // view, supaya tab tetap punya isi walau dipanggil terpisah.
+            'daftarDasarHukum' => DokumenDasarHukum::orderBy('urutan')->orderBy('id')->get(),
         ]);
+    }
+
+    /**
+     * Rekap pegawai dan penugasan PIC untuk satu tahun di dashboard.
+     *
+     * Penugasan dibaca dari seluruh sub-bidang, bukan dari satu sub-bidang
+     * saja. Pemilik Risiko dan Pengendali Mutu memang ditulis ke banyak
+     * sub-bidang (lihat CrmcController::updatePenugasan), jadi kalau
+     * dihitung apa adanya satu orang akan terhitung berkali-kali. Karena itu
+     * yang dihitung adalah user_id yang unik per peran.
+     *
+     * Tahun yang dipakai adalah tahun berjalan. Identitas PIC berbeda tiap
+     * tahun, jadi kartu ini harus selalu mengikuti penugasan tahun berjalan,
+     * bukan tahun terakhir yang kebetulan punya data.
+     *
+     * Yang dikembalikan hanya jumlah per peran, bukan daftar namanya. Nama
+     * lengkapnya sudah tersedia di Komponen 1 halaman 8 Komponen, sedangkan
+     * dashboard hanya butuh rekap angkanya.
+     *
+     * @return array{tahun:int, jumlahPemilikRisiko:int, jumlahPengendaliMutu:int, jumlahPengendaliRisiko:int, totalPengguna:int, totalAdmin:int, totalPegawai:int}
+     */
+    private function ringkasanPersonel(int $tahun): array
+    {
+        // Cukup user_id yang unik per peran: dashboard tidak menampilkan
+        // nama, jadi model `user` pun tidak perlu dimuat.
+        $jumlahPerPeran = fn (string $peran) => PenugasanCrmc::query()
+            ->tahun($tahun)
+            ->where('peran', $peran)
+            ->distinct()
+            ->count('user_id');
+
+        return [
+            'tahun' => $tahun,
+            'jumlahPemilikRisiko' => $jumlahPerPeran('pemilik_risiko'),
+            'jumlahPengendaliMutu' => $jumlahPerPeran('pengendali_mutu'),
+            'jumlahPengendaliRisiko' => $jumlahPerPeran('pengendali_risiko'),
+            'totalPengguna' => User::count(),
+            'totalAdmin' => User::where('role', 'admin')->count(),
+            'totalPegawai' => User::where('role', 'pegawai')->count(),
+        ];
     }
 
     /**

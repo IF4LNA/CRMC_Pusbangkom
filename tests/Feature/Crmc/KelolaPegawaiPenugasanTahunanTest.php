@@ -289,7 +289,7 @@ class KelolaPegawaiPenugasanTahunanTest extends TestCase
 
     public function test_kartu_sub_bidang_berwarna_biru_sesuai_banner(): void
     {
-        $res = $this->actingAs($this->admin)->get('/');
+        $res = $this->actingAs($this->admin)->get('/dashboard');
 
         $res->assertStatus(200);
         $res->assertSee('sub-bidang-banner', false);
@@ -297,7 +297,7 @@ class KelolaPegawaiPenugasanTahunanTest extends TestCase
 
     public function test_kartu_sub_bidang_tidak_lagi_memakai_tombol_form_input_edit(): void
     {
-        $res = $this->actingAs($this->admin)->get('/');
+        $res = $this->actingAs($this->admin)->get('/dashboard');
 
         $res->assertStatus(200);
         $res->assertDontSee('openCRMCModal');
@@ -319,7 +319,7 @@ class KelolaPegawaiPenugasanTahunanTest extends TestCase
             'nama_sub_menu' => 'Alpha exceedingly',
         ]);
 
-        $res = $this->actingAs($this->admin)->get('/');
+        $res = $this->actingAs($this->admin)->get('/dashboard');
 
         $res->assertStatus(200);
 
@@ -417,7 +417,7 @@ class KelolaPegawaiPenugasanTahunanTest extends TestCase
             'gambar_latar' => UploadedFile::fake()->image('awal.jpg'),
         ])->assertStatus(302);
 
-        $res = $this->actingAs($this->admin)->get('/');
+        $res = $this->actingAs($this->admin)->get('/dashboard');
 
         $res->assertStatus(200);
         $res->assertSee('pratinjauLatarSubBidang', false);
@@ -436,7 +436,7 @@ class KelolaPegawaiPenugasanTahunanTest extends TestCase
      */
     public function test_atribut_onclick_tombol_kartu_tidak_memuat_json(): void
     {
-        $res = $this->actingAs($this->admin)->get('/');
+        $res = $this->actingAs($this->admin)->get('/dashboard');
 
         $res->assertStatus(200);
 
@@ -461,7 +461,7 @@ class KelolaPegawaiPenugasanTahunanTest extends TestCase
 
     public function test_tombol_kartu_membaca_data_dari_atribut_data(): void
     {
-        $res = $this->actingAs($this->admin)->get('/');
+        $res = $this->actingAs($this->admin)->get('/dashboard');
 
         $res->assertStatus(200);
         // Data sub-bidang dibaca lewat dataset, bukan dari onclick.
@@ -512,7 +512,7 @@ class KelolaPegawaiPenugasanTahunanTest extends TestCase
 
     public function test_kartu_sub_bidang_gelap_dengan_teks_terang(): void
     {
-        $res = $this->actingAs($this->admin)->get('/');
+        $res = $this->actingAs($this->admin)->get('/dashboard');
 
         $res->assertStatus(200);
         $this->assertMatchesRegularExpression(
@@ -530,7 +530,7 @@ class KelolaPegawaiPenugasanTahunanTest extends TestCase
 
     public function test_hover_navigasi_memakai_kuning(): void
     {
-        $res = $this->get('/');
+        $res = $this->get('/dashboard');
 
         $res->assertStatus(200);
         $this->assertMatchesRegularExpression(
@@ -547,7 +547,7 @@ class KelolaPegawaiPenugasanTahunanTest extends TestCase
      */
     public function test_hover_navigasi_juga_menutupi_fokus(): void
     {
-        $res = $this->get('/');
+        $res = $this->get('/dashboard');
 
         $res->assertStatus(200);
         $this->assertMatchesRegularExpression(

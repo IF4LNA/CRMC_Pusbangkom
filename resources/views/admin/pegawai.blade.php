@@ -8,15 +8,15 @@
     <!-- BREADCRUMB -->
     <div class="flex flex-wrap items-center justify-between gap-3 text-xs">
         <nav class="flex items-center space-x-2 text-slate-500">
-            <a href="{{ url('/') }}" class="hover:text-blue-700 flex items-center gap-1 font-medium transition">
+            <a href="{{ route('crmc.dashboard') }}" class="hover:text-blue-700 flex items-center gap-1 font-medium transition">
                 <i data-lucide="home" class="w-3.5 h-3.5"></i>
-                <span>Beranda CRMC</span>
+                <span>Dashboard CRMC</span>
             </a>
             <i data-lucide="chevron-right" class="w-3.5 h-3.5 text-slate-400"></i>
             <span class="text-blue-700 font-semibold">Kelola Akun Pegawai</span>
         </nav>
 
-        <a href="{{ url('/') }}" class="btn btn-outline">
+        <a href="{{ route('crmc.dashboard') }}" class="btn btn-outline">
             <i data-lucide="arrow-left" class="w-3.5 h-3.5 text-slate-500"></i>
             <span>Kembali ke Dashboard</span>
         </a>

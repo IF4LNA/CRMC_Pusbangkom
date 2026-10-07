@@ -123,8 +123,16 @@ class CrmcController extends Controller
         // bukan penugasan terakhir yang tersimpan.
         $daftarTahun = $this->daftarTahun($subMenu);
 
-        // Tahun default = tahun terbaru di daftar (cenderung ke tahun berjalan).
-        $defaultTahun = $daftarTahun[count($daftarTahun) - 1] ?? (int) date('Y');
+        // Tahun default = tahun BERJALAN, bukan tahun terbaru di daftar.
+        //
+        // `daftarTahun()` sengaja memuat tahun berjalan + 1 tahun ke depan
+        // supaya admin bisa merencanakan tahun berikutnya. Kalau default
+        // memakai entri terakhir, halaman selalu terbuka di tahun depan,
+        // padahal belum ada dokumen maupun penugasan untuk tahun itu.
+        $tahunSekarang = (int) date('Y');
+        $defaultTahun = in_array($tahunSekarang, $daftarTahun, true)
+            ? $tahunSekarang
+            : ($daftarTahun[count($daftarTahun) - 1] ?? $tahunSekarang);
 
         $selectedTahun = (int) $request->input('tahun', $defaultTahun);
         if (!in_array($selectedTahun, $daftarTahun, true)) {

@@ -126,6 +126,15 @@
         .btn-danger:hover { background: #fff1f2; }
         .btn-sm { padding: .3125rem .625rem; font-size: .75rem; }
 
+        /* Tombol kuning untuk aksi utama di atas latar gelap.
+           Memakai warna yang sama dengan logo Kementerian Pekerjaan Umum
+           dan dengan hover navigasi, supaya tombol utama di hero menonjol
+           dari biru gradien di belakangnya. Teksnya navy karena kuning
+           terang dengan teks putih akan sulit dibaca. */
+        .btn-kuning { background: #fbbf24; border-color: #fbbf24; color: var(--navy); }
+        .btn-kuning:hover { background: #f59e0b; border-color: #f59e0b; color: var(--navy); }
+        .btn-kuning:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+
         /* Tombol ikon hanya berisi satu ikon */
         .icon-btn {
             display: inline-flex;
@@ -209,8 +218,15 @@
         }
         .nav-link:hover { background: #f1f5f9; color: var(--ink); }
         .nav-link .count { font-size: .6875rem; color: #94a3b8; }
-        .nav-link.is-active { background: var(--ink); color: #fff; }
-        .nav-link.is-active .count { color: #cbd5e1; }
+
+        /* Status aktif memakai kuning, warna yang sama dengan logo
+           Kementerian Pekerjaan Umum. Sama seperti hover, kuning ditulis
+           berpasangan dengan :focus: tombol navigasi berbasis <button>
+           menahan status fokus setelah diklik, sehingga tanpa aturan
+           :focus yang sama, tombol yang baru diklik akan tetap terlihat
+           menyala. */
+        .nav-link.is-active { background: #fbbf24; color: var(--navy); }
+        .nav-link.is-active .count { color: #78350f; }
 
         /* Varian navigasi untuk header gelap (navy) */
         .nav-dark { border-top-color: rgba(255, 255, 255, .14); }
@@ -234,16 +250,22 @@
         .nav-dark .nav-link:hover .count,
         .nav-dark .nav-link:focus .count { color: #78350f; }
 
-        /* Tab aktif tetap putih, tidak ikut kuning saat disorot. */
-        .nav-dark .nav-link.is-active { background: #fff; color: var(--navy); }
-        .nav-dark .nav-link.is-active .count { color: #64748b; }
+        /* Status aktif tetap kuning saat disorot: warna aktif dan warna hover
+           sengaja sama, supaya kursor lewat ke tab aktif tidak terlihat
+           seperti tab yang berubah status.
+
+           Aturan ini diulang dengan awalan .nav-dark karena
+           `.nav-dark .nav-link` di atas menimpa warnanya, dan specificity
+           yang sama hanya bisa kalah oleh urutan, bukan oleh blok lain. */
+        .nav-dark .nav-link.is-active { background: #fbbf24; color: var(--navy); }
+        .nav-dark .nav-link.is-active .count { color: #78350f; }
         .nav-dark .nav-link.is-active:hover,
         .nav-dark .nav-link.is-active:focus {
-            background: #fff;
+            background: #fbbf24;
             color: var(--navy);
         }
         .nav-dark .nav-link.is-active:hover .count,
-        .nav-dark .nav-link.is-active:focus .count { color: #64748b; }
+        .nav-dark .nav-link.is-active:focus .count { color: #78350f; }
 
         /* ---------- Statistik ---------- */
         .stat { padding: 1rem; background: #fff; border: 1px solid var(--line); border-radius: .75rem; }
@@ -418,7 +440,7 @@
                      3rem), bukan kotak kecil 40px yang terlihat melayang di
                      tengah. --}}
                 <div class="flex items-center gap-3 min-w-0">
-                    <a href="{{ route('home') }}" class="h-12 w-12 flex items-center justify-center shrink-0">
+                    <a href="{{ route('beranda') }}" class="h-12 w-12 flex items-center justify-center shrink-0">
                         <img src="{{ asset('images/Logo_PU.svg') }}" alt="Logo Kementerian Pekerjaan Umum" class="w-full h-full object-contain">
                     </a>
                     {{-- Nama instansi ditumpuk tiga baris, bukan satu baris
@@ -511,6 +533,11 @@
         // dipakai supaya tidak perlu menyusun ulang base URL tiap kali.
         const URL_CRTC_SHOW = @json(route('crmc.show', ['slug' => '__SLUG__']));
 
+        // Dashboard CRMC tidak lagi berada di "/", tapi di "/dashboard".
+        // Dipakai switchTab() di bawah saat tab yang dituju tidak ada di
+        // halaman ini dan harus memuat ulang halaman.
+        const URL_DASHBOARD = @json(route('crmc.dashboard'));
+
         let currentRole = 'pegawai';
 
         function navigateToCRMC(slug) {
@@ -559,10 +586,15 @@
                 {{-- Hanya kelas .is-active yang ditukar, bukan seluruh
                      className, supaya gaya tombol tetap utuh.
 
+                     Semua .nav-link di dalam navigasi ikut dilepas, bukan
+                     hanya .nav-btn. "Dashboard" dan "Beranda" adalah
+                     <a>, bukan tombol, jadi kalau hanya .nav-btn yang
+                     dibersihkan, keduanya tetap menyala setelah pindah tab.
+
                      Tombol yang diklik juga dilepas fokusnya: kalau tidak,
                      tombol itu tetap menyala setelah kursor berpindah karena
                      state :focus bertahan. --}}
-                document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('is-active'));
+                document.querySelectorAll('#navUtama .nav-link').forEach(link => link.classList.remove('is-active'));
                 const activeBtn = document.getElementById(`nav-${tabId}`);
                 if (activeBtn) {
                     activeBtn.classList.add('is-active');
@@ -570,7 +602,9 @@
                 }
                 window.scrollTo({ top: 0, behavior: 'smooth' });
             } else {
-                window.location.href = '/?tab=' + tabId;
+                // Tab tidak ada di halaman ini, jadi pindahkan ke dashboard
+                // yang memuat seluruh tab.
+                window.location.href = URL_DASHBOARD + '?tab=' + tabId;
             }
         }
 

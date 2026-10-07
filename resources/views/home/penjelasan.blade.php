@@ -100,7 +100,7 @@
             </div>
             <div class="mt-5 pt-4 border-t border-slate-200 flex flex-wrap items-center justify-between gap-2">
                 <p class="page-sub">Siap mengelola seluruh instrumen CRMC</p>
-                <a href="{{ route('home') }}" class="btn btn-primary">
+                <a href="{{ route('crmc.dashboard') }}" class="btn btn-primary">
                     <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
                     Buka Dashboard CRMC
                 </a>

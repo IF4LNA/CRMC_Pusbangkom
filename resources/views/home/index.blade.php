@@ -48,7 +48,7 @@
                         <i data-lucide="book-open" class="w-4 h-4"></i>
                         Pelajari CRMC
                     </a>
-                    <a href="{{ route('home') }}"
+                    <a href="{{ route('crmc.dashboard') }}"
                        class="inline-flex items-center gap-2 px-5 py-3 bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold text-xs rounded-xl transition">
                         <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
                         Dashboard CRMC
@@ -103,7 +103,7 @@
                     kelengkapan komponen yang menjadi tanggung jawab Anda.
                 </p>
             </div>
-            <a href="{{ route('home') }}"
+            <a href="{{ route('crmc.dashboard') }}"
                class="inline-flex items-center justify-center gap-2 px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl transition shadow-sm shrink-0">
                 <i data-lucide="arrow-right" class="w-4 h-4"></i>
                 Masuk ke Dashboard

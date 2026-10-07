@@ -22,12 +22,55 @@ class SemuaHalamanTest extends TestCase
 
     public function test_dashboard_yang_sama_lagi_tetap_terbuka(): void
     {
-        $this->get('/')->assertOk();
+        // Dashboard pindah ke "/dashboard"; "/" kini halaman Beranda.
+        $this->get('/dashboard')->assertOk();
+    }
+
+    /**
+     * Halaman yang dibuka pertama kali harus Beranda, bukan dashboard.
+     */
+    public function test_halaman_awal_adalah_beranda(): void
+    {
+        $this->get('/')->assertOk()->assertSee('Tentang CRMC');
     }
 
     public function test_formulir_login_terbuka(): void
     {
         $this->get('/login')->assertOk()->assertSee('name="email"', false);
+    }
+
+    /**
+     * Foto gedung pada halaman login harus benar-benar terlihat.
+     *
+     * <body> memakai `bg-blue-950` yang opaque, jadi lapisan foto tidak
+     * boleh memakai z-index negatif. Nilai seperti -z-10 digambar di
+     * belakang warna body sehingga fotonya hilang sama sekali.
+     */
+    public function test_foto_gedung_pada_halaman_login_tidak_tertutup_lapis_warna(): void
+    {
+        $html = $this->get('/login')->assertOk()->getContent();
+
+        $this->assertStringContainsString('images/gedung_pusbangkom.jpg', $html);
+
+        // Wrapper foto harus berada di stack yang sama atau di atas
+        // background body, bukan di bawahnya.
+        $this->assertDoesNotMatchRegularExpression(
+            '/fixed inset-0 -z-\d+/',
+            $html,
+            'Lapis foto tidak boleh memakai z-index negatif karena body punya background opaque.'
+        );
+
+        // Isi halaman (header, main, footer) harus di atas foto.
+        $this->assertMatchesRegularExpression(
+            '/<header class="relative z-10 /',
+            $html,
+            'Header harus di atas lapisan foto.'
+        );
+        $this->assertMatchesRegularExpression(
+            '/<main class="relative z-10 /',
+            $html,
+            'Kartu login harus di atas lapisan foto.'
+        );
     }
 
     public function test_setiap_halaman_komponen_terbuka(): void

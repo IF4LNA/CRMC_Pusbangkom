@@ -18,7 +18,7 @@ class SmokeUiTest extends TestCase
     {
         $this->seedData();
 
-        foreach (['/', '/home', '/login', '/sop'] as $url) {
+        foreach (['/', '/home', '/dashboard', '/login', '/sop'] as $url) {
             $res = $this->get($url);
             $this->assertTrue(
                 $res->isOk() || $res->isRedirect(),
@@ -45,10 +45,11 @@ class SmokeUiTest extends TestCase
             // Dashboard CRMC + tiap tabnya (tab hanya tersembunyi lewat JS,
             // jadi seluruh partial tetap dirender di server). Tab bidang
             // memakai id bidang, mis. "bidang-1".
+            '/dashboard',
+            '/dashboard?tab=dasar-hukum',
+            '/dashboard?tab=bidang-' . $bidang->id,
+            // Halaman beranda (sekarang juga di "/")
             '/',
-            '/?tab=dasar-hukum',
-            '/?tab=bidang-' . $bidang->id,
-            // Halaman beranda
             '/home',
             // Kumpulan SOP
             '/sop',

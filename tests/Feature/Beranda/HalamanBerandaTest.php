@@ -121,8 +121,8 @@ class HalamanBerandaTest extends TestCase
         // dashboard CRMC harus memuat tautan yang sama persis.
         $ambil = fn (string $html) => $this->parseNavLinks($html);
 
-        $beranda = $ambil($this->get('/home')->getContent());
-        $dashboard = $ambil($this->get('/')->getContent());
+        $beranda = $ambil($this->get('/')->getContent());
+        $dashboard = $ambil($this->get('/dashboard')->getContent());
 
         $this->assertNotEmpty($beranda);
         $this->assertSame($beranda, $dashboard);
@@ -136,9 +136,20 @@ class HalamanBerandaTest extends TestCase
         $res->assertSee('href="' . route('sop.index') . '"', false);
     }
 
-    public function test_dashboard_lama_tetap_di_slash(): void
+    public function test_dashboard_berpindah_ke_dashboard_dan_tetap_terbuka(): void
     {
-        $this->get('/')->assertOk();
+        // "/" kini Beranda. Dashboard pindah ke "/dashboard".
+        $this->get('/')->assertOk()->assertSee('Tentang CRMC');
+        $this->get('/dashboard')->assertOk();
+    }
+
+    /**
+     * "/home" dipertahankan sebagai alias supaya tautan lama yang sudah
+     * dibagikan tidak jadi buntu.
+     */
+    public function test_home_masih_membuka_beranda(): void
+    {
+        $this->get('/home')->assertOk()->assertSee('Tentang CRMC');
     }
 
     /**

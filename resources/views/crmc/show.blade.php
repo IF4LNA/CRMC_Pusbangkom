@@ -1,4 +1,4 @@
-﻿@extends('layouts.app')
+@extends('layouts.app')
 
 @php
     // Skala status residu dipakai langsung di dalam @php block (untuk
@@ -123,9 +123,9 @@
     <!-- BREADCRUMB & BACK ACTION -->
     <div class="flex flex-wrap items-center justify-between gap-3 text-xs">
         <nav class="flex items-center space-x-2 text-slate-500">
-            <a href="{{ url('/') }}" class="hover:text-blue-700 flex items-center gap-1 font-medium transition">
-                <i data-lucide="home" class="w-3.5 h-3.5"></i>
-                <span>Beranda CRMC</span>
+            <a href="{{ route('crmc.dashboard') }}" class="hover:text-blue-700 flex items-center gap-1 font-medium transition">
+                <i data-lucide="layout-dashboard" class="w-3.5 h-3.5"></i>
+                <span>Dashboard CRMC</span>
             </a>
             <i data-lucide="chevron-right" class="w-3.5 h-3.5 text-slate-400"></i>
             <span class="text-slate-600 font-semibold">{{ $parentBidang }}</span>
@@ -134,7 +134,7 @@
         </nav>
 
         <div class="flex items-center gap-2">
-            <a href="{{ url('/') }}" class="btn btn-outline">
+            <a href="{{ route('crmc.dashboard') }}" class="btn btn-outline">
                 <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i>
                 <span>Kembali ke Dashboard</span>
             </a>
@@ -956,7 +956,7 @@
             </div>
         </div>
         <div class="flex items-center gap-2">
-            <a href="{{ url('/') }}" class="btn btn-quiet">
+            <a href="{{ route('crmc.dashboard') }}" class="btn btn-quiet">
                 Kembali ke Dashboard
             </a>
             @if($isAdmin)

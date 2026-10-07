@@ -63,7 +63,7 @@ class DashboardBidangSopTest extends TestCase
         SubMenu::create(['bidang_id' => $this->bidangUmum->id, 'nama_sub_menu' => 'Manajemen Risiko']);
         SubMenu::create(['bidang_id' => $this->bidangSda->id, 'nama_sub_menu' => 'Bangkom SDA']);
 
-        $res = $this->get('/');
+        $res = $this->get('/dashboard');
 
         $res->assertOk();
         $res->assertSee('id="tab-bidang-' . $this->bidangUmum->id . '"', false);
@@ -77,7 +77,7 @@ class DashboardBidangSopTest extends TestCase
         SubMenu::create(['bidang_id' => $this->bidangSda->id, 'nama_sub_menu' => 'Bangkom SDA']);
         SubMenu::create(['bidang_id' => $this->bidangSda->id, 'nama_sub_menu' => 'Kurikulum SDA']);
 
-        $res = $this->get('/');
+        $res = $this->get('/dashboard');
 
         $res->assertOk();
         $res->assertSee('switchTab(\'bidang-' . $this->bidangSda->id . '\')', false);
@@ -88,7 +88,7 @@ class DashboardBidangSopTest extends TestCase
     {
         SubMenu::create(['bidang_id' => $this->bidangSda->id, 'nama_sub_menu' => 'Tanpa Gambar']);
 
-        $res = $this->get('/');
+        $res = $this->get('/dashboard');
 
         $res->assertOk();
         $res->assertSee('Tanpa Gambar');
@@ -102,12 +102,12 @@ class DashboardBidangSopTest extends TestCase
 
     public function test_admin_bisa_menambah_sub_bidang(): void
     {
-        $res = $this->actingAs($this->admin)->from('/')->post('/bidang/sub-bidang', [
+        $res = $this->actingAs($this->admin)->from('/dashboard')->post('/bidang/sub-bidang', [
             'bidang_id' => $this->bidangSda->id,
             'nama_sub_menu' => 'Monitoring  E-Learning',
         ]);
 
-        $res->assertRedirect('/');
+        $res->assertRedirect('/dashboard');
         $res->assertSessionHasNoErrors();
 
         $this->assertDatabaseHas('sub_menu', [
@@ -119,18 +119,18 @@ class DashboardBidangSopTest extends TestCase
 
     public function test_admin_bisa_menambah_gambar_latar_sub_bidang(): void
     {
-        $this->actingAs($this->admin)->from('/')->post('/bidang/sub-bidang', [
+        $this->actingAs($this->admin)->from('/dashboard')->post('/bidang/sub-bidang', [
             'bidang_id' => $this->bidangSda->id,
             'nama_sub_menu' => 'Dengan Gambar',
             'gambar_latar' => UploadedFile::fake()->image('latar.jpg', 1200, 800),
-        ])->assertRedirect('/');
+        ])->assertRedirect('/dashboard');
 
         $sub = SubMenu::firstWhere('nama_sub_menu', 'Dengan Gambar');
         $this->assertNotNull($sub);
         $this->assertNotNull($sub->gambar_latar);
         Storage::disk('public')->assertExists($sub->gambar_latar);
 
-        $res = $this->actingAs($this->admin)->get('/');
+        $res = $this->actingAs($this->admin)->get('/dashboard');
         $res->assertOk();
         $res->assertSee($sub->gambar_latar);
     }
@@ -164,7 +164,7 @@ class DashboardBidangSopTest extends TestCase
 
     public function test_mengubah_sub_bidang_tanpa_gambar_baru_mempertahankan_gambar_lama(): void
     {
-        $this->actingAs($this->admin)->from('/')->post('/bidang/sub-bidang', [
+        $this->actingAs($this->admin)->from('/dashboard')->post('/bidang/sub-bidang', [
             'bidang_id' => $this->bidangSda->id,
             'nama_sub_menu' => 'Awal',
             'gambar_latar' => UploadedFile::fake()->image('lama.jpg', 800, 600),
@@ -173,10 +173,10 @@ class DashboardBidangSopTest extends TestCase
         $sub = SubMenu::first();
         $pathLama = $sub->gambar_latar;
 
-        $this->actingAs($this->admin)->from('/')->put('/bidang/sub-bidang/' . $sub->id, [
+        $this->actingAs($this->admin)->from('/dashboard')->put('/bidang/sub-bidang/' . $sub->id, [
             'bidang_id' => $this->bidangSda->id,
             'nama_sub_menu' => 'Diubah',
-        ])->assertRedirect('/');
+        ])->assertRedirect('/dashboard');
 
         $sub->refresh();
         $this->assertSame('Diubah', $sub->nama_sub_menu);
@@ -186,7 +186,7 @@ class DashboardBidangSopTest extends TestCase
 
     public function test_mengganti_gambar_latar_menghapus_file_lama(): void
     {
-        $this->actingAs($this->admin)->from('/')->post('/bidang/sub-bidang', [
+        $this->actingAs($this->admin)->from('/dashboard')->post('/bidang/sub-bidang', [
             'bidang_id' => $this->bidangSda->id,
             'nama_sub_menu' => 'Awal',
             'gambar_latar' => UploadedFile::fake()->image('lama.jpg', 800, 600),
@@ -195,11 +195,11 @@ class DashboardBidangSopTest extends TestCase
         $sub = SubMenu::first();
         $pathLama = $sub->gambar_latar;
 
-        $this->actingAs($this->admin)->from('/')->put('/bidang/sub-bidang/' . $sub->id, [
+        $this->actingAs($this->admin)->from('/dashboard')->put('/bidang/sub-bidang/' . $sub->id, [
             'bidang_id' => $this->bidangSda->id,
             'nama_sub_menu' => 'Awal',
             'gambar_latar' => UploadedFile::fake()->image('baru.jpg', 800, 600),
-        ])->assertRedirect('/');
+        ])->assertRedirect('/dashboard');
 
         Storage::disk('public')->assertMissing($pathLama);
         Storage::disk('public')->assertExists($sub->fresh()->gambar_latar);
@@ -229,8 +229,8 @@ class DashboardBidangSopTest extends TestCase
         ]);
 
         $this->actingAs($this->admin)
-            ->from('/')->delete('/bidang/sub-bidang/' . $sub->id)
-            ->assertRedirect('/');
+            ->from('/dashboard')->delete('/bidang/sub-bidang/' . $sub->id)
+            ->assertRedirect('/dashboard');
 
         $this->assertDatabaseMissing('sub_menu', ['id' => $sub->id]);
         // Cascade di database tidak menghapus file, jadi file fisik ikut
@@ -271,11 +271,11 @@ class DashboardBidangSopTest extends TestCase
     {
         SubMenu::create(['bidang_id' => $this->bidangSda->id, 'nama_sub_menu' => 'Contoh']);
 
-        $this->actingAs($this->admin)->get('/')
+        $this->actingAs($this->admin)->get('/dashboard')
             ->assertOk()
             ->assertSee('Tambah Sub-Bidang');
 
-        $this->actingAs($this->pegawai)->get('/')
+        $this->actingAs($this->pegawai)->get('/dashboard')
             ->assertOk()
             ->assertDontSee('Tambah Sub-Bidang');
     }
@@ -418,7 +418,7 @@ class DashboardBidangSopTest extends TestCase
         $this->buatSop($sub, 2026, 'sop-1.pdf');
         $this->buatSop($sub, 2026, 'sop-2.pdf');
 
-        $res = $this->get('/');
+        $res = $this->get('/dashboard');
 
         $res->assertOk();
         // Badge jumlah SOP berada tepat setelah label "SOP" di navigasi.

@@ -4,15 +4,22 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\BidangController;
 use App\Http\Controllers\CrmcController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\DokumenDasarHukumController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\SopController;
 
+// Halaman yang dibuka pertama kali saat pengunjung mengetik alamat situs.
+// Beranda lebih tepat jadi pintu masuk daripada dashboard: isinya
+// penjelasan CRMC, bagan struktur, galeri, dan peta.
+Route::get('/', [HomeController::class, 'index'])->name('beranda');
+
+// "/home" ditangani sama seperti "/". Ditahankan supaya tautan lama yang
+// sudah dibagikan atau disimpan di browser tidak jadi buntu.
+Route::get('/home', [HomeController::class, 'index'])->name('beranda.alias');
+
 // Dashboard utama CRMC. Daftar bidang & sub-bidang dibaca dari database
 // sehingga admin bisa menambah sub-bidang tanpa mengubah kode.
-Route::get('/', [BidangController::class, 'dashboard'])->name('home');
-
-// Halaman Beranda: penjelasan CRMC, gambar struktur, galeri, dan peta
-Route::get('/home', [HomeController::class, 'index'])->name('beranda');
+Route::get('/dashboard', [BidangController::class, 'dashboard'])->name('crmc.dashboard');
 
 // Kumpulan seluruh dokumen SOP (Komponen 3) dari semua sub-bidang
 Route::get('/sop', [SopController::class, 'index'])->name('sop.index');
@@ -100,4 +107,17 @@ Route::middleware('auth')->prefix('admin/beranda')->name('admin.beranda.')->grou
     Route::put('/galeri/{id}', [HomeController::class, 'ubahGaleri'])->name('galeri.ubah');
     Route::delete('/galeri/{id}', [HomeController::class, 'hapusGaleri'])->name('galeri.hapus');
     Route::post('/galeri/urutan', [HomeController::class, 'urutkanGaleri'])->name('galeri.urutan');
+});
+
+// ========================================================
+// ADMIN: Dokumen Dasar Hukum (tab "Dasar Hukum" pada dashboard)
+//
+// Daftar regulasinya sudah dibuat lewat seeder, jadi tidak ada
+// endpoint tambah/hapus regulasi. Yang bisa diubah admin hanya
+// berkas scan-nya. Otorisasi admin ditegur ulang di dalam
+// DokumenDasarHukumController::wajibAdmin().
+// ========================================================
+Route::middleware('auth')->prefix('admin/dasar-hukum')->name('admin.dasar-hukum.')->group(function () {
+    Route::post('/{id}/berkas', [DokumenDasarHukumController::class, 'unggahBerkas'])->name('berkas.simpan');
+    Route::delete('/{id}/berkas', [DokumenDasarHukumController::class, 'hapusBerkas'])->name('berkas.hapus');
 });

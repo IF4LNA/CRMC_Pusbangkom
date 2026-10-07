@@ -33,12 +33,12 @@
                         </a>
                     </li>
                     <li>
-                        <a href="{{ route('home') }}" class="text-blue-200/80 hover:text-white transition">
+                        <a href="{{ route('crmc.dashboard') }}" class="text-blue-200/80 hover:text-white transition">
                             Dashboard CRMC
                         </a>
                     </li>
                     <li>
-                        <a href="{{ route('home') }}?tab=dasar-hukum" class="text-blue-200/80 hover:text-white transition">
+                        <a href="{{ route('crmc.dashboard', ['tab' => 'dasar-hukum']) }}" class="text-blue-200/80 hover:text-white transition">
                             Dasar Hukum
                         </a>
                     </li>

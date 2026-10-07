@@ -57,7 +57,8 @@ class ExampleTest extends TestCase
             'password' => 'password123',
         ]);
 
-        $response->assertRedirect('/');
+        // Setelah masuk, pengguna langsung diarahkan ke dashboard CRMC.
+        $response->assertRedirect('/dashboard');
         $this->assertAuthenticatedAs($user);
     }
 

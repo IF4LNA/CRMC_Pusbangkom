@@ -11,18 +11,25 @@
 @php
     // Hanya halaman dashboard yang punya tab. Di halaman lain
     // (Beranda, SOP, detail sub-bidang) tidak ada tab yang aktif.
-    $diDashboard = request()->routeIs('home');
+    $diDashboard = request()->routeIs('crmc.dashboard');
     $tabAktif = $diDashboard ? (request('tab') ?: 'dashboard') : null;
 @endphp
 
 <nav id="navUtama" class="nav nav-dark no-scrollbar">
+    {{-- "Beranda" juga menyala saat halaman dibuka lewat "/home", alias
+         lama dari Beranda. Tanpa ini, visiting "/home" tidak menandai
+         posisi menu yang sedang aktif. --}}
     <a href="{{ route('beranda') }}"
-       class="nav-link {{ request()->routeIs('beranda') ? 'is-active' : '' }}">
+       class="nav-link {{ request()->routeIs('beranda', 'beranda.alias') ? 'is-active' : '' }}">
         <i data-lucide="home" class="w-4 h-4"></i>
         <span>Beranda</span>
     </a>
 
-    <a href="{{ route('home') }}"
+    {{-- Id "nav-dashboard" mengikuti pola tab lain supaya switchTab()
+         bisa menyalakan tautan ini ketika tab dashboard yang dibuka.
+         Tanpa itu, pindah tab lalu kembali ke dashboard lewat URL
+         ?tab=dashboard akan tampil tanpa penanda aktif. --}}
+    <a href="{{ route('crmc.dashboard') }}" id="nav-dashboard"
        class="nav-link {{ $diDashboard && $tabAktif === 'dashboard' ? 'is-active' : '' }}">
         <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
         <span>Dashboard</span>

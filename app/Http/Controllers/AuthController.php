@@ -13,7 +13,7 @@ class AuthController extends Controller
     public function showLoginForm()
     {
         if (Auth::check()) {
-            return redirect()->route('home')->with('info', 'Anda sudah masuk sebagai ' . Auth::user()->name);
+            return redirect()->route('crmc.dashboard')->with('info', 'Anda sudah masuk sebagai ' . Auth::user()->name);
         }
 
         return view('auth.login');
@@ -50,7 +50,9 @@ class AuthController extends Controller
             $request->session()->regenerate();
 
             $roleText = $user->isAdmin() ? 'Administrator' : 'Pegawai';
-            return redirect()->intended(route('home'))->with('success', "Selamat datang, {$user->name}! Anda berhasil masuk dalam Mode {$roleText}.");
+            // Tuju dashboard CRMC: setelah masuk, pegawainya langsung
+            // bekerja di halaman instrumen, bukan membaca halaman depan.
+            return redirect()->intended(route('crmc.dashboard'))->with('success', "Selamat datang, {$user->name}! Anda berhasil masuk dalam Mode {$roleText}.");
         }
 
         if ($request->expectsJson() || $request->is('api/*')) {
@@ -83,6 +85,6 @@ class AuthController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return redirect()->route('home')->with('success', 'Anda telah berhasil keluar dari sistem CRMC.');
+        return redirect()->route('beranda')->with('success', 'Anda telah berhasil keluar dari sistem CRMC.');
     }
 }
