@@ -10,6 +10,33 @@
 
 @section('title', '8 Komponen CRMC - ' . $subBidangName)
 
+@push('styles')
+    {{-- CAROUSEL DOKUMEN SAAT CETAK
+         Di layar tiap komponen hanya menampilkan satu file supaya halaman
+         tidak panjang. Untuk hasil cetak, semua file harus ikut tercetak:
+         slide-nya diletakkan berurutan ke bawah dan tombol navigasi
+         disembunyikan. Tanpa aturan ini, tombol "Cetak Laporan" hanya
+         menghasilkan satu file per komponen. --}}
+    <style>
+        @media print {
+            [data-peran="akar-dokumen"] [data-peran="track"] {
+                display: block !important;
+                transform: none !important;
+            }
+
+            [data-peran="slide-dokumen"] {
+                display: block !important;
+                page-break-inside: avoid;
+                break-inside: avoid;
+            }
+
+            [data-peran="kendali-dokumen"] {
+                display: none !important;
+            }
+        }
+    </style>
+@endpush
+
 @section('content')
 <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
 
@@ -115,6 +142,35 @@
         ])->values();
 
         $isAdmin = auth()->check() && auth()->user()->isAdmin();
+
+        // Tautan Google Drive tiap komponen, dikelompokkan per (tahun,
+        // kategori) oleh controller. Dipakai sebagai closure supaya view
+        // cukup menulis $tautan('sop', $tahun) tanpa membongkar array.
+        $tautan = function (string $kategori, int $tahun) use ($tautanDrive) {
+            return $tautanDrive[$tahun][$kategori] ?? null;
+        };
+
+        // Hanya Admin atau pembuat tautan yang boleh menghapusnya. Sama
+        // seperti aturan hapus berkas per tahun, pegawai tidak boleh
+        // menghapus tautan milik unit lain.
+        $bolehHapusTautan = function ($t) use ($isAdmin) {
+            return $t !== null && ($isAdmin || $t->user_id === auth()->id());
+        };
+
+        // Bentuk data tautan untuk dikirim ke JavaScript. Yang di sini
+        // hanya kolom yang memang dipakai modal, bukan model utuhnya,
+        // supaya tidak ada data lain yang ikut terkirim ke browser.
+        $daftarTautanDrive = [];
+        foreach ($tautanDrive as $tahun => $perKategori) {
+            foreach ($perKategori as $kategori => $t) {
+                $daftarTautanDrive[(int) $tahun][$kategori] = [
+                    'id' => $t->id,
+                    'url' => $t->url,
+                    'label' => $t->label,
+                    'boleh_hapus' => $bolehHapusTautan($t),
+                ];
+            }
+        }
 
         // Berapa tahun ke belakang yang punya dokumen, untuk info header.
         $tahunAdaDokumen = $dokumenTahun->keys()->map(fn ($t) => (int) $t)->sortDesc()->values();
@@ -228,7 +284,7 @@
             Admin juga bisa menambah tahun khusus di luar rentang itu lewat tombol <strong>"+ Tambah Tahun"</strong>.
         </p>
         <p class="mt-1">
-            Komponen hanya menampilkan berkas yang diunggah pada tahun yang dipilih. Belum ada dokumen? Kotaknya kosong â€” bukan data contoh.
+            Komponen hanya menampilkan berkas yang diunggah pada tahun yang dipilih. Belum ada dokumen? Kotaknya kosong &mdash; bukan data contoh.
         </p>
     </div>
 
@@ -368,6 +424,23 @@
                             <span>Atur Penugasan ({{ $tahunPenugasan }})</span>
                         </button>
                     @endif
+
+                    {{-- Aksi berkas Komponen 1: unggah dokumen pendukung
+                         (SK/KP, surat delegasi) dan tautan Google Drive.
+                         Tombolnya sama dengan komponen dokumen lain, dan
+                         tautannya juga dibuka lewat tombol. --}}
+                    @php
+                        $kategoriIdentitas = $komponenIdentitas['kategori'];
+                        $tautanIdentitas = $tautan($kategoriIdentitas, (int) $tahunPenugasan);
+                    @endphp
+                    @include('crmc.partials.aksi-komponen', [
+                        'kategori' => $kategoriIdentitas,
+                        'nomor' => $komponenIdentitas['nomor'],
+                        'judul' => $komponenIdentitas['judul'],
+                        'ikon' => $komponenIdentitas['ikon'],
+                        'tahun' => $tahunPenugasan,
+                        'tautan' => $tautanIdentitas,
+                    ])
                 </div>
 
                 <div>
@@ -489,6 +562,38 @@
                         @endforelse
                     </div>
                 </div>
+
+                <!-- === BERKAS PENDUKUNG (UPLOAD + GOOGLE DRIVE) === -->
+                <div class="rounded-xl border border-slate-200 bg-white p-4 space-y-3">
+                    <div class="flex items-center justify-between gap-3 flex-wrap">
+                        <span class="inline-flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-wider text-slate-800 bg-slate-100 border border-slate-300 px-2 py-0.5 rounded">
+                            <i data-lucide="paperclip" class="w-3 h-3"></i>
+                            Berkas Pendukung
+                        </span>
+                        <span class="text-[10px] text-slate-500 font-mono">
+                            {{ $komponenIdentitas['lampiran']->count() }} file &middot; Tahun {{ $tahunPenugasan }}
+                        </span>
+                    </div>
+
+                    <p class="text-[11px] text-slate-500 leading-relaxed">
+                        Dokumen pendukung identitas pegawai tahun {{ $tahunPenugasan }}: SK/KP, surat keputusan,
+                        atau berkas delegasi lain. Kalau berkasnya berada di Google Drive, cukup isi tautannya lewat
+                        tombol <strong>"Link Drive"</strong>, lalu tautannya tampil sebagai tombol pembuka.
+                    </p>
+
+                    <p class="hint">
+                        Berkas di bawah memakai tahun identitas yang sama dengan penugasan di atas. Kalau lebih dari
+                        satu file, pakai tombol <strong>Sebelumnya/Berikutnya</strong> supaya tidak menumpuk ke bawah.
+                    </p>
+
+                    @include('crmc.partials.daftar-dokumen', [
+                        'kategori' => $komponenIdentitas['kategori'],
+                        'nomor' => $komponenIdentitas['nomor'],
+                        'judul' => $komponenIdentitas['judul'],
+                        'tahun' => $tahunPenugasan,
+                        'daftar' => $komponenIdentitas['lampiran'],
+                    ])
+                </div>
             </div>
             <div class="px-4 sm:px-6 py-3 border-t border-slate-100 text-[11px] text-slate-500">
                 Data penugasan di atas berasal dari akun pegawai yang ditunjuk Admin. Kosong berarti belum ada yang ditugaskan.
@@ -527,15 +632,18 @@
                         <span class="badge badge-accent">Komponen {{ $meta['nomor'] }}</span>
                         <span class="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">{{ $daftar->count() }} file</span>
                     </div>
-                    <div class="flex items-center gap-2 shrink-0">
-                        @auth
-                            <button onclick="openUploadModal(@js($kategori), @js('Komponen ' . $meta['nomor'] . ' â€” ' . $meta['judul']), {{ $tahunK }})"
-                                    class="btn btn-sm btn-quiet">
-                                <i data-lucide="upload" class="w-3 h-3"></i><span>Upload</span>
-                            </button>
-                        @endauth
-                        <i data-lucide="{{ $meta['ikon'] }}" class="w-4 h-4 text-slate-400"></i>
-                    </div>
+
+                    @php
+                        $tautanKomponen = $tautan($kategori, (int) $tahunK);
+                    @endphp
+                    @include('crmc.partials.aksi-komponen', [
+                        'kategori' => $kategori,
+                        'nomor' => $meta['nomor'],
+                        'judul' => $meta['judul'],
+                        'ikon' => $meta['ikon'],
+                        'tahun' => $tahunK,
+                        'tautan' => $tautanKomponen,
+                    ])
                 </div>
 
                 <div>
@@ -559,27 +667,15 @@
                     @endif
                 </div>
 
-                <!-- DAFTAR DOKUMEN (pratinjau langsung, tanpa tombol mata) -->
-                <div class="space-y-4">
-                    @forelse($daftar as $idx => $lamp)
-                        @include('crmc.partials.kartu-dokumen', [
-                            'index' => $idx + 1,
-                            'total' => $daftar->count(),
-                        ])
-                    @empty
-                        <div class="empty">
-                            <i data-lucide="file-plus-2" class="w-8 h-8 text-slate-300 mx-auto"></i>
-                            <p class="text-xs font-bold text-slate-600">Belum ada dokumen tahun {{ $tahunK }}</p>
-                            <p class="text-[11px] text-slate-400">Komponen ini hanya menampilkan berkas yang benar-benar diunggah.</p>
-                            @auth
-                                <button onclick="openUploadModal(@js($kategori), @js('Komponen ' . $meta['nomor'] . ' â€” ' . $meta['judul']), {{ $tahunK }})"
-                                        class="btn btn-sm btn-primary mt-1">
-                                    <i data-lucide="upload" class="w-3 h-3"></i><span>Upload {{ $tahunK }}</span>
-                                </button>
-                            @endauth
-                        </div>
-                    @endforelse
-                </div>
+                <!-- DAFTAR DOKUMEN: satu file satu tampilan, ada tombol
+                     next/previous supaya tidak menumpuk ke bawah -->
+                @include('crmc.partials.daftar-dokumen', [
+                    'kategori' => $kategori,
+                    'nomor' => $meta['nomor'],
+                    'judul' => $meta['judul'],
+                    'tahun' => $tahunK,
+                    'daftar' => $daftar,
+                ])
             </div>
 
             <div class="px-4 sm:px-6 py-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
@@ -709,15 +805,18 @@
                         <span class="badge badge-accent">Komponen 8</span>
                         <span class="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">{{ $daftar8->count() }} file</span>
                     </div>
-                    <div class="flex items-center gap-2 shrink-0">
-                        @auth
-                            <button onclick="openUploadModal('evaluasi', @js('Komponen 8 â€” ' . $meta8['judul']), {{ $tahun8 }})"
-                                    class="btn btn-sm btn-quiet">
-                                <i data-lucide="upload" class="w-3 h-3"></i><span>Upload</span>
-                            </button>
-                        @endauth
-                        <i data-lucide="trending-up" class="w-4 h-4 text-slate-400"></i>
-                    </div>
+
+                    @php
+                        $tautan8 = $tautan('evaluasi', (int) $tahun8);
+                    @endphp
+                    @include('crmc.partials.aksi-komponen', [
+                        'kategori' => 'evaluasi',
+                        'nomor' => $meta8['nomor'],
+                        'judul' => $meta8['judul'],
+                        'ikon' => $meta8['ikon'],
+                        'tahun' => $tahun8,
+                        'tautan' => $tautan8,
+                    ])
                 </div>
 
                 <div>
@@ -768,28 +867,15 @@
                     </div>
                 @endauth
 
-                <!-- DAFTAR DOKUMEN (pratinjau langsung, tanpa tombol mata) -->
-                <div class="space-y-4">
-                    @forelse($daftar8 as $idx => $lamp)
-                        {{-- Komponen 8 memakai kartu dokumen yang sama dengan Komponen 2-6. --}}
-                        @include('crmc.partials.kartu-dokumen', [
-                            'index' => $idx + 1,
-                            'total' => $daftar8->count(),
-                        ])
-                    @empty
-                        <div class="empty">
-                            <i data-lucide="file-plus-2" class="w-8 h-8 text-slate-300 mx-auto"></i>
-                            <p class="text-xs font-bold text-slate-600">Belum ada dokumen tahun {{ $tahun8 }}</p>
-                            <p class="text-[11px] text-slate-400">Komponen ini hanya menampilkan berkas yang benar-benar diunggah.</p>
-                            @auth
-                                <button onclick="openUploadModal('evaluasi', @js('Komponen 8 â€” ' . $meta8['judul']), {{ $tahun8 }})"
-                                        class="btn btn-sm btn-primary mt-1">
-                                    <i data-lucide="upload" class="w-3 h-3"></i><span>Upload {{ $tahun8 }}</span>
-                                </button>
-                            @endauth
-                        </div>
-                    @endforelse
-                </div>
+                <!-- DAFTAR DOKUMEN: partial yang sama dengan Komponen 1-6, jadi
+                     behavior-nya ikut sama (satu file satu tampilan). -->
+                @include('crmc.partials.daftar-dokumen', [
+                    'kategori' => 'evaluasi',
+                    'nomor' => $meta8['nomor'],
+                    'judul' => $meta8['judul'],
+                    'tahun' => $tahun8,
+                    'daftar' => $daftar8,
+                ])
             </div>
 
             <div class="px-4 sm:px-6 py-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
@@ -886,9 +972,12 @@
                     <div class="flex-1 min-w-[16rem]">
                         <label class="label">Cakupan Komponen</label>
                         <select name="kategori" class="input">
-                            <option value="">Semua komponen (2,3,4,5,6,8)</option>
-                            @foreach($komponen as $kat => $m)
-                                <option value="{{ $kat }}">Hanya Komponen {{ $m['nomor'] }} â€” {{ $m['judul'] }}</option>
+                            <option value="">Semua komponen dokumen (1,2,3,4,5,6,8)</option>
+                            {{-- Komponen 1 digabung di depan supaya admin bisa
+                                 menghapus berkas identitas saja tanpa
+                                 menyentuh dokumen komponen lain. --}}
+                            @foreach(['identitas_pegawai' => $komponenIdentitas] + $komponen as $kat => $m)
+                                <option value="{{ $kat }}">Hanya Komponen {{ $m['nomor'] }} &mdash; {{ $m['judul'] }}</option>
                             @endforeach
                         </select>
                     </div>
@@ -1004,7 +1093,11 @@
                                 <option value="{{ $tahun }}" {{ $tahun == $selectedTahun ? 'selected' : '' }}>{{ $tahun }}</option>
                             @endforeach
                         </select>
-                        <p class="hint">Dokumen yang diunggah akan tersimpan pada tahun ini dan muncul di Kotak Komponen tersebut.</p>
+                        <p class="hint">
+                            Dokumen yang diunggah akan tersimpan pada tahun ini dan muncul di Kotak Komponen tersebut.
+                            Kalau lebih dari satu file, layar hanya menampilkan satu file pada satu waktu; pakai tombol
+                            <strong>Sebelumnya/Berikutnya</strong> untuk melihat file yang lain.
+                        </p>
                     </div>
 
                     <!-- PILIH FILE -->
@@ -1032,6 +1125,130 @@
             </form>
         </div>
     </div>
+
+    <!-- ===================== MODAL TAUTAN GOOGLE DRIVE (KOMPONEN 1-6, 8) ===================== -->
+    {{-- Satu modal dipakai bersama oleh semua Komponen 1,2,3,4,5,6,8.
+         Komponen dan tahun diisi lewat JS saat tombolnya ditekan, jadi
+         tidak perlu satu modal per komponen. --}}
+    @auth
+    <div id="tautanDriveModal" class="modal hidden">
+        <div class="modal-card !max-w-lg">
+            <div class="modal-head">
+                <div class="flex items-center space-x-3">
+                    <div class="w-8 h-8 bg-blue-50 text-blue-700 rounded-md flex items-center justify-center shrink-0">
+                        <i data-lucide="folder-symlink" class="w-4 h-4"></i>
+                    </div>
+                    <div>
+                        <span class="eyebrow">Dokumen di Google Drive</span>
+                        <h3 id="tautanDriveModalTitle" class="modal-title mt-0.5">Komponen</h3>
+                    </div>
+                </div>
+                <button onclick="closeTautanDriveModal()" class="icon-btn" title="Tutup">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+
+            <form action="{{ route('crmc.tautan-drive.store', $slug) }}" method="POST" id="tautanDriveForm"
+                  class="flex-1 flex flex-col min-h-0">
+                <div class="modal-body space-y-3">
+                    @csrf
+                    <input type="hidden" name="kategori_komponen" id="tautanDriveKategori" value="">
+
+                    {{-- Pesan error juga ditampilkan DI DALAM modal. Kalau hanya
+                         muncul di paling atas halaman, penyebab kegagalan
+                         sulit dilihat karena modal ada di bagian bawah. --}}
+                    @php
+                        $pesanTautanDrive = collect(['url', 'label', 'kategori_komponen', 'tahun_pelaksanaan'])
+                            ->flatMap(fn ($field) => $errors->get($field))
+                            ->values()
+                            ->all();
+                    @endphp
+                    @if($pesanTautanDrive)
+                        <div class="note !border-rose-200 !bg-rose-50 !text-rose-900">
+                            <p class="font-semibold flex items-center gap-1.5">
+                                <i data-lucide="alert-triangle" class="w-4 h-4"></i> Tautan belum tersimpan
+                            </p>
+                            <ul class="mt-1 space-y-0.5 list-disc list-inside text-[11px] text-rose-700">
+                                @foreach($pesanTautanDrive as $pesan)
+                                    <li>{{ $pesan }}</li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    @endif
+
+                    <div class="note">
+                        <p class="font-semibold flex items-center gap-1.5"><i data-lucide="info" class="w-4 h-4"></i> Cara memakai:</p>
+                        <ol class="mt-1 list-decimal list-inside space-y-0.5 text-blue-900">
+                            <li>Buka folder atau berkas di Google Drive.</li>
+                            <li>Klik <strong>K Bagikan</strong>, lalu pilih <strong>Siapa saja yang punya link</strong>.</li>
+                            <li>Salin tautannya, lalu tempel di bawah. Tautan ini tampil sebagai tombol di komponen tersebut.</li>
+                        </ol>
+                    </div>
+
+                    <div>
+                        <label class="label">Tahun Anggaran *</label>
+                        <select name="tahun_pelaksanaan" id="tautanDriveTahun" required class="input">
+                            @foreach(array_reverse($daftarTahun) as $tahun)
+                                <option value="{{ $tahun }}" {{ $tahun == $selectedTahun ? 'selected' : '' }}>{{ $tahun }}</option>
+                            @endforeach
+                        </select>
+                        <p class="hint">Satu tautan per komponen per tahun. Mengisi ulang akan menimpa tautan yang lama.</p>
+                    </div>
+
+                    <div>
+                        <label class="label" for="tautanDriveUrl">Tautan Google Drive *</label>
+                        {{-- Sengaja type="text", bukan type="url". type="url" membuat
+                             browser menolak mengirim form bila tautan ditulis
+                             tanpa "https://" (mis. hanya "drive.google.com/..."),
+                             padahal server sudah bisa melengkapinya sendiri.
+                             Pemeriksaan host tetap dilakukan di server. --}}
+                        <input type="text" name="url" id="tautanDriveUrl" required
+                               inputmode="url" autocomplete="off" spellcheck="false"
+                               value="{{ old('url') }}"
+                               onblur="rapikanTautanDrive()"
+                               placeholder="https://drive.google.com/drive/folders/..."
+                               class="input">
+                        <p class="hint">
+                            Hanya tautan Google (drive.google.com, docs.google.com, dan sejenisnya) yang diterima.
+                            Boleh ditulis tanpa <code>https://</code>.
+                        </p>
+                    </div>
+
+                    <div>
+                        <label class="label" for="tautanDriveLabel">Teks Tombol (opsional)</label>
+                        <input type="text" name="label" id="tautanDriveLabel" maxlength="120"
+                               value="{{ old('label') }}"
+                               placeholder="Kosongkan untuk memakai &quot;Buka Google Drive&quot;"
+                               class="input">
+                        <p class="hint">Teks yang terlihat pada tombol pembuka tautan, mis. &quot;Folder Risk Register 2026&quot;.</p>
+                    </div>
+                </div>
+
+                <div class="modal-foot !justify-end">
+                    <button type="button" onclick="closeTautanDriveModal()" class="btn btn-quiet">Batal</button>
+                    <button type="submit" class="btn btn-primary">Simpan Tautan</button>
+                </div>
+            </form>
+
+            {{-- FORM HAPUS: harus berdiri sendiri, DI LUAR form simpan.
+                 HTML tidak mengizinkan dua <form> bersarang. Kalau form ini
+                 diletakkan di dalam form simpan, browser mengabaikan tag
+                 <form> kedua, tetapi input _method=DELETE di dalamnya tetap
+                 menjadi bagian form simpan. Akibatnya "Simpan Tautan"
+                 terkirim sebagai DELETE dan selalu gagal. --}}
+            <div id="tautanDriveHapusWrap" class="hidden px-4 py-3 border-t border-slate-200 bg-white">
+                <form action="" method="POST" id="tautanDriveHapusForm"
+                      data-konfirmasi="Hapus tautan Google Drive Komponen ini? Tombol yang menuju folder tersebut akan hilang.">
+                    @csrf @method('DELETE')
+                    <button type="submit" class="btn btn-sm btn-danger">
+                        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i><span>Hapus Tautan</span>
+                    </button>
+                    <span class="text-[11px] text-slate-500 ml-2">Yang dihapus hanya tautannya, bukan berkas di Google Drive.</span>
+                </form>
+            </div>
+        </div>
+    </div>
+    @endauth
 
     <!-- ===================== MODAL KETERANGAN SATU DOKUMEN ===================== -->
     <div id="keteranganModal" class="modal hidden">
@@ -1478,6 +1695,166 @@
     })();
 
     // ======================================================
+    // CAROUSEL DOKUMEN PER KOMPONEN
+    // ======================================================
+    // Satu komponen yang punya beberapa file tidak lagi menumpuk
+    // dokumennya ke bawah. Hanya satu file yang tampil, dan file lainnya
+    // bisa dilihat lewat tombol Sebelumnya/Berikutnya atau titik navigasi.
+    //
+    // Indeks slide disimpan per kategori supaya Perpindahan file pada
+    // satu komponen tidak mengubah posisi file komponen lain.
+    const indeksDokumen = {};
+
+    window.tampilDokumen = function (kategori, index) {
+        const akar = document.getElementById('dok-' + kategori);
+        if (!akar) return;
+
+        const total = parseInt(akar.dataset.total || '1', 10);
+        const track = akar.querySelector('[data-peran="track"]');
+        if (!track || total < 1) return;
+
+        // Indeks dibungkus supaya navigasi dari slide terakhir kembali
+        // ke slide pertama, bukan berhenti di luar jangkauan.
+        const posisi = ((index % total) + total) % total;
+        indeksDokumen[kategori] = posisi;
+
+        track.style.transform = 'translateX(' + (-posisi * 100) + '%)';
+
+        const counter = akar.querySelector('[data-peran="counter"]');
+        if (counter) counter.textContent = 'File ' + (posisi + 1) + ' dari ' + total;
+
+        akar.querySelectorAll('[data-peran="titik"]').forEach(function (titik) {
+            const aktif = parseInt(titik.dataset.index, 10) === posisi;
+            titik.className = titik.dataset.kelas + ' ' + (aktif
+                ? 'w-7 bg-blue-600'
+                : 'w-2 bg-slate-300 hover:bg-slate-400');
+        });
+    };
+
+    window.geserDokumen = function (kategori, arah) {
+        const akar = document.getElementById('dok-' + kategori);
+        if (!akar) return;
+
+        const sekarang = typeof indeksDokumen[kategori] === 'number' ? indeksDokumen[kategori] : 0;
+        window.tampilDokumen(kategori, sekarang + arah);
+    };
+
+    // Geser dengan keyboard dan sentuhan, supaya navigasi tetap tersedia
+    // tanpa harus memakai mouse.
+    document.querySelectorAll('[data-peran="akar-dokumen"]').forEach(function (akar) {
+        const track = akar.querySelector('[data-peran="track"]');
+        if (!track) return;
+
+        const kategori = akar.dataset.kategori;
+
+        track.addEventListener('keydown', function (e) {
+            if (e.key === 'ArrowLeft') {
+                window.geserDokumen(kategori, -1);
+                e.preventDefault();
+            }
+            if (e.key === 'ArrowRight') {
+                window.geserDokumen(kategori, 1);
+                e.preventDefault();
+            }
+        });
+
+        let sentuhAwalX = 0;
+        track.addEventListener('touchstart', function (e) {
+            sentuhAwalX = e.changedTouches[0].clientX;
+        }, { passive: true });
+        track.addEventListener('touchend', function (e) {
+            const delta = e.changedTouches[0].clientX - sentuhAwalX;
+            if (Math.abs(delta) > 45) window.geserDokumen(kategori, delta < 0 ? 1 : -1);
+        }, { passive: true });
+    });
+
+    // ======================================================
+    // MODAL TAUTAN GOOGLE DRIVE (KOMPONEN 1,2,3,4,5,6,8)
+    // ======================================================
+    // Satu modal untuk semua komponen: kategori dan tahun dikirim
+    // sebagai argumen dari tombolnya, bukan dari form terpisah.
+    const URL_HAPUS_TAUTAN = @json(route('crmc.tautan-drive.destroy', ['id' => '__ID__']));
+
+    // Tautan Drive yang tersimpan, dikirim dari server. Yang perlu ke
+    // browser hanya empat kolom ringkas (bukan objek model penuh), dan
+    // "boleh_hapus" ikut dikirim supaya tombol Hapus tidak perlu menebak
+    // hak akses di sisi frontend.
+    const dataTautanDrive = @json($daftarTautanDrive);
+
+    /**
+     * Ambil tautan Drive milik satu (kategori, tahun) dari data di atas.
+     * Null berarti komponen itu belum punya tautan pada tahun tersebut.
+     */
+    function ambilTautanDrive(kategori, tahun) {
+        const perTahun = dataTautanDrive[tahun];
+        return (perTahun && perTahun[kategori]) || null;
+    }
+
+    function openTautanDriveModal(kategori, judul, tahun) {
+        const modal = document.getElementById('tautanDriveModal');
+        if (!modal) return;
+
+        const tautan = ambilTautanDrive(kategori, tahun);
+
+        document.getElementById('tautanDriveModalTitle').textContent = judul;
+        document.getElementById('tautanDriveKategori').value = kategori;
+        document.getElementById('tautanDriveTahun').value = String(tahun);
+        document.getElementById('tautanDriveUrl').value = tautan ? tautan.url : '';
+        document.getElementById('tautanDriveLabel').value = tautan ? (tautan.label || '') : '';
+
+        // Tombol hapus hanya muncul kalau tautannya memang ada DAN
+        // pengguna berhak menghapusnya. Penentuannya sudah dihitung
+        // server, jadi frontend tidak menebak hak akses.
+        const bungkusHapus = document.getElementById('tautanDriveHapusWrap');
+        if (tautan && tautan.boleh_hapus) {
+            document.getElementById('tautanDriveHapusForm').action =
+                URL_HAPUS_TAUTAN.replace('__ID__', tautan.id);
+            bungkusHapus.classList.remove('hidden');
+        } else {
+            bungkusHapus.classList.add('hidden');
+        }
+
+        modal.classList.remove('hidden');
+        setTimeout(function () {
+            const input = document.getElementById('tautanDriveUrl');
+            if (input) input.focus();
+        }, 50);
+    }
+
+    function closeTautanDriveModal() {
+        const modal = document.getElementById('tautanDriveModal');
+        if (modal) modal.classList.add('hidden');
+    }
+
+    /**
+     * Lengkapi tautan yang ditulis tanpa skema.
+     *
+     * Form memakai type="text" supaya tautan seperti
+     * "drive.google.com/drive/folders/..." tetap bisa dikirim; di sini
+     * skema-nya ditambahkan supaya yang tersimpan rapi.
+     */
+    function rapikanTautanDrive() {
+        const input = document.getElementById('tautanDriveUrl');
+        if (!input) return;
+
+        const nilai = input.value.trim();
+
+        if (nilai !== '' && !/^https?:\/\//i.test(nilai)) {
+            input.value = 'https://' + nilai.replace(/^\/+/, '');
+        }
+    }
+
+    @if($errors->has('url'))
+        // Validasi tautan gagal: buka lagi modal yang sama supaya pengguna
+        // tidak perlu mencari kembali tombolnya dan mengetik ulang.
+        openTautanDriveModal(
+            @js(old('kategori_komponen', '')),
+            @js('Tautan Google Drive'),
+            @js((int) old('tahun_pelaksanaan', $selectedTahun))
+        );
+    @endif
+
+    // ======================================================
     // MODAL UPLOAD DENGAN KETERANGAN PER BERKAS
     // ======================================================
     function openUploadModal(kategori, title, tahun) {
@@ -1543,7 +1920,7 @@
             textarea.name = `keterangan[${idx}]`;
             textarea.rows = 2;
             textarea.maxLength = 1000;
-            textarea.placeholder = 'Keterangan berkas ini (mis. tanggal, penanggung jawab, nomor surat)â€¦';
+            textarea.placeholder = 'Keterangan berkas ini (mis. tanggal, penanggung jawab, nomor surat)...';
             textarea.className = 'input !text-[11px]';
 
             row.appendChild(head);
@@ -1630,7 +2007,7 @@
     // Escape untuk menutup modal yang terbuka.
     document.addEventListener('keydown', function (e) {
         if (e.key !== 'Escape') return;
-        ['uploadDokumenModal', 'keteranganModal', 'tahunModal', 'residuModal', 'penugasanModal']
+        ['uploadDokumenModal', 'tautanDriveModal', 'keteranganModal', 'tahunModal', 'residuModal', 'penugasanModal']
             .forEach((id) => {
                 const el = document.getElementById(id);
                 if (el) el.classList.add('hidden');

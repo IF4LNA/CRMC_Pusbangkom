@@ -8,15 +8,18 @@ use App\Models\DokumenCrmc;
 use App\Models\LampiranCrmc;
 use App\Models\PenugasanCrmc;
 use App\Models\TahunAnggaran;
+use App\Models\TautanDriveCrmc;
 use App\Models\User;
 use App\Support\PenyimpananGambar;
 use App\Support\SkalaResiduRisiko;
+use App\Support\TautanGoogleDrive;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 
 class CrmcController extends Controller
 {
@@ -34,15 +37,47 @@ class CrmcController extends Controller
     ];
 
     /**
+     * Komponen 1 (identitas pegawai) sebagai komponen dokumen.
+     *
+     * Identitas Pegawai biasanya bukan sekadar daftar nama: kartu itu sering
+     * dilampiri SK/KP, surat keputusan, atau dokumen delegasi. Karena itu
+     * Komponen 1 memakai tombol Upload dan tautan Google Drive yang sama
+     * dengan Komponen 2-6 dan 8.
+     *
+     * Dipisahkan dari KOMPONEN_UPLOAD supaya urutan tampilan di halaman tetap
+     * 1 -> 2 -> ... -> 8, sementara daftar kategori upload dan tautan Google
+     * Drive tetap bisa memanggil semuanya lewat daftarKategoriDokumen().
+     */
+    private const KOMPONEN_IDENTITAS = [
+        'identitas_pegawai' => ['nomor' => 1, 'judul' => 'Identitas Pegawai', 'ikon' => 'user-round'],
+    ];
+
+    /**
+     * Semua komponen yang bisa menyimpan berkas: Komponen 1 dan Komponen
+     * 2,3,4,5,6,8.
+     *
+     * Komponen 7 tidak termasuk karena isinya status residu (satu nilai
+     * status per tahun), bukan kumpulan dokumen.
+     *
+     * @return array<string, array{nomor: int, judul: string, ikon: string}>
+     */
+    private function daftarKategoriDokumen(): array
+    {
+        return self::KOMPONEN_IDENTITAS + self::KOMPONEN_UPLOAD;
+    }
+
+    /**
      * Daftar tahun yang bisa dipilih pada halaman 8 Komponen.
      *
-     * Gabungan tiga sumber:
+     * Gabungan empat sumber:
      *   1. Otomatis  : tahun berjalan + 1 tahun ke depan (untuk perencanaan),
      *                  sehingga tahun baru muncul sendiri saat pergantian tahun
      *                  tanpa perlu ada action dari admin.
      *   2. Data      : tahun yang sudah punya dokumen di sub-bidang ini.
      *   3. Manual    : tahun yang ditambahkan Admin lewat tombol "Tambah Tahun",
      *                  untuk tahun khusus di luar rentang otomatis.
+     *   4. Penugasan & tautan Drive: tahun yang sudah dipakai Komponen 1
+     *                  atau Komponen 2-6/8 walau belum ada berkasnya.
      *
      * @return array<int> daftar tahun urut menaik
      */
@@ -66,10 +101,18 @@ class CrmcController extends Controller
             ? PenugasanCrmc::where('sub_menu_id', $subMenu->id)->distinct()->pluck('tahun_pelaksanaan')->all()
             : PenugasanCrmc::distinct()->pluck('tahun_pelaksanaan')->all();
 
+        // Sama seperti penugasan: tautan Google Drive boleh diisi lebih dulu,
+        // sebelum ada berkas apa pun, jadi tahun yang dipakainya harus tetap
+        // bisa dibuka lewat halaman.
+        $dariTautan = $subMenu
+            ? TautanDriveCrmc::where('sub_menu_id', $subMenu->id)->distinct()->pluck('tahun_pelaksanaan')->all()
+            : TautanDriveCrmc::distinct()->pluck('tahun_pelaksanaan')->all();
+
         return collect([$tahunSekarang, $tahunSekarang + 1])
             ->merge($dariDokumen)
             ->merge($dariAdmin)
             ->merge($dariPenugasan)
+            ->merge($dariTautan)
             ->map(fn ($t) => (int) $t)
             // Batas atas longgar sampai 2100, sama dengan batas validasi
             // tambahTahun(). Kalau lebih kecil, tahun yang berhasil
@@ -200,6 +243,17 @@ class CrmcController extends Controller
             }
         }
 
+        // === TAUTAN GOOGLE DRIVE PER KOMPONEN ===
+        // Satu tautan untuk satu (tahun, komponen). Dikelompokkan dengan
+        // bentuk yang sama seperti $lampiranPerTahun supaya view cukup
+        // menulis $tautanDrive[$tahun][$kategori].
+        $tautanDrive = [];
+        if ($subMenu) {
+            foreach (TautanDriveCrmc::where('sub_menu_id', $subMenu->id)->get() as $tautan) {
+                $tautanDrive[(int) $tautan->tahun_pelaksanaan][$tautan->kategori_komponen] = $tautan;
+            }
+        }
+
         // Rakit data tiap komponen: tahun terpilih + dokumen tahun itu
         $komponen = [];
         foreach (self::KOMPONEN_UPLOAD as $kategori => $meta) {
@@ -213,6 +267,22 @@ class CrmcController extends Controller
                 'lampiran' => $lampiranPerTahun[$tahun][$kategori] ?? collect(),
             ];
         }
+
+        // Komponen 1 punya bentuk data yang sama dengan komponen dokumen lain,
+        // sehingga view bisa memakai partial daftar dokumen yang sama. Tahun
+        // lampirannya ikut tahun identitas di atas, jadi berkas yang tampil
+        // selalu milik tahun penugasan yang sedang dibaca.
+        $kategoriIdentitas = array_key_first(self::KOMPONEN_IDENTITAS);
+        $metaIdentitas = self::KOMPONEN_IDENTITAS[$kategoriIdentitas];
+        $komponenIdentitas = [
+            'kategori' => $kategoriIdentitas,
+            'nomor' => $metaIdentitas['nomor'],
+            'judul' => $metaIdentitas['judul'],
+            'ikon' => $metaIdentitas['ikon'],
+            'tahun' => $selectedTahun,
+            'tahunTersedia' => $daftarTahun,
+            'lampiran' => $lampiranPerTahun[$selectedTahun][$kategoriIdentitas] ?? collect(),
+        ];
 
         // Status residu untuk tahun yang dipilih pada Komponen 7
         $residuTerpilih = [
@@ -230,7 +300,13 @@ class CrmcController extends Controller
         // tahun per-komponen, angkanya tidak akan cocok dengan label
         // "Kelengkapan Tahun X" padahal tiap komponen bisa menampilkan
         // tahun yang berbeda.
-        $komponenTerisi = collect(self::KOMPONEN_UPLOAD)
+        //
+        // Komponen 1 ikut dihitung karena sejak sekarang kartu identitas juga
+        // bisa menyimpan berkas. Komponen 7 tidak masuk, karena isinya status
+        // residu dan bukan dokumen, sehingga totalnya 7 (bukan 8).
+        $semuaKategoriDokumen = $this->daftarKategoriDokumen();
+
+        $komponenTerisi = collect($semuaKategoriDokumen)
             ->filter(fn ($meta, $kategori) => ($lampiranPerTahun[$selectedTahun][$kategori] ?? collect())->isNotEmpty())
             ->keys();
 
@@ -238,7 +314,7 @@ class CrmcController extends Controller
             'tahun' => $selectedTahun,
             'totalDokumen' => (int) $dokumenTahunTerpilih?->lampiran?->count(),
             'komponenTerisi' => $komponenTerisi->count(),
-            'totalKomponen' => count(self::KOMPONEN_UPLOAD),
+            'totalKomponen' => count($semuaKategoriDokumen),
             'jumlahTahun' => count($daftarTahun),
             'totalSubMenu' => SubMenu::count(),
             'tahunAdaData' => $dokumenTahun->keys()->map(fn ($t) => (int) $t)->all(),
@@ -277,6 +353,8 @@ class CrmcController extends Controller
             'dokumenTahun',
             'dokumenTahunTerpilih',
             'komponen',
+            'komponenIdentitas',
+            'tautanDrive',
             'residuTerpilih',
             'rangkuman',
             'tahunManual',
@@ -338,7 +416,7 @@ class CrmcController extends Controller
 
     /**
      * Upload Dokumen per Komponen (Multi-file Upload).
-     * Pegawai & Admin bisa upload di komponen 2,3,4,5,6,8.
+     * Pegawai & Admin bisa upload di Komponen 1,2,3,4,5,6,8.
      *
      * Setiap file boleh punya "keterangan" sendiri. Input keterangan dikirim
      * sebagai array bernomor yang indeksnya sama dengan indeks file, jadi
@@ -368,7 +446,9 @@ class CrmcController extends Controller
 
         // Batasi kategori ke komponen yang memang punya slot upload, supaya
         // request buatan tangan tidak bisa menulis kategori bebas ke tabel.
-        if (!array_key_exists($kategori, self::KOMPONEN_UPLOAD)) {
+        $semuaKategoriDokumen = $this->daftarKategoriDokumen();
+
+        if (!array_key_exists($kategori, $semuaKategoriDokumen)) {
             abort(422, 'Komponen tidak dikenal.');
         }
 
@@ -420,16 +500,145 @@ class CrmcController extends Controller
             $jumlahBerhasil++;
         }
 
-        $judul = self::KOMPONEN_UPLOAD[$kategori]['judul'];
+        $judul = $semuaKategoriDokumen[$kategori]['judul'];
 
-        $pesan = "{$jumlahBerhasil} dokumen berhasil diunggah pada Komponen {$judul} (Komponen {$this->nomorKomponen($kategori)}) tahun {$tahun}.";
+        $pesan = "{$jumlahBerhasil} dokumen berhasil diunggah pada Komponen {$this->nomorKomponen($kategori)} — {$judul} — tahun {$tahun}.";
         if ($keteranganTersimpan > 0) {
             $pesan .= " {$keteranganTersimpan} berkas disertai keterangan.";
         }
 
         return redirect()
-            ->route('crmc.show', ['slug' => $slug, 'tahun' => $tahun, 't' => [$kategori => $tahun]])
+            ->route('crmc.show', $this->urlTujuanKomponen($slug, $kategori, $tahun))
             ->with('success', $pesan);
+    }
+
+    /**
+     * Simpan tautan Google Drive untuk satu Komponen (Pegawai & Admin).
+     *
+     * Satu komponen hanya boleh punya satu tautan per tahun, jadi penyimpanannya
+     * memakai updateOrCreate pada kunci (sub-bidang, tahun, komponen). Kalau
+     * tautan sebelumnya ada, isinya diperbarui, bukan digandakan.
+     *
+     * Komponen 7 tidak punya tautan: isinya status residu, bukan berkas.
+     */
+    public function simpanTautanDrive(Request $request, $slug)
+    {
+        if (!Auth::check()) {
+            abort(403, 'Anda harus login untuk menyimpan tautan Google Drive.');
+        }
+
+        // Jangan pakai cariSubMenu(): fungsi itu membuat sub-bidang baru saat
+        // slug tidak dikenal, sehingga satu ketikalan URL menyisakan baris
+        // sampah di database.
+        $subMenu = $this->cariSubMenuTersedia($slug);
+        abort_if($subMenu === null, 404, 'Sub-bidang tidak ditemukan.');
+
+        $request->validate([
+            'kategori_komponen' => [
+                'required',
+                'string',
+                'max:50',
+                Rule::in(array_keys($this->daftarKategoriDokumen())),
+            ],
+            'tahun_pelaksanaan' => 'required|numeric|min:2000|max:2100',
+            'label' => 'nullable|string|max:120',
+            'url' => [
+                'required',
+                'string',
+                'max:500',
+                function ($attribute, $value, $fail) {
+                    if (TautanGoogleDrive::normalisasi($value) === null) {
+                        $fail(TautanGoogleDrive::pesanValidasi()['google']);
+                    }
+                },
+            ],
+        ], array_merge(TautanGoogleDrive::pesanValidasi(), [
+            'kategori_komponen.required' => 'Komponen tautan Google Drive belum dipilih.',
+            'kategori_komponen.in' => 'Komponen tidak dikenal.',
+            'tahun_pelaksanaan.required' => 'Tahun tautan wajib dipilih.',
+        ]));
+
+        $kategori = (string) $request->input('kategori_komponen');
+        $tahun = (int) $request->input('tahun_pelaksanaan');
+        $url = TautanGoogleDrive::normalisasi($request->input('url'));
+        $label = trim((string) $request->input('label'));
+
+        TautanDriveCrmc::updateOrCreate(
+            [
+                'sub_menu_id' => $subMenu->id,
+                'tahun_pelaksanaan' => $tahun,
+                'kategori_komponen' => $kategori,
+            ],
+            [
+                'url' => $url,
+                'label' => $label !== '' ? $label : null,
+                'user_id' => Auth::id(),
+            ]
+        );
+
+        return redirect()
+            ->route('crmc.show', $this->urlTujuanKomponen($slug, $kategori, $tahun))
+            ->with('success', "Tautan Google Drive Komponen {$this->nomorKomponen($kategori)} tahun {$tahun} berhasil disimpan.");
+    }
+
+    /**
+     * Hapus tautan Google Drive satu Komponen.
+     *
+     * Admin boleh menghapus tautan mana pun. Pegawai hanya boleh menghapus
+     * tautan yang ia isi sendiri, supaya tautan yang disusun unit lain tidak
+     * hilang tanpa sebab.
+     */
+    public function hapusTautanDrive($id)
+    {
+        if (!Auth::check()) {
+            abort(403, 'Anda harus login untuk menghapus tautan Google Drive.');
+        }
+
+        $tautan = TautanDriveCrmc::with('subMenu')->findOrFail($id);
+
+        if (!Auth::user()->isAdmin() && $tautan->user_id !== Auth::id()) {
+            abort(403, 'Hanya Admin atau pembuat tautan yang dapat menghapus tautan ini.');
+        }
+
+        $kategori = $tautan->kategori_komponen;
+        $tahun = (int) $tautan->tahun_pelaksanaan;
+        $nomor = $this->nomorKomponen($kategori);
+        $slug = $tautan->subMenu?->slug;
+
+        $tautan->delete();
+
+        // Tautan bisa tetap ada setelah sub-bidangnya dihapus. Kalau begitu
+        // tidak ada halaman tujuan yang bisa dibuka lagi, jadi kembalikan
+        // pengguna ke dashboard.
+        if ($slug === null) {
+            return redirect()
+                ->route('crmc.dashboard')
+                ->with('success', "Tautan Google Drive Komponen {$nomor} tahun {$tahun} berhasil dihapus.");
+        }
+
+        return redirect()
+            ->route('crmc.show', $this->urlTujuanKomponen($slug, $kategori, $tahun))
+            ->with('success', "Tautan Google Drive Komponen {$nomor} tahun {$tahun} berhasil dihapus.");
+    }
+
+    /**
+     * Susun parameter URL halaman 8 Komponen untuk satu komponen tertentu.
+     *
+     * Komponen 1 memakai parameter "tahun" (dipakai juga untuk penugasan
+     * pegawai), sedangkan komponen lain memakai "t[kategori]" supaya pilihan
+     * tahun tiap komponen tetap terpisah.
+     *
+     * @return array<string, mixed>
+     */
+    private function urlTujuanKomponen(string $slug, string $kategori, int $tahun): array
+    {
+        $kategoriIdentitas = array_key_first(self::KOMPONEN_IDENTITAS);
+
+        if ($kategori === $kategoriIdentitas) {
+            return ['slug' => $slug, 'tahun' => $tahun];
+        }
+
+        return ['slug' => $slug, 'tahun' => $tahun, 't' => [$kategori => $tahun]];
     }
 
     /**
@@ -557,7 +766,7 @@ class CrmcController extends Controller
         ]);
 
         $kategori = $request->input('kategori');
-        if ($kategori !== null && $kategori !== '' && !array_key_exists($kategori, self::KOMPONEN_UPLOAD)) {
+        if ($kategori !== null && $kategori !== '' && !array_key_exists($kategori, $this->daftarKategoriDokumen())) {
             abort(422, 'Komponen tidak dikenal.');
         }
 
@@ -579,7 +788,7 @@ class CrmcController extends Controller
         }
 
         $rujukan = $kategori
-            ? 'Komponen ' . $this->nomorKomponen($kategori) . ' (' . self::KOMPONEN_UPLOAD[$kategori]['judul'] . ')'
+            ? 'Komponen ' . $this->nomorKomponen($kategori) . ' (' . $this->judulKomponen($kategori) . ')'
             : 'seluruh komponen';
 
         return back()->with(
@@ -752,9 +961,27 @@ class CrmcController extends Controller
             ->first(fn (SubMenu $row) => $row->slug === $target);
     }
 
+    /**
+     * Nomor komponen dari kategori lampiran/tautan.
+     *
+     * Mencakup Komponen 1 dan Komponen 2-6,8. Mengembalikan 0 kalau
+     * kategorinya tidak dikenal supaya tidak ada exception saat pesan
+     * penyimpanannya disusun.
+     */
     private function nomorKomponen(string $kategori): int
     {
-        return self::KOMPONEN_UPLOAD[$kategori]['nomor'] ?? 0;
+        return $this->daftarKategoriDokumen()[$kategori]['nomor'] ?? 0;
+    }
+
+    /**
+     * Judul komponen dari kategori lampiran/tautan.
+     *
+     * Dipakai untuk menyusun pesan, jadi kategori yang tidak dikenal
+     * tetap punya teks pengganti.
+     */
+    private function judulKomponen(string $kategori): string
+    {
+        return $this->daftarKategoriDokumen()[$kategori]['judul'] ?? 'Tidak Diketahui';
     }
 
     /**

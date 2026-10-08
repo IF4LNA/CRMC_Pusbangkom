@@ -63,6 +63,11 @@ Route::post('/crmc/hapus-dokumen-tahun', [CrmcController::class, 'hapusDokumenTa
 Route::delete('/crmc/lampiran/{id}', [CrmcController::class, 'deleteLampiran'])->name('crmc.lampiran.delete');
 Route::patch('/crmc/lampiran/{id}/keterangan', [CrmcController::class, 'updateKeterangan'])->name('crmc.lampiran.keterangan');
 
+// Tautan Google Drive per Komponen (Komponen 1,2,3,4,5,6,8)
+// Path literal "tautan-drive" didaftarkan di sini juga, sebelum
+// "/crmc/{slug}", supaya tidak tertangkap sebagai slug.
+Route::delete('/crmc/tautan-drive/{id}', [CrmcController::class, 'hapusTautanDrive'])->name('crmc.tautan-drive.destroy');
+
 // Halaman Detail 8 Komponen CRMC
 Route::get('/crmc/{slug}', [CrmcController::class, 'show'])->name('crmc.show');
 
@@ -74,6 +79,9 @@ Route::post('/crmc/{slug}/penugasan', [CrmcController::class, 'updatePenugasan']
 
 // Upload Dokumen per Komponen (Pegawai & Admin)
 Route::post('/crmc/{slug}/upload-dokumen', [CrmcController::class, 'uploadDokumen'])->name('crmc.upload.dokumen');
+
+// Tautan Google Drive per Komponen (Pegawai & Admin)
+Route::post('/crmc/{slug}/tautan-drive', [CrmcController::class, 'simpanTautanDrive'])->name('crmc.tautan-drive.store');
 
 // Admin: Update Status Residu Risiko (Komponen 7)
 Route::post('/crmc/{slug}/update-residu', [CrmcController::class, 'updateResidu'])->name('crmc.update.residu');
