@@ -510,6 +510,62 @@ class KelolaPegawaiPenugasanTahunanTest extends TestCase
         $this->assertStringNotContainsString('inputPemilikRisiko").options', $html);
     }
 
+    /**
+     * Pencarian tidak boleh menghapus pilihan admin.
+     *
+     * Draft sebelumnya mengembalikan centang baris yang tidak cocok ke
+     * keadaan awal. Akibatnya begitu admin mengetik kata kunci, semua
+     * staf yang barusan dicentang untuk Tim Pengendali Risiko ikut
+     * ter-uncheck, dan "Multi-Selection" yang sudah disusun hilang begitu
+     * kata kunci dikosongkan lagi.
+     *
+     * Saring cukup menyembunyikan baris: checkbox yang disembunyikan
+     * tetap ikut terkirim, jadi admin bebas mencari tanpa kehilangan
+     * pilihannya.
+     */
+    public function test_pencarian_tidak_menghapus_centang_yang_sudah_dipilih(): void
+    {
+        $res = $this->actingAs($this->admin)->get('/crmc/manajemen-risiko');
+
+        $res->assertStatus(200);
+
+        $html = $res->getContent();
+
+        // Tidak ada lagi penyimpan keadaan awal yang dipakai untuk
+        // mengembalikan centang.
+        $this->assertStringNotContainsString('keadaanAwal', $html);
+
+        // Tidak ada penulisan centang di dalam script. Filter hanya
+        // menyentuh tampilan (style display).
+        $this->assertStringNotContainsString('.checked =', $html);
+        $this->assertStringContainsString("l.style.display = satuCocok ? '' : 'none';", $html);
+
+        // Penghitung pilihan selalu hidup, termasuk untuk baris yang
+        // sedang tersembunyi, supaya admin bisa melihat centangnya utuh.
+        $res->assertSee('hitungTerpilihPengendali', false);
+        $this->assertStringContainsString(
+            'input[type="checkbox"]:checked',
+            $html,
+            'Penghitung harus menghitung semua centang, termasuk yang barisnya tersaring.'
+        );
+    }
+
+    /**
+     * Enter di kotak pencarian tidak boleh mengirim form penugasan,
+     * karena admin bisa saja mengetik nama lalu langsung menekan Enter.
+     */
+    public function test_enter_di_kotak_pencarian_tidak_mengirim_form(): void
+    {
+        $res = $this->actingAs($this->admin)->get('/crmc/manajemen-risiko');
+
+        $res->assertStatus(200);
+        $res->assertSee('hitungTerpilihPengendali', false);
+        $this->assertStringContainsString(
+            "if (e.key === 'Enter') e.preventDefault();",
+            $res->getContent()
+        );
+    }
+
     public function test_kartu_sub_bidang_gelap_dengan_teks_terang(): void
     {
         $res = $this->actingAs($this->admin)->get('/dashboard');

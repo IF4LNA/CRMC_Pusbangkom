@@ -1548,7 +1548,15 @@
                                     <i data-lucide="x" class="w-3 h-3"></i>
                                 </button>
                             </div>
-                            <p class="hint mt-2" id="ringkasanCariPegawai"></p>
+                            {{-- Dua informasi ini sengaja terpisah: satu soal
+                                 hasil pencarian, satu soal pilihan yang sudah
+                                 dicentang. Kalau tidak dipisah, admin tidak
+                                 bisa memastikan centangnya tetap utuh setelah
+                                 ia menyaring daftar. --}}
+                            <div class="flex items-center justify-between gap-2 mt-2 flex-wrap">
+                                <p class="hint" id="ringkasanCariPegawai"></p>
+                                <span class="badge" id="hitungTerpilihPengendali"></span>
+                            </div>
                         </div>
 
                         @php $selectedPengendaliIds = $pengendaliRisikoList->pluck('id')->toArray(); @endphp
@@ -1621,58 +1629,103 @@
         const input = document.getElementById('cariPegawaiPenugasan');
         const tombolBersihkan = document.getElementById('bersihkanCariPegawai');
         const ringkasan = document.getElementById('ringkasanCariPegawai');
+        const hitungTerpilih = document.getElementById('hitungTerpilihPengendali');
         const daftarTim = document.getElementById('daftarTimPengendali');
         const timKosong = document.getElementById('timPengendaliKosong');
 
         if (!input || !daftarTim) return;
 
         const labelTim = Array.from(daftarTim.querySelectorAll('label[data-cari]'));
-        const keadaanAwal = {};
-
-        labelTim.forEach(function (l) {
-            const cbs = l.querySelectorAll('input[type="checkbox"]');
-            keadaanAwal['tim-' + cbs[0].value] = Array.from(cbs).map(function (c) {
-                return c.checked;
-            });
-        });
+        const seluruhStaf = labelTim.length;
 
         function cocok(teks, q) {
             return (teks || '').toLowerCase().indexOf(q) !== -1;
         }
 
+        /**
+         * Hitung berapa staf yang sudah dicentang, termasuk yang barisnya
+         * sedang tersembunyi karena tersaring.
+         *
+         * Angka ini yang membuktikan ke admin bahwa searching tidak
+         * menghapus pilihannya: sebelumnya tidak ada indikator apa pun,
+         * jadi pilihan yang hilang terlihat seperti "Multi-Selection"
+         * memang tidak pernah tersimpan.
+         */
+        function perbaruiTerpilih() {
+            if (!hitungTerpilih) return;
+
+            const jumlah = daftarTim.querySelectorAll('input[type="checkbox"]:checked').length;
+            hitungTerpilih.textContent = jumlah + ' staf dipilih';
+            hitungTerpilih.classList.toggle('badge-ok', jumlah > 0);
+        }
+
+        /**
+         * Saring daftar.
+         *
+         * Fungsi ini hanya mengubah TAMPILAN dan sama sekali tidak
+         * menyentuh centang checkbox.
+         *
+         * Sebelumnya baris yang tidak cocok disembunyikan BERSAMAAN dengan
+         * dikembalikan ke keadaan awal, sehingga begitu admin mengetik
+         * kata kunci, semua staf yang barusan ia centang untuk Tim
+         * Pengendali Risiko ikut ter-uncheck. Saat kata kunci dikosongkan
+         * lagi, "Multi-Selection" yang sudah disusun hilang begitu saja,
+         * dan admin tidak bisa mencari staf berikutnya tanpa kehilangan
+         * pilihan yang sudah dibuat.
+         *
+         * Menyembunyikan baris juga tidak perlu dikembalikan seperti itu:
+         * checkbox yang disembunyikan tetap ikut terkirim saat form
+         * disimpan, jadi justru inilah perilaku yang diinginkan -- admin
+         * boleh menyaring daftar tanpa takut pilihannya hilang.
+         */
         function terapkan() {
             const q = input.value.trim().toLowerCase();
 
             if (tombolBersihkan) tombolBersihkan.classList.toggle('hidden', q === '');
 
-            // Sembunyikan yang tidak cocok, dan kembalikan centangnya ke
-            // keadaan awal. Kalau tidak, centang yang tersembunyi ikut
-            // terkirim saat form disimpan tanpa disadari admin.
-            const jumlahTim = { nilai: 0 };
+            let jumlahCocok = 0;
+
             labelTim.forEach(function (l) {
                 const satuCocok = q === '' || cocok(l.dataset.cari, q);
-                l.classList.toggle('hidden', !satuCocok);
-                if (satuCocok) jumlahTim.nilai++;
 
-                if (!satuCocok) {
-                    const cbs = l.querySelectorAll('input[type="checkbox"]');
-                    const awal = keadaanAwal['tim-' + cbs[0].value] || [];
-                    Array.from(cbs).forEach(function (c, i) {
-                        c.checked = awal[i] === true;
-                    });
-                }
+                // Ditulis sebagai style inline, bukan kelas `hidden`, supaya
+                // tidak bergantung pada urutan .hidden vs .flex di CSS
+                // (baris ini memang memakai `flex` untuk checkbox + foto).
+                l.style.display = satuCocok ? '' : 'none';
+
+                if (satuCocok) jumlahCocok++;
             });
 
-            if (timKosong) timKosong.classList.toggle('hidden', jumlahTim.nilai > 0);
+            if (timKosong) timKosong.classList.toggle('hidden', jumlahCocok > 0);
 
             if (ringkasan) {
-                ringkasan.textContent = q === '' || jumlahTim.nilai === 0
-                    ? jumlahTim.nilai + ' dari ' + labelTim.length + ' staf ditampilkan.'
-                    : jumlahTim.nilai + ' dari ' + labelTim.length + ' staf cocok dengan "' + input.value.trim() + '".';
+                const kataKunci = input.value.trim();
+
+                if (q === '') {
+                    ringkasan.textContent = seluruhStaf + ' staf ditampilkan.';
+                } else if (jumlahCocok === 0) {
+                    ringkasan.textContent = 'Tidak ada staf yang cocok dengan "' + kataKunci + '".';
+                } else {
+                    ringkasan.textContent = jumlahCocok + ' dari ' + seluruhStaf
+                        + ' staf cocok dengan "' + kataKunci + '".';
+                }
             }
+
+            perbaruiTerpilih();
         }
 
         input.addEventListener('input', terapkan);
+
+        // Enter di kotak pencarian tidak boleh mengirim form. Tanpa ini,
+        // admin yang selesai mengetik nama langsung menyalin penugasan
+        // dengan hasil pencarian setengah jadi.
+        input.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') e.preventDefault();
+        });
+
+        // Centang berubah (dimasukkan lewat klik di label mana pun), bukan
+        // hanya lewat kotak pencarian, jadi penghitung perlu ikutваются.
+        daftarTim.addEventListener('change', perbaruiTerpilih);
 
         if (tombolBersihkan) {
             tombolBersihkan.addEventListener('click', function () {
