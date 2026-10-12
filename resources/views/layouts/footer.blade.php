@@ -11,15 +11,13 @@
                     </div>
                     <div>
                         <p class="eyebrow !text-blue-300">Kementerian Pekerjaan Umum</p>
-                        <h3 class="text-sm font-bold text-white leading-tight">CRMC PUSBANGKOM ACP</h3>
-                        <p class="page-sub !text-blue-200/70">Continuous Monitoring on Risk Control</p>
+                        <h3 class="text-sm font-bold text-white leading-tight">Badan Pengembangan Sumber Daya Manusia</h3>
+                        <p class="page-sub !text-blue-200/70">Pusat Pengembangan Kompetensi Sumber Daya Air, Cipta Karya Dan Prasarana Strategis</p>
                     </div>
                 </div>
                 <p class="page-sub leading-relaxed max-w-md">
-                    Aplikasi pemantauan berkelanjutan pengendalian risiko sebagai
-                    mendukung penerapan Enterprise Risk Management (ERM) di
-                    lingkungan Pusat Sumber Daya Air dan Prasarana Wilayah
-                    Wilayah III Bandung.
+                    Sistem Pemantauan Berkelanjutan Pengendalian Risiko (Continuous Risk Management and Control — CRMC) dalam mendukung Pengendalian Risiko di Lingkungan Pusat Pengembangan Kompetensi Sumber Daya Air, Cipta Karya, dan Prasarana Strategis.
+Badan Pengembangan Sumber Daya Manusia — Kementerian Pekerjaan Umum
                 </p>
             </div>
 
@@ -64,19 +62,19 @@
                 <ul class="space-y-2 text-xs">
                     <li class="flex items-start gap-2">
                         <i data-lucide="map-pin" class="w-3.5 h-3.5 text-blue-400 shrink-0 mt-0.5"></i>
-                        <span class="text-blue-200/80">Jl. Padjajaran, Bandung</span>
+                        <span class="text-blue-200/80">Jl. Abdul Hamid, Cicaheum, Bandung, Jawa Barat</span>
                     </li>
                     <li class="flex items-start gap-2">
                         <i data-lucide="crosshair" class="w-3.5 h-3.5 text-blue-400 shrink-0 mt-0.5"></i>
                         <span class="text-blue-200/80">6&deg;53&apos;58.0&quot;S 107&deg;39&apos;46.5&quot;E</span>
                     </li>
-                    <li class="flex items-start gap-2">
+                    <!-- <li class="flex items-start gap-2">
                         <i data-lucide="phone" class="w-3.5 h-3.5 text-blue-400 shrink-0 mt-0.5"></i>
                         <span class="text-blue-200/80">(022) 4203113</span>
-                    </li>
+                    </li> -->
                     <li class="flex items-start gap-2">
                         <i data-lucide="mail" class="w-3.5 h-3.5 text-blue-400 shrink-0 mt-0.5"></i>
-                        <a href="mailto:pusbangkom@pu.go.id" class="text-blue-200/80 hover:text-white transition break-all">pusbangkom@pu.go.id</a>
+                        <a href="mailto:pusat2_bpsdm@pu.go.id" class="text-blue-200/80 hover:text-white transition break-all">pusat2_bpsdm@pu.go.id</a>
                     </li>
                 </ul>
             </div>

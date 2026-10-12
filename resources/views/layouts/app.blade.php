@@ -449,8 +449,8 @@
                          logo Kementerian Pekerjaan Umum. --}}
                     <div class="min-w-0">
                         <div class="flex items-center gap-2">
-                            <span class="text-[10px] font-bold tracking-widest text-yellow-400 uppercase leading-tight">
-                                Kementerian Pekerjaan Umum
+                            <span class="text-[18px] font-bold tracking-widest text-yellow-400 uppercase leading-tight">
+                                CRMC
                             </span>
                             @auth
                                 @if(Auth::user()->isAdmin())
@@ -463,11 +463,11 @@
                             @endauth
                         </div>
                         <h1 class="text-sm font-bold tracking-tight text-white leading-tight truncate">
-                            BPSDM
-                        </h1>
-                        <p class="text-[10px] leading-tight text-blue-200/80 truncate">
                             Pusat Pengembangan Kompetensi Sumber Daya Air, Cipta Karya dan Prasarana Strategis
-                        </p>
+                        </h1>
+                        <!-- <p class="text-[10px] leading-tight text-blue-200/80 truncate">
+                            Pusat Pengembangan Kompetensi Sumber Daya Air, Cipta Karya dan Prasarana Strategis
+                        </p> -->
                     </div>
                 </div>
 

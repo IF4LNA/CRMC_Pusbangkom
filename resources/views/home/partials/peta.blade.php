@@ -11,7 +11,7 @@
 
         <div class="max-w-2xl mb-6">
             <span class="eyebrow mb-2 block">Lokasi</span>
-            <h2 class="section-title">Kantor Pusat PUSBANGKOM</h2>
+            <h2 class="section-title">Kantor Pusat Pengembangan Kompetensi Sumber Daya Air, Cipta Karya Dan Prasarana Strategis</h2>
             <p class="page-sub mt-2 leading-relaxed">
                 Peta interaktif menampilkan posisi kantor pusat beserta lingkungan
                 sekitarnya. Geser atau perbesar peta untuk melihat jalan
@@ -33,7 +33,7 @@
                         <div>
                             <p class="font-semibold text-slate-700">Instansi</p>
                             <p class="page-sub leading-relaxed mt-0.5">
-                                Pusat Sumber Daya Air dan Prasarana Wilayah III Bandung
+                                Pusat Pengembangan Kompetensi Sumber Daya Air, Cipta Karya Dan Prasarana Strategis
                             </p>
                         </div>
                     </li>
@@ -45,7 +45,7 @@
                         <div>
                             <p class="font-semibold text-slate-700">Alamat</p>
                             <p class="page-sub leading-relaxed mt-0.5">
-                                Jl. Padjajaran, Bandung, Jawa Barat
+                                Jl. Abdul Hamid, Cicaheum, Bandung, Jawa Barat
                             </p>
                         </div>
                     </li>
@@ -67,15 +67,15 @@
                         </div>
                     </li>
 
-                    <li class="flex items-start gap-3">
+                    <!-- <li class="flex items-start gap-3">
                         <div class="w-8 h-8 rounded-md bg-blue-50 text-blue-700 flex items-center justify-center shrink-0">
                             <i data-lucide="phone" class="w-4 h-4"></i>
                         </div>
                         <div>
-                            <p class="font-semibold text-slate-700">Telepon</p>
-                            <p class="page-sub mt-0.5">(022) 4203113</p>
+                            <p class="font-semibold text-slate-700">E-Mail</p>
+                            <p class="page-sub mt-0.5"></p>
                         </div>
-                    </li>
+                    </li> -->
 
                     <li class="flex items-start gap-3">
                         <div class="w-8 h-8 rounded-md bg-blue-50 text-blue-700 flex items-center justify-center shrink-0">
@@ -85,7 +85,7 @@
                             <p class="font-semibold text-slate-700">Email</p>
                             <a href="mailto:pusbangkom@pu.go.id"
                                class="text-blue-700 hover:text-blue-900 hover:underline break-all">
-                                pusbangkom@pu.go.id
+                                pusat2_bpsdm@pu.go.id
                             </a>
                         </div>
                     </li>
