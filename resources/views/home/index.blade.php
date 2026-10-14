@@ -22,7 +22,11 @@
          alt="Gedung PUSBANGKOM"
          class="absolute inset-0 h-full w-full object-cover object-center">
 
-    <div class="absolute inset-0 bg-gradient-to-r from-blue-950/95 via-blue-950/85 to-blue-900/50"></div>
+    
+<div class="absolute inset-0 bg-gradient-to-r
+    from-blue-950/90 via-blue-950/65 to-blue-900/20">
+</div>
+
 
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24">
         <div class="max-w-3xl">

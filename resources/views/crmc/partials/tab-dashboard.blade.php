@@ -53,52 +53,50 @@
              peran. Semua angka dibaca dari tabel `users` dan `penugasan_crmc`
              untuk tahun berjalan (lihat BidangController::ringkasanPersonel),
              jadi ikut terisi sendiri begitu admin menambah pegawai atau
-             mengubah penugasan. --}}
-        <div class="card p-4 flex flex-col justify-between space-y-3">
+             mengubah penugasan.
+
+             Keterangan kecil di bawah angka sengaja tidak dipakai lagi.
+             Supaya tinggi kartu tidak ikut menyusut, `min-h` dikunci pada
+             tinggi sebelumnya dan grid 2x2 memakai `flex-1` sehingga ruang
+             yang tersisa dibagi rata ke setiap kotak stat. Isi tiap kotak
+             tetap menempel di atas (judul dekat garis kotak atas), angka
+             diperbesar satu tingkat ke `text-2xl`. --}}
+        <div class="card p-4 flex flex-col min-h-[17.25rem]">
             <div class="flex items-center justify-between gap-2">
                 <h3 class="card-title">Ringkasan Personel</h3>
                 <span class="badge">Tahun {{ $ringkasanPersonel['tahun'] }}</span>
             </div>
 
-            <div class="grid grid-cols-2 gap-2">
+            <div class="grid grid-cols-2 gap-2 flex-1 mt-3">
                 <div class="stat !p-2.5">
                     <p class="stat-label">
                         <i data-lucide="shield-alert" class="w-3 h-3"></i>
                         Pemilik Risiko
                     </p>
-                    <p class="stat-value !text-xl text-blue-700">{{ $ringkasanPersonel['jumlahPemilikRisiko'] }}</p>
-                    <span class="stat-note">Seluruh CRMC</span>
+                    <p class="stat-value !text-2xl text-blue-700">{{ $ringkasanPersonel['jumlahPemilikRisiko'] }}</p>
                 </div>
                 <div class="stat !p-2.5">
                     <p class="stat-label">
                         <i data-lucide="badge-check" class="w-3 h-3"></i>
                         Pengendali Mutu
                     </p>
-                    <p class="stat-value !text-xl text-sky-700">{{ $ringkasanPersonel['jumlahPengendaliMutu'] }}</p>
-                    <span class="stat-note">Per bidang</span>
+                    <p class="stat-value !text-2xl text-sky-700">{{ $ringkasanPersonel['jumlahPengendaliMutu'] }}</p>
                 </div>
                 <div class="stat !p-2.5">
                     <p class="stat-label">
                         <i data-lucide="users-round" class="w-3 h-3"></i>
                         Pengendali Risiko
                     </p>
-                    <p class="stat-value !text-xl text-slate-800">{{ $ringkasanPersonel['jumlahPengendaliRisiko'] }}</p>
-                    <span class="stat-note">Per sub-bidang</span>
+                    <p class="stat-value !text-2xl text-slate-800">{{ $ringkasanPersonel['jumlahPengendaliRisiko'] }}</p>
                 </div>
                 <div class="stat !p-2.5">
                     <p class="stat-label">
                         <i data-lucide="users" class="w-3 h-3"></i>
                         Jumlah Pegawai
                     </p>
-                    <p class="stat-value !text-xl text-emerald-700">{{ $ringkasanPersonel['totalPengguna'] }}</p>
-                    <span class="stat-note">{{ $ringkasanPersonel['totalPegawai'] }} pegawai · {{ $ringkasanPersonel['totalAdmin'] }} admin</span>
+                    <p class="stat-value !text-2xl text-emerald-700">{{ $ringkasanPersonel['totalPengguna'] }}</p>
                 </div>
             </div>
-
-            <p class="text-[10px] text-slate-400 leading-snug">
-                Angka mengikuti penugasan tahun {{ $ringkasanPersonel['tahun'] }}.
-                Belum ada assignment berarti 0.
-            </p>
         </div>
     </div>
 
