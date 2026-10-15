@@ -184,7 +184,7 @@
                     @endif
 
                     <p class="text-[10px] text-slate-400 mt-1.5">
-                        PDF, DOC, DOCX, XLS, XLSX, JPG, atau PNG. Maksimal 10 MB.
+                        PDF, DOC, DOCX, XLS, XLSX, JPG, atau PNG. Maksimal 20 MB.
                         Unggahan baru otomatis menggantikan berkas lama.
                     </p>
                 </footer>

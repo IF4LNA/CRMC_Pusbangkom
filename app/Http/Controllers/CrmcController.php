@@ -143,6 +143,10 @@ class CrmcController extends Controller
         // terbaca benar-benar penugasan tahun yang sedang dibuka.
         $subMenu?->load('bidang');
 
+        // Sub-bidang tetangga (dalam bidang yang sama) untuk tombol
+        // "Sebelumnya"/"Berikutnya". Null kalau tidak ada / di ujung daftar.
+        [$subBidangSebelumnya, $subBidangBerikutnya] = $this->subBidangSebelah($subMenu);
+
         // Tentukan nama sub-bidang & parent bidang
         if ($subMenu) {
             $subBidangName = $subMenu->nama_sub_menu;
@@ -344,6 +348,8 @@ class CrmcController extends Controller
             'parentBidang',
             'slug',
             'subMenu',
+            'subBidangSebelumnya',
+            'subBidangBerikutnya',
             'pemilikRisiko',
             'pengendaliMutu',
             'pengendaliRisikoList',
@@ -436,12 +442,12 @@ class CrmcController extends Controller
             // Rule BerkasDokumen dipakai, bukan "mimes", supaya .xlsx/.docx
             // yang oleh fileinfo terdeteksi sebagai "application/zip" tetap
             // bisa diunggah. Lihat App\Rules\BerkasDokumen.
-            'files.*' => ['file', 'max:10240', new BerkasDokumen()],
+            'files.*' => ['file', 'max:20480', new BerkasDokumen()],
             'keterangan' => 'nullable|array',
             'keterangan.*' => 'nullable|string|max:1000',
         ], [
             'files.required' => 'Pilih minimal 1 file untuk diunggah.',
-            'files.*.max' => 'Ukuran file maksimal 10MB per file.',
+            'files.*.max' => 'Ukuran file maksimal 20MB per file.',
             'keterangan.*.max' => 'Keterangan maksimal 1000 karakter.',
         ]);
 
@@ -962,6 +968,43 @@ class CrmcController extends Controller
             ->orderBy('id')
             ->get()
             ->first(fn (SubMenu $row) => $row->slug === $target);
+    }
+
+    /**
+     * Sub-bidang tetangga dalam bidang yang sama, untuk tombol navigasi
+     * "Sebelumnya"/"Berikutnya" di halaman 8 komponen.
+     *
+     * Urutan mengikuti kebiasaan aplikasi: orderBy('id') — sama seperti
+     * daftar sub-bidang di dashboard (BidangController::daftarBidang()).
+     * Navigasi sengaja dibatasi pada bidang yang sama supaya pengguna tidak
+     * berpindah konteks bidang tanpa sadar. Sub-bidang di ujung daftar
+     * mengembalikan null pada sisi itu, sehingga view menampilkan tombolnya
+     * dalam keadaan nonaktif (dan menyembunyikan seluruh grup bila bidang
+     * hanya punya satu sub-bidang).
+     *
+     * @return array{0: ?SubMenu, 1: ?SubMenu}  [sebelumnya, berikutnya]
+     */
+    private function subBidangSebelah(?SubMenu $subMenu): array
+    {
+        if (!$subMenu || !$subMenu->bidang_id) {
+            return [null, null];
+        }
+
+        $daftar = SubMenu::query()
+            ->where('bidang_id', $subMenu->bidang_id)
+            ->orderBy('id')
+            ->get();
+
+        $posisi = $daftar->search(fn (SubMenu $row) => $row->id === $subMenu->id);
+
+        if ($posisi === false) {
+            return [null, null];
+        }
+
+        return [
+            $posisi > 0 ? $daftar[$posisi - 1] : null,
+            $posisi < $daftar->count() - 1 ? $daftar[$posisi + 1] : null,
+        ];
     }
 
     /**

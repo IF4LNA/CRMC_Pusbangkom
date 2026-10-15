@@ -23,8 +23,8 @@ class DokumenDasarHukumController extends Controller
     /** Format berkas yang masih berguna untuk pratinjau dan unduh. */
     private const MIME_TIPE = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'jpg', 'jpeg', 'png'];
 
-    /** Batas ukuran berkas: 10 MB, sama dengan Komponen dokumen CRMC. */
-    private const MAKS_UKURAN_KB = 10240;
+    /** Batas ukuran berkas: 20 MB, sama dengan Komponen dokumen CRMC. */
+    private const MAKS_UKURAN_KB = 20480;
 
     /**
      * Unggah berkas untuk satu regulasi, mengganti berkas sebelumnya.
@@ -47,7 +47,7 @@ class DokumenDasarHukumController extends Controller
         ], [
             'berkas.required' => 'Pilih berkas terlebih dahulu.',
             'berkas.file' => 'Berkas yang dipilih tidak valid.',
-            'berkas.max' => 'Ukuran berkas maksimal 10 MB.',
+            'berkas.max' => 'Ukuran berkas maksimal 20 MB.',
         ]);
 
         $berkas = $request->file('berkas');

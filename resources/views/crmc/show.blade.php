@@ -1,4 +1,4 @@
-@extends('layouts.app')
+﻿@extends('layouts.app')
 
 @php
     // Skala status residu dipakai langsung di dalam @php block (untuk
@@ -176,15 +176,16 @@
             <span class="text-blue-700 font-semibold truncate max-w-xs">{{ $subBidangName }}</span>
         </nav>
 
-        <div class="flex items-center gap-2">
+        <div class="flex flex-wrap items-center gap-2">
+            @include('crmc.partials.navigasi-sub-bidang')
             <a href="{{ route('crmc.dashboard') }}" class="btn btn-outline">
                 <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i>
                 <span>Kembali ke Dashboard</span>
             </a>
-            <button onclick="window.print()" class="btn btn-outline">
+            <!-- <button onclick="window.print()" class="btn btn-outline">
                 <i data-lucide="printer" class="w-3.5 h-3.5"></i>
                 <span class="hidden sm:inline">Cetak Laporan</span>
-            </button>
+            </button> -->
         </div>
     </div>
 
@@ -1031,7 +1032,8 @@
                 </p>
             </div>
         </div>
-        <div class="flex items-center gap-2">
+        <div class="flex flex-wrap items-center gap-2">
+            @include('crmc.partials.navigasi-sub-bidang')
             <a href="{{ route('crmc.dashboard') }}" class="btn btn-quiet">
                 Kembali ke Dashboard
             </a>
@@ -1093,7 +1095,7 @@
                         <div class="border border-dashed border-slate-300 rounded-lg p-6 text-center hover:border-blue-400 transition cursor-pointer" onclick="document.getElementById('uploadFiles').click();">
                             <i data-lucide="cloud-upload" class="w-7 h-7 text-slate-400 mx-auto mb-2"></i>
                             <p class="text-slate-600 font-medium">Klik atau seret file ke sini</p>
-                            <p class="text-[10px] text-slate-400 mt-1">PDF, DOC, DOCX, XLS, XLSX, JPG, PNG, WebP (maks. 10MB per file)</p>
+                            <p class="text-[10px] text-slate-400 mt-1">PDF, DOC, DOCX, XLS, XLSX, JPG, PNG, WebP (maks. 20MB per file)</p>
                         </div>
                         <input type="file" name="files[]" id="uploadFiles" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.webp" class="hidden" onchange="bangunDaftarBerkas(this)">
                     </div>

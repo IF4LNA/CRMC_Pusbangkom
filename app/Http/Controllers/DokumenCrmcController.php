@@ -47,7 +47,7 @@ class DokumenCrmcController extends Controller
             'tahun_pelaksanaan' => 'required|numeric',
             'status_residu_risiko' => 'nullable|string',
             'evaluasi_dan_rencana' => 'nullable|string',
-            'files.*.*' => 'nullable|file|mimes:pdf,doc,docx,xls,xlsx,jpg,png|max:10240',
+            'files.*.*' => 'nullable|file|mimes:pdf,doc,docx,xls,xlsx,jpg,png|max:20480',
         ]);
 
         $tahun = $request->input('tahun_pelaksanaan');
