@@ -2,22 +2,24 @@
      SATU KARTU DOKUMEN DENGAN PRATINJAU LANGSUNG
 
      Dipakai Komponen 2, 3, 4, 5, 6, dan 8. Pratinjau ditampilkan langsung
-     tanpa tombol mata:
-       - PDF    -> iframe (viewer bawaan browser)
-       - Gambar -> img
-       - Format kantor (doc/xls) -> kotak info, karena browser tidak bisa
-         merender file tersebut. Tombol Unduh tetap tersedia.
+     tanpa tombol mata. Markup dan skrip pratinjaunya ditangani satu partial
+     bersama, crmc/partials/pratinjau-berkas, supaya aturannya sama dengan
+     tab "Dasar Hukum":
+       - PDF           -> iframe (viewer bawaan browser)
+       - Gambar        -> img
+       - DOCX/XLS/XLSX -> dirender di peramban oleh library JS
+       - lainnya (DOC) -> kotak info, karena browser tidak bisa membukanya
 
      Variabel yang dibutuhkan:
        $lamp          : model LampiranCrmc
        $badgeFile     : closure warna lencana tipe file
        $ikonTipeFile  : closure nama ikon lucide per tipe file
        $namaTipeFile  : closure label tipe file yang terbaca
-       $tipePratinjau : closure 'pdf' | 'gambar' | null (null = tidak bisa dirender)
 
-     Kelima closure di atas disiapkan di crmc/show.blade.php, jadi partial
-     ini tidak memanggil closure berulang untuk tiap dokumen. Dua variabel
-     sisanya dikirim bersama saat partial dipanggil:
+     Keempat closure di atas disiapkan di crmc/show.blade.php, jadi partial
+     ini tidak memanggil closure berulang untuk tiap dokumen. Pengelompokan
+     pratinjau (bisa dirender atau tidak) dibaca dari App\Support\TipeBerkas.
+     Dua variabel sisanya dikirim bersama saat partial dipanggil:
        $index : urutan dokumen pada komponen ini (mulai dari 1)
        $total : jumlah dokumen pada komponen ini
 
@@ -29,8 +31,10 @@
      berikutnya dan isi partial terhapus diam-diam.
      ========================================================================== --}}
 @php
-    $bisaDirender = $tipePratinjau($lamp->tipe_file);
-    $urlBerkas = $lamp->file_path;
+    $bisaDirender = \App\Support\TipeBerkas::kelompok($lamp->tipe_file);
+    // Jalur relatif supaya tautan dan pratinjau selalu menuju host yang
+    // sedang dibuka, bukan host lama yang terekam saat berkas diunggah.
+    $urlBerkas = \App\Support\TautanBerkas::relatif($lamp->file_path);
     $namaPendek = $namaTipeFile($lamp->tipe_file);
 @endphp
 
@@ -68,51 +72,18 @@
         </div>
     </header>
 
-    {{-- PRATINJAU --}}
+    {{-- PRATINJAU: aturan dan markup-nya ada di satu partial bersama supaya
+         cara menampilkan berkas sama dengan tab "Dasar Hukum". --}}
     <div class="bg-slate-100">
-        @if($bisaDirender === 'pdf')
-            {{-- loading="lazy" supaya browser baru memuat dokumen yang sedang
-                 terlihat. Tanpa itu, banyak PDF dalam satu halaman membuat
-                 halaman berat dan lambat dibuka. --}}
-            <iframe src="{{ $urlBerkas }}#view=FitH"
-                    title="Pratinjau {{ $lamp->nama_file }}"
-                    loading="lazy"
-                    class="w-full h-[32rem] border-0 bg-white"></iframe>
-
-        @elseif($bisaDirender === 'gambar')
-            <div class="w-full h-[32rem] p-3 flex items-center justify-center bg-slate-100">
-                <img src="{{ $urlBerkas }}" alt="Pratinjau {{ $lamp->nama_file }}"
-                     loading="lazy" decoding="async"
-                     class="max-w-full max-h-full object-contain rounded-lg border border-slate-300 bg-white">
-            </div>
-
-        @else
-            {{-- Format tidak bisa dirender browser. Yang ditampilkan adalah
-                 informasi berkas plus jalur keluar yang jelas, bukan kotak
-                 kosong yang membingungkan. --}}
-            <div class="w-full h-[32rem] p-4 flex items-center justify-center">
-                <div class="w-full max-w-lg rounded-xl border-2 border-dashed border-slate-300 bg-white p-6 text-center space-y-2.5">
-                    <div class="w-12 h-12 mx-auto rounded-xl {{ $badgeFile($lamp->tipe_file) }} border flex items-center justify-center">
-                        <i data-lucide="{{ $ikonTipeFile($lamp->tipe_file) }}" class="w-6 h-6"></i>
-                    </div>
-                    <p class="text-sm font-bold text-slate-700">Pratinjau tidak tersedia untuk format {{ $namaPendek }}</p>
-                    <p class="text-xs text-slate-500 leading-relaxed">
-                        Browser tidak bisa menampilkan isi file {{ $namaPendek }} di dalam halaman.
-                        Unduh berkasnya lalu buka dengan aplikasi yang sesuai di komputer Anda.
-                    </p>
-                    <div class="flex flex-wrap items-center justify-center gap-2 pt-1">
-                        <a href="{{ $urlBerkas }}" download class="btn btn-sm btn-primary">
-                            <i data-lucide="download" class="w-3.5 h-3.5"></i>
-                            <span>Unduh {{ $namaPendek }}</span>
-                        </a>
-                        <a href="{{ $urlBerkas }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline">
-                            <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
-                            <span>Buka di Tab Baru</span>
-                        </a>
-                    </div>
-                </div>
-            </div>
-        @endif
+        @include('crmc.partials.pratinjau-berkas', [
+            'kelompok' => $bisaDirender,
+            'url' => $urlBerkas,
+            'tipe' => $lamp->tipe_file,
+            'judul' => $lamp->nama_file,
+            'namaFile' => $lamp->nama_file,
+            'ikon' => $ikonTipeFile($lamp->tipe_file),
+            'badge' => $badgeFile($lamp->tipe_file),
+        ])
     </div>
 
     {{-- KETERANGAN --}}

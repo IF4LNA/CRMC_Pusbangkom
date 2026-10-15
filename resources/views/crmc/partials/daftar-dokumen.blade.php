@@ -15,7 +15,7 @@
         $daftar   : kumpulan LampiranCrmc pada kategori + tahun tersebut
 
      Variabel yang diwarisi dari crmc/show.blade.php:
-        $badgeFile, $ikonTipeFile, $namaTipeFile, $tipePratinjau : closure
+        $badgeFile, $ikonTipeFile, $namaTipeFile : closure
         $isAdmin : apakah pengguna adalah Administrator
      ========================================================================== --}}
 @php

@@ -71,16 +71,20 @@
         // ==================================================================
         // TAMPILAN PRATINJAU DOKUMEN
         // ==================================================================
-        // Format yang bisa dirender browser (PDF + gambar) ditampilkan
-        // langsung di halaman supaya pengguna tidak perlu menekan tombol
-        // mata dulu. Format kantor (doc/xls) tidak bisa dirender browser,
-        // jadi hanya dapat kotak info + tombol unduh.
+        // Pratinjau ditampilkan langsung di halaman supaya pengguna tidak
+        // perlu menekan tombol mata dulu. PDF, gambar, dan DOCX/XLS/XLSX
+        // bisa dilihat langsung; DOC lama hanya dapat kotak info + tombol
+        // unduh karena tidak ada library peramban yang membacanya.
         //
         // Markup kartu dokumennya ada di partial
         // crmc.partials.kartu-dokumen, dipakai Komponen 2,3,4,5,6 dan 8.
+        // Cara memutuskan "bisa dipratinjau atau tidak" dipusatkan di
+        // App\Support\TipeBerkas, bukan lagi closure lokal, supaya halaman
+        // ini dan tab "Dasar Hukum" selalu sama.
         //
-        // Ketiga closure di bawah hanya menerjemahkan tipe file menjadi
-        // kelas/label; logika merender atau tidak merender ada di partial.
+        // Kedua closure di bawah hanya menerjemahkan tipe file menjadi
+        // kelas/label; logika merender atau tidak merender ada di partial
+        // pratinjau-berkas.
 
         // Ikon lucide per tipe file, dipakai pada kotak dokumen dan pada
         // lencana tipe di kiri.
@@ -103,23 +107,6 @@
                 'jpg' => 'JPG', 'jpeg' => 'JPEG',
                 'png' => 'PNG', 'webp' => 'WEBP', 'gif' => 'GIF',
                 default => strtoupper((string) $tipe) ?: 'FILE',
-            };
-        };
-
-        // Menentukan cara menampilkan dokumen:
-        //   'pdf'    -> iframe (viewer bawaan browser)
-        //   'gambar' -> img
-        //   null     -> browser tidak bisa merender, jadi pakai kotak info
-        //
-        // Penting: tipe di luar daftar harus jadi null, bukan dipaksa jadi
-        // 'pdf'. Kalau .doc/.xls ikut diperlakukan sebagai PDF, iframe akan
-        // menampilkan pesan "tidak didukung" dari browser, bukan petunjuk
-        // untuk mengunduh berkasnya.
-        $tipePratinjau = function (?string $tipe): ?string {
-            return match(strtolower((string) $tipe)) {
-                'pdf' => 'pdf',
-                'jpg', 'jpeg', 'png', 'webp', 'gif' => 'gambar',
-                default => null,
             };
         };
 

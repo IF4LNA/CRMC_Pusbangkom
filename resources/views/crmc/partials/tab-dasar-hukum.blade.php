@@ -7,8 +7,8 @@
 
      Untuk tiap regulasi ada dua kondisi:
        1. Berkas sudah diunggah admin -> pratinjau langsung di dalam kartu
-          (PDF pakai iframe, gambar pakai img, format kantor pakai kotak
-          informasi plus tombol unduh).
+          (PDF pakai iframe, gambar pakai img, DOCX/XLS/XLSX dirender di
+          peramban, DOC lama pakai kotak informasi plus tombol unduh).
        2. Belum ada berkas -> kartu tetap menampilkan identitas naskah
           lengkap, dan hanya admin yang melihat form unggah.
 
@@ -16,17 +16,8 @@
      pratinjau langsung terlihat.
      ========================================================================== --}}
 @php
-    // Helper kecil supaya penentuan "bisa dirender" tidak ditulis ulang
-    // di tiap kartu. Mengembalikan 'pdf', 'gambar', atau null.
-    $tipePratinjau = function (?string $tipe): ?string {
-        $tipe = strtolower((string) $tipe);
-
-        return match (true) {
-            $tipe === 'pdf' => 'pdf',
-            in_array($tipe, ['jpg', 'jpeg', 'png', 'webp'], true) => 'gambar',
-            default => null,
-        };
-    };
+    // Aturan "bisa dipratinjau atau tidak" dipusatkan di App\Support\TipeBerkas
+    // supaya sama persis dengan halaman "8 Komponen".
 @endphp
 
 <div class="space-y-3">
@@ -76,8 +67,10 @@
 
     @forelse ($daftarDasarHukum as $dokumen)
         @php
-            $bisaDirender = $tipePratinjau($dokumen->tipe_file);
-            $urlBerkas = $dokumen->url;
+            $bisaDirender = \App\Support\TipeBerkas::kelompok($dokumen->tipe_file);
+            // Jalur relatif supaya tautan berkas selalu menuju host yang
+            // sedang dibuka (lihat App\Support\TautanBerkas).
+            $urlBerkas = \App\Support\TautanBerkas::relatif($dokumen->url);
         @endphp
 
         <article class="card overflow-hidden">
@@ -116,48 +109,20 @@
                     <p class="text-xs font-semibold text-slate-900 leading-relaxed">{{ $dokumen->tentang }}</p>
                 </div>
 
-                {{-- Pratinjau berkas --}}
+                {{-- Pratinjau berkas: markup-nya di partial bersama, sama
+                     seperti kartu dokumen "8 Komponen". --}}
                 @if ($dokumen->sudahAdaBerkas())
                     <div class="rounded-lg border border-slate-200 overflow-hidden bg-slate-100">
-                        @if ($bisaDirender === 'pdf')
-                            <iframe src="{{ $urlBerkas }}#view=FitH"
-                                    title="Pratinjau {{ $dokumen->nomor }}"
-                                    loading="lazy"
-                                    class="w-full h-[28rem] border-0 bg-white"></iframe>
-
-                        @elseif ($bisaDirender === 'gambar')
-                            <div class="w-full h-[28rem] p-3 flex items-center justify-center">
-                                <img src="{{ $urlBerkas }}" alt="Pratinjau {{ $dokumen->nomor }}"
-                                     loading="lazy" decoding="async"
-                                     class="max-w-full max-h-full object-contain rounded-lg border border-slate-300 bg-white">
-                            </div>
-
-                        @else
-                            {{-- Format kantor (doc/xls) tidak bisa dirender browser.
-                             Tampilkan informasinya, bukan kotak kosong yang membingungkan. --}}
-                            <div class="w-full h-[28rem] p-4 flex items-center justify-center">
-                                <div class="w-full max-w-lg rounded-xl border-2 border-dashed border-slate-300 bg-white p-6 text-center space-y-2.5">
-                                    <div class="w-12 h-12 mx-auto rounded-xl bg-blue-50 text-blue-700 border border-blue-200 flex items-center justify-center">
-                                        <i data-lucide="file-text" class="w-6 h-6"></i>
-                                    </div>
-                                    <p class="text-sm font-bold text-slate-700">Pratinjau tidak tersedia untuk format {{ strtoupper($dokumen->tipe_file) }}</p>
-                                    <p class="text-xs text-slate-500 leading-relaxed">
-                                        Browser tidak bisa menampilkan isi file ini di dalam halaman.
-                                        Unduh berkasnya lalu buka dengan aplikasi yang sesuai.
-                                    </p>
-                                    <div class="flex flex-wrap items-center justify-center gap-2 pt-1">
-                                        <a href="{{ $urlBerkas }}" download class="btn btn-sm btn-primary">
-                                            <i data-lucide="download" class="w-3.5 h-3.5"></i>
-                                            <span>Unduh Berkas</span>
-                                        </a>
-                                        <a href="{{ $urlBerkas }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline">
-                                            <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
-                                            <span>Buka di Tab Baru</span>
-                                        </a>
-                                    </div>
-                                </div>
-                            </div>
-                        @endif
+                        @include('crmc.partials.pratinjau-berkas', [
+                            'kelompok' => $bisaDirender,
+                            'url' => $urlBerkas,
+                            'tipe' => $dokumen->tipe_file,
+                            'judul' => $dokumen->nomor,
+                            'namaFile' => $dokumen->nama_file,
+                            'tinggi' => 'h-[28rem]',
+                            'ikon' => 'file-text',
+                            'badge' => 'bg-blue-50 text-blue-700 border-blue-200',
+                        ])
                     </div>
 
                     <p class="text-[11px] text-slate-500">

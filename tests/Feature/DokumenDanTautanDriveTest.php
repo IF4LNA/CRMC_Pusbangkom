@@ -73,6 +73,52 @@ class DokumenDanTautanDriveTest extends TestCase
         ]);
     }
 
+    /**
+     * .xlsx adalah arsip zip. Di sebagian lingkungan (mis. Windows/Laragon)
+     * fileinfo melaporkannya sebagai "application/zip" sehingga rule bawaan
+     * "mimes" menolak berkas yang sebenarnya sah. Rule BerkasDokumen harus
+     * tetap menerimanya lewat ekstensi aslinya.
+     */
+    public function test_xlsx_yang_terdeteksi_sebagai_zip_tetap_bisa_diunggah()
+    {
+        Storage::fake('public');
+        $this->actingAs($this->buatUser());
+        $this->buatSubBidang();
+
+        $response = $this->post('/crmc/manajemen-risiko/upload-dokumen', [
+            'kategori_komponen' => 'risk_register',
+            'tahun_pelaksanaan' => 2026,
+            'files' => [UploadedFile::fake()->create('risk-register-2026.xlsx', 80, 'application/zip')],
+            'keterangan' => [0 => 'Risk register tahun 2026'],
+        ]);
+
+        $response->assertRedirect();
+        $response->assertSessionHasNoErrors();
+
+        $lampiran = LampiranCrmc::where('nama_file', 'risk-register-2026.xlsx')->first();
+
+        $this->assertNotNull($lampiran);
+        $this->assertSame('risk_register', $lampiran->kategori_komponen);
+        $this->assertSame('xlsx', $lampiran->tipe_file);
+        Storage::disk('public')->assertExists($lampiran->storage_path);
+    }
+
+    public function test_berkas_berekstensi_berbahaya_tetap_ditolak()
+    {
+        Storage::fake('public');
+        $this->actingAs($this->buatUser());
+        $this->buatSubBidang();
+
+        $response = $this->post('/crmc/manajemen-risiko/upload-dokumen', [
+            'kategori_komponen' => 'risk_register',
+            'tahun_pelaksanaan' => 2026,
+            'files' => [UploadedFile::fake()->create('shell.php', 10, 'application/octet-stream')],
+        ]);
+
+        $response->assertSessionHasErrors('files.0');
+        $this->assertDatabaseCount('lampiran_crmc', 0);
+    }
+
     public function test_komponen_1_menampilkan_berkas_yang_diunggah()
     {
         Storage::fake('public');
@@ -427,5 +473,136 @@ class DokumenDanTautanDriveTest extends TestCase
         $response->assertDontSee('Ubah Link Drive');
         $response->assertDontSee('id="tautanDriveForm"', false);
         $response->assertDontSee('id="tautanDriveHapusForm"', false);
+    }
+
+    // ======================================================
+    // PRATINJAU BERKAS KANTOR PADA HALAMAN 8 KOMPONEN
+    // ======================================================
+
+    /**
+     * Berkas Word/Excel modern dipratinjau di peramban. Server cukup
+     * menulis wadah pratinjau berisi URL berkas; kotak "tidak tersedia"
+     * hanya dipakai untuk format yang benar-benar tak bisa dibaca.
+     */
+    public function test_dokumen_kantor_tampil_dengan_wadah_pratinjau()
+    {
+        $pegawai = $this->buatUser();
+        $subMenu = $this->buatSubBidang();
+
+        $dokumen = DokumenCrmc::create([
+            'sub_menu_id' => $subMenu->id,
+            'tahun_pelaksanaan' => 2026,
+        ]);
+
+        LampiranCrmc::create([
+            'dokumen_crmc_id' => $dokumen->id,
+            'kategori_komponen' => 'risk_register',
+            'nama_file' => 'risk-register-2026.xlsx',
+            'file_path' => 'lampiran/risk-register-2026.xlsx',
+            'tipe_file' => 'xlsx',
+        ]);
+
+        $html = $this->actingAs($pegawai)->get('/crmc/manajemen-risiko?tahun=2026')->getContent();
+
+        $this->assertStringContainsString('data-pratinjau-kantor', $html);
+        $this->assertStringContainsString('data-tipe="xlsx"', $html);
+        $this->assertStringContainsString('data-src="lampiran/risk-register-2026.xlsx"', $html);
+        $this->assertStringContainsString('Pratinjau langsung', $html);
+        $this->assertStringNotContainsString('Pratinjau tidak tersedia untuk format XLSX', $html);
+    }
+
+    /**
+     * URL berkas yang tersimpan bisa memuat host lama (mis. host yang
+     * dipakai saat berkas diunggah dulu). Pratinjau memakai jalur
+     * relatifnya supaya fetch() selalu menuju host yang sedang dibuka, bukan
+     * lintas-asal yang diblokir peramban.
+     */
+    public function test_wadah_pratinjau_memakai_jalur_relatif()
+    {
+        $pegawai = $this->buatUser();
+        $subMenu = $this->buatSubBidang();
+
+        $dokumen = DokumenCrmc::create([
+            'sub_menu_id' => $subMenu->id,
+            'tahun_pelaksanaan' => 2026,
+        ]);
+
+        LampiranCrmc::create([
+            'dokumen_crmc_id' => $dokumen->id,
+            'kategori_komponen' => 'risk_register',
+            'nama_file' => 'register-risiko.docx',
+            'file_path' => 'http://crmc_pusbangkom.test/storage/lampiran/register-risiko.docx',
+            'tipe_file' => 'docx',
+        ]);
+
+        $html = $this->actingAs($pegawai)->get('/crmc/manajemen-risiko?tahun=2026')->getContent();
+
+        $this->assertStringContainsString('data-src="/storage/lampiran/register-risiko.docx"', $html);
+        $this->assertStringNotContainsString('data-src="http://crmc_pusbangkom.test', $html);
+    }
+
+    /**
+     * DOC lama (format biner Word 97-2003) tidak bisa dibaca library
+     * peramban, jadi tetap harus memakai kotak unduh.
+     */
+    public function test_doc_lama_tetap_memakai_kotak_unduh()
+    {
+        $pegawai = $this->buatUser();
+        $subMenu = $this->buatSubBidang();
+
+        $dokumen = DokumenCrmc::create([
+            'sub_menu_id' => $subMenu->id,
+            'tahun_pelaksanaan' => 2026,
+        ]);
+
+        LampiranCrmc::create([
+            'dokumen_crmc_id' => $dokumen->id,
+            'kategori_komponen' => 'sop',
+            'nama_file' => 'sop-lama.doc',
+            'file_path' => 'lampiran/sop-lama.doc',
+            'tipe_file' => 'doc',
+        ]);
+
+        $html = $this->actingAs($pegawai)->get('/crmc/manajemen-risiko?tahun=2026')->getContent();
+
+        $this->assertStringContainsString('Pratinjau tidak tersedia untuk format DOC', $html);
+        $this->assertStringContainsString('Perlu diunduh', $html);
+        $this->assertStringNotContainsString('data-pratinjau-kantor', $html);
+    }
+
+    /**
+     * Skrip pratinjau sisi klien harus dimuat SEKALI per halaman, walau
+     * ada banyak berkas kantor. Kalau tidak, halaman menarik ulang library
+     * yang sama untuk setiap berkas.
+     */
+    public function test_skrip_pratinjau_dimuat_sekali_walau_banyak_berkas()
+    {
+        $pegawai = $this->buatUser();
+        $subMenu = $this->buatSubBidang();
+
+        $dokumen = DokumenCrmc::create([
+            'sub_menu_id' => $subMenu->id,
+            'tahun_pelaksanaan' => 2026,
+        ]);
+
+        foreach (['a.docx', 'b.xlsx', 'c.xls'] as $nama) {
+            LampiranCrmc::create([
+                'dokumen_crmc_id' => $dokumen->id,
+                'kategori_komponen' => 'risk_register',
+                'nama_file' => $nama,
+                'file_path' => 'lampiran/'.$nama,
+                'tipe_file' => pathinfo($nama, PATHINFO_EXTENSION),
+            ]);
+        }
+
+        $html = $this->actingAs($pegawai)->get('/crmc/manajemen-risiko?tahun=2026')->getContent();
+
+        // Tiga berkas kantor menghasilkan tiga wadah pratinjau...
+        $this->assertSame(3, substr_count($html, 'data-tipe="'));
+
+        // ...tetapi setiap library hanya ditulis sekali.
+        $this->assertSame(1, substr_count($html, 'jszip.min.js'));
+        $this->assertSame(1, substr_count($html, 'docx-preview.min.js'));
+        $this->assertSame(1, substr_count($html, 'xlsx.full.min.js'));
     }
 }

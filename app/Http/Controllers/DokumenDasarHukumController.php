@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\DokumenDasarHukum;
+use App\Rules\BerkasDokumen;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -35,11 +36,17 @@ class DokumenDasarHukumController extends Controller
         $dokumen = DokumenDasarHukum::findOrFail($id);
 
         $request->validate([
-            'berkas' => ['required', 'file', 'mimes:'.implode(',', self::MIME_TIPE), 'max:'.self::MAKS_UKURAN_KB],
+            // BerkasDokumen dipakai, bukan "mimes", supaya .xlsx yang oleh
+            // fileinfo terdeteksi sebagai "application/zip" tetap diterima.
+            'berkas' => [
+                'required',
+                'file',
+                new BerkasDokumen(self::MIME_TIPE),
+                'max:'.self::MAKS_UKURAN_KB,
+            ],
         ], [
             'berkas.required' => 'Pilih berkas terlebih dahulu.',
             'berkas.file' => 'Berkas yang dipilih tidak valid.',
-            'berkas.mimes' => 'Format berkas harus PDF, DOC, DOCX, XLS, XLSX, JPG, atau PNG.',
             'berkas.max' => 'Ukuran berkas maksimal 10 MB.',
         ]);
 

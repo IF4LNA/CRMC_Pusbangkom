@@ -149,9 +149,10 @@ class DasarHukumDokumenTest extends TestCase
 
         $this->se->refresh();
 
-        // PDF dirender lewat iframe viewer bawaan browser.
+        // PDF dirender lewat iframe viewer bawaan browser. URL-nya dipakai
+        // sebagai jalur relatif (lihat App\Support\TautanBerkas).
         $this->assertStringContainsString('<iframe', $html);
-        $this->assertStringContainsString($this->se->url, $html);
+        $this->assertStringContainsString(parse_url($this->se->url, PHP_URL_PATH).'#view=FitH', $html);
         $this->assertStringContainsString('se-12-2024.pdf', $html);
     }
 
@@ -167,17 +168,18 @@ class DasarHukumDokumenTest extends TestCase
         $this->se->refresh();
 
         $this->assertMatchesRegularExpression(
-            '/<img src="'.preg_quote($this->se->url, '/').'"/',
+            '/<img src="'.preg_quote(parse_url($this->se->url, PHP_URL_PATH), '/').'"/',
             $html,
             'Gambar harus ditampilkan lewat <img>, bukan iframe.'
         );
     }
 
     /**
-     * Format kantor tidak bisa dirender browser. Halaman harus tetap
-     * memberi jalan keluar (unduh), bukan kotak kosong.
+     * DOCX sekarang dipratinjau di peramban. Server cukup menulis wadah
+     * [data-pratinjau-kantor] berisi URL berkas dan tipenya; sisanya
+     * dikerjakan library JS di sisi klien.
      */
-    public function test_format_kantor_masih_bisa_diunduh(): void
+    public function test_docx_dipratinjau_di_peramban(): void
     {
         $this->actingAs($this->admin)->post(
             "/admin/dasar-hukum/{$this->kep->id}/berkas",
@@ -188,7 +190,32 @@ class DasarHukumDokumenTest extends TestCase
 
         $this->kep->refresh();
 
-        $this->assertStringContainsString('Pratinjau tidak tersedia untuk format DOCX', $html);
+        $this->assertStringContainsString('data-pratinjau-kantor', $html);
+        // URL dipakai sebagai jalur relatif supaya fetch() tidak lintas-asal
+        // (lihat App\Support\TautanBerkas).
+        $this->assertStringContainsString('data-src="'.parse_url($this->kep->url, PHP_URL_PATH).'"', $html);
+        $this->assertStringContainsString('data-tipe="docx"', $html);
+
+        // Tidak lagi jatuh ke kotak "tidak tersedia".
+        $this->assertStringNotContainsString('Pratinjau tidak tersedia untuk format DOCX', $html);
+    }
+
+    /**
+     * DOC lama (Word 97-2003) tidak didukung library peramban, jadi halaman
+     * tetap harus memberi jalan keluar (unduh), bukan kotak kosong.
+     */
+    public function test_doc_lama_masih_bisa_diunduh(): void
+    {
+        $this->actingAs($this->admin)->post(
+            "/admin/dasar-hukum/{$this->kep->id}/berkas",
+            ['berkas' => UploadedFile::fake()->create('kep-08-2026.doc', 100)]
+        );
+
+        $html = $this->get('/dashboard')->assertOk()->getContent();
+
+        $this->kep->refresh();
+
+        $this->assertStringContainsString('Pratinjau tidak tersedia untuk format DOC', $html);
         $this->assertStringContainsString('Unduh Berkas', $html);
     }
 

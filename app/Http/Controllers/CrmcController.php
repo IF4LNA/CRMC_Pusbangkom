@@ -10,6 +10,7 @@ use App\Models\PenugasanCrmc;
 use App\Models\TahunAnggaran;
 use App\Models\TautanDriveCrmc;
 use App\Models\User;
+use App\Rules\BerkasDokumen;
 use App\Support\PenyimpananGambar;
 use App\Support\SkalaResiduRisiko;
 use App\Support\TautanGoogleDrive;
@@ -432,12 +433,14 @@ class CrmcController extends Controller
             'kategori_komponen' => 'required|string|max:100',
             'tahun_pelaksanaan' => 'required|numeric|min:2000|max:2100',
             'files' => 'required|array|min:1',
-            'files.*' => 'file|mimes:pdf,doc,docx,xls,xlsx,jpg,jpeg,png,webp|max:10240',
+            // Rule BerkasDokumen dipakai, bukan "mimes", supaya .xlsx/.docx
+            // yang oleh fileinfo terdeteksi sebagai "application/zip" tetap
+            // bisa diunggah. Lihat App\Rules\BerkasDokumen.
+            'files.*' => ['file', 'max:10240', new BerkasDokumen()],
             'keterangan' => 'nullable|array',
             'keterangan.*' => 'nullable|string|max:1000',
         ], [
             'files.required' => 'Pilih minimal 1 file untuk diunggah.',
-            'files.*.mimes' => 'Format file harus PDF, DOC, DOCX, XLS, XLSX, JPG, PNG, atau WebP.',
             'files.*.max' => 'Ukuran file maksimal 10MB per file.',
             'keterangan.*.max' => 'Keterangan maksimal 1000 karakter.',
         ]);
