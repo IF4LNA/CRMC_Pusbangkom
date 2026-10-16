@@ -61,11 +61,12 @@
         {{-- Kartu gelap: dasar biru tua, teks putih.
 
              Foto (bila ada) diletakkan di atas dasar itu, jadi teksnya
-             selalu kontras apa pun isi gambarnya. Overlay di atas foto
-             sengaja gelap dan rata, bukan gradasi ke satu sisi seperti
-             banner Beranda: pada kartu kecil, gradasi ke sisi membuat
-             sebagian teks berada di atas foto yang terang sehingga sulit
-             dibaca.
+             selalu kontras apa pun isi gambarnya. Overlay memakai gradasi
+             VERTIKAL: bagian atas dibiarkan terang supaya foto terlihat,
+             lalu makin gelap ke bawah tepat di tempat judul dan petunjuk
+             "Buka" berada. Gradasi ke samping seperti banner Beranda tidak
+             dipakai karena pada kartu kecil sebagian teks akan jatuh di
+             atas foto yang terang dan sulit dibaca.
 
              Kartu tanpa foto tetap biru tua lewat kelas --polos, supaya
              satu baris kartu seragam dan admin langsung tahu mana yang
@@ -87,13 +88,14 @@
                 <div onclick="window.location.href='{{ $urlSub }}'"
                      class="card click-card sub-bidang-banner relative overflow-hidden p-4 flex flex-col justify-between gap-3 min-h-[9rem] {{ $punyaLatar ? '' : 'sub-bidang-banner--polos' }}">
 
-                    {{-- Foto latar yang diunggah admin, ditutup lapisan gelap rata
-                         supaya teks putih di atasnya tetap terbaca baik,
-                         baik gambarnya terang maupun gelap. --}}
+                    {{-- Foto latar yang diunggah admin, ditutup gradasi vertikal
+                         yang makin gelap ke bawah supaya teks putih tetap
+                         terbaca pada foto yang terang maupun gelap.
+                         Overlay hanya ada pada kartu yang punya foto. --}}
                     @if ($punyaLatar)
                         <img src="{{ $sub->gambar_latar_url }}" alt="" loading="lazy" decoding="async"
                              class="absolute inset-0 h-full w-full object-cover object-center">
-                        <div class="absolute inset-0 bg-blue-950/75"></div>
+                        <div class="absolute inset-0 bg-gradient-to-b from-blue-900/20 via-blue-950/45 to-blue-950/95"></div>
                     @endif
 
                     <div class="relative flex items-start justify-between gap-2">
@@ -131,12 +133,8 @@
                             {{ $sub->nama_sub_menu }}
                         </h4>
 
-                        <div class="flex items-center justify-between border-t border-white/15 pt-2 mt-2 text-[11px] text-blue-200">
-                            <span class="inline-flex items-center gap-1 font-semibold">
-                                <i data-lucide="layers" class="w-3 h-3"></i>
-                                8 Komponen
-                            </span>
-                            <span class="inline-flex items-center gap-0.5 text-white font-semibold">
+                        <div class="flex items-center justify-end border-t border-white/15 pt-2 mt-2 text-[11px]">
+                            <span class="inline-flex items-center gap-1 font-semibold text-white">
                                 Buka <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
                             </span>
                         </div>

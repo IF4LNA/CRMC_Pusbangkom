@@ -300,7 +300,19 @@
         .sub-bidang-banner--polos {
             background-image: linear-gradient(140deg, #0f172a, #1e3a8a);
         }
-        .sub-bidang-banner:hover { border-color: #3b82f6; }
+        /* Interaksi hover: kartu terangkat sedikit dan bayangannya menguat.
+           Selector ditulis dengan awalan .card.click-card supaya menang dari
+           aturan umum `.card.click-card { transition }` / `.card.click-card:hover`
+           yang spesifikasinya lebih tinggi, sehingga transform-nya ikut
+           beranimasi halus, bukan melompat. */
+        .card.click-card.sub-bidang-banner {
+            transition: border-color .2s ease, box-shadow .2s ease, transform .2s ease;
+        }
+        .card.click-card.sub-bidang-banner:hover {
+            border-color: #3b82f6;
+            box-shadow: 0 12px 24px -12px rgba(15, 23, 42, .55);
+            transform: translateY(-3px);
+        }
         /* Label "SUB #n" di sudut kartu. */
         .sub-bidang-chip {
             display: inline-flex;

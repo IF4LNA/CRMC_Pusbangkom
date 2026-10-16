@@ -75,7 +75,7 @@
                     <div class="sub-bidang-banner relative overflow-hidden rounded-lg h-24 p-3 flex flex-col justify-between">
                         <img id="gambarPratinjauLatar" src="" alt="Latar sub-bidang saat ini"
                              class="absolute inset-0 h-full w-full object-cover object-center">
-                        <div id="overlayPratinjauLatar" class="absolute inset-0 bg-blue-950/75"></div>
+                        <div id="overlayPratinjauLatar" class="absolute inset-0 bg-gradient-to-b from-blue-900/20 via-blue-950/45 to-blue-950/95"></div>
                         <span class="relative sub-bidang-chip w-fit">SUB #1</span>
                         <div class="relative">
                             <p id="teksPratinjauLatar" class="text-sm font-bold text-white truncate">
@@ -197,14 +197,19 @@
         const blokPratinjau = document.getElementById('pratinjauLatarSubBidang');
         const labelHapus = document.getElementById('opsiHapusLatarSubBidang');
         const imgPratinjau = document.getElementById('gambarPratinjauLatar');
+        const overlayPratinjau = document.getElementById('overlayPratinjauLatar');
 
         document.getElementById('teksPratinjauLatar').textContent =
             data?.nama_sub_menu || 'Nama Sub-Bidang';
 
         if (data?.punya_gambar && data?.gambar_latar_url) {
             imgPratinjau.src = data.gambar_latar_url;
+            // Overlay gradasi hanya muncul saat kartu memang punya foto,
+            // sama seperti kartu sebenarnya di dashboard.
+            overlayPratinjau?.classList.remove('hidden');
         } else {
             imgPratinjau.removeAttribute('src');
+            overlayPratinjau?.classList.add('hidden');
         }
 
         if (menyunting) {
@@ -268,6 +273,8 @@
         const blok = document.getElementById('pratinjauLatarSubBidang');
         blok.classList.remove('hidden');
         document.getElementById('gambarPratinjauLatar').src = objectUrlPratinjau;
+        // Berkas baru dipilih: tampilkan juga overlay gradasi seperti kartu asli.
+        document.getElementById('overlayPratinjauLatar')?.classList.remove('hidden');
     }
 
     function konfirmasiHapusSubBidang(id, nama) {
