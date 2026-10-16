@@ -100,6 +100,8 @@
         </div>
     </div>
 
+
+
     {{-- Pintasan ke tiap bidang --}}
     <div>
         <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
@@ -142,4 +144,7 @@
             @endforelse
         </div>
     </div>
+        {{-- Bagan struktur organisasi: Pemilik Risiko di puncak, lalu Pengendali
+         Mutu tiap bidang di bawahnya. Data dari BidangController. --}}
+    @include('crmc.partials.struktur-organisasi')
 </div>

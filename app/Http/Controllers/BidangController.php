@@ -33,10 +33,65 @@ class BidangController extends Controller
             'daftarBidang' => $daftarBidang,
             'isAdmin' => $this->bolehKelola(),
             'ringkasanPersonel' => $this->ringkasanPersonel((int) date('Y')),
+            // Bagan struktur organisasi (Pemilik Risiko -> Pengendali Mutu
+            // tiap bidang) untuk tahun berjalan.
+            'strukturOrganisasi' => $this->strukturOrganisasi((int) date('Y')),
             // Tab "Dasar Hukum" memakai daftar ini. Dimuat di sini, bukan di
             // view, supaya tab tetap punya isi walau dipanggil terpisah.
             'daftarDasarHukum' => DokumenDasarHukum::orderBy('urutan')->orderBy('id')->get(),
         ]);
+    }
+
+    /**
+     * Struktur organisasi pengendalian risiko untuk bagan di dashboard.
+     *
+     * Hierarki dua tingkat:
+     *   1. Pemilik Risiko  : satu orang untuk seluruh CRMC.
+     *   2. Pengendali Mutu  : satu orang per bidang, ditampilkan bersama nama
+     *                         bidangnya supaya jelas siapa pengendali mutu
+     *                         bagian mana.
+     *
+     * Datanya dibaca dari tabel `penugasan_crmc` tahun berjalan, bukan dari
+     * tabel `struktur_organisasi` yang sudah tidak dipakai lagi. Dengan
+     * begitu bagan ikut berubah begitu admin memperbarui penugasan di
+     * Komponen 1, tanpa perlu input ganda.
+     *
+     * @return array{tahun:int, pemilikRisiko:?User, pengendaliMutu:\Illuminate\Support\Collection<int, array{bidang:Bidang, user:?User}>}
+     */
+    private function strukturOrganisasi(int $tahun): array
+    {
+        // Pemilik Risiko ditulis ke seluruh sub-bidang (lihat
+        // CrmcController::updatePenugasan), jadi cukup ambil satu baris.
+        $pemilikRisiko = PenugasanCrmc::query()
+            ->tahun($tahun)
+            ->where('peran', 'pemilik_risiko')
+            ->with('user')
+            ->first()
+            ?->user;
+
+        // Pengendali Mutu berlaku per bidang. Baris mentahnya dikelompokkan
+        // dulu berdasarkan bidang, lalu diambil satu user tiap bidang, supaya
+        // orang yang sama untuk banyak sub-bidang tidak tampil berkali-kali.
+        $mutuPerBidang = PenugasanCrmc::query()
+            ->tahun($tahun)
+            ->where('peran', 'pengendali_mutu')
+            ->with(['user', 'subMenu'])
+            ->get()
+            ->groupBy(fn (PenugasanCrmc $p) => $p->subMenu?->bidang_id)
+            ->map(fn ($grup) => $grup->first()?->user);
+
+        // Semua bidang tetap ditampilkan walau belum punya pengendali mutu,
+        // supaya kursi yang masih kosong terlihat (bukan hilang dari bagan).
+        $pengendaliMutu = Bidang::orderBy('id')->get()->map(fn (Bidang $bidang) => [
+            'bidang' => $bidang,
+            'user' => $mutuPerBidang->get($bidang->id),
+        ]);
+
+        return [
+            'tahun' => $tahun,
+            'pemilikRisiko' => $pemilikRisiko,
+            'pengendaliMutu' => $pengendaliMutu,
+        ];
     }
 
     /**

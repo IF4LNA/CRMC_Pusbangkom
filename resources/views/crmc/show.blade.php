@@ -130,6 +130,12 @@
 
         $isAdmin = auth()->check() && auth()->user()->isAdmin();
 
+        // Ringkasan angka (badge tahun/komponen/dokumen di banner dan kartu
+        // "Stats Overview") hanya untuk pengguna yang berhak: Admin dan
+        // Pegawai. Pengunjung yang belum masuk tidak melihat ringkasan ini.
+        $bolehLihatStatistik = auth()->check()
+            && (auth()->user()->isAdmin() || auth()->user()->isPegawai());
+
         // Tautan Google Drive tiap komponen, dikelompokkan per (tahun,
         // kategori) oleh controller. Dipakai sebagai closure supaya view
         // cukup menulis $tautan('sop', $tahun) tanpa membongkar array.
@@ -224,14 +230,22 @@
     </div>
     @endif
 
-    {{-- HERO: foto gedung PUSBANGKOM sebagai latar banner --}}
-    <div class="relative overflow-hidden rounded-xl bg-blue-950 text-white border border-blue-900">
-        <img src="{{ asset('images/gedung_pusbangkom.jpg') }}"
-             alt="Gedung PUSBANGKOM"
+    {{-- HERO: gambar latar sub-bidang (diunggah admin dari kartu sub-bidang)
+         dipakai sebagai banner halaman ini. Kalau sub-bidang belum punya
+         gambar, banner memakai foto gedung PUSBANGKOM sebagai cadangan. --}}
+    @php
+        $gambarHero = $subMenu?->gambar_latar_url;
+    @endphp
+    <div class="relative overflow-hidden rounded-xl bg-blue-950 text-white border border-blue-900 min-h-[14rem] sm:min-h-[17rem]">
+        <img src="{{ $gambarHero ?? asset('images/gedung_pusbangkom.jpg') }}"
+             alt="{{ $gambarHero ? 'Gambar ' . $subBidangName : 'Gedung PUSBANGKOM' }}"
              class="absolute inset-0 h-full w-full object-cover object-center">
-        <div class="absolute inset-0 bg-gradient-to-r from-blue-950/95 via-blue-950/85 to-blue-900/50"></div>
+        {{-- Overlay dibuat sama seperti kartu sub-bidang: gradasi VERTIKAL yang
+             terang di atas lalu makin gelap ke bawah, supaya foto tetap
+             terlihat dan teks putih di bawahnya tetap terbaca. --}}
+        <div class="absolute inset-0 bg-gradient-to-b from-blue-900/20 via-blue-950/45 to-blue-950/95"></div>
 
-        <div class="relative flex flex-col lg:flex-row lg:items-center justify-between gap-5 p-5 sm:p-6">
+        <div class="relative flex flex-col lg:flex-row lg:items-end justify-between gap-5 p-5 sm:p-8 min-h-[14rem] sm:min-h-[17rem]">
             <div class="space-y-2.5 max-w-3xl">
                 <span class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-900 text-blue-200 rounded-md text-[11px] font-bold border border-blue-800">
                     <i data-lucide="shield-alert" class="w-3.5 h-3.5"></i>
@@ -240,11 +254,11 @@
                 <h1 class="text-xl sm:text-2xl font-bold tracking-tight text-white leading-tight">
                     {{ $subBidangName }}
                 </h1>
-                <p class="text-blue-200 text-xs sm:text-sm leading-relaxed">
-                    Dokumen resmi Continuous Monitoring on Risk Control (CRMC) terpadu. Seluruh isi halaman berasal dari berkas yang benar-benar diunggah, tanpa data contoh.
-                </p>
+
             </div>
 
+            {{-- Ringkasan tahun/komponen/dokumen hanya untuk Admin & Pegawai. --}}
+            @if($bolehLihatStatistik)
             <div class="flex flex-wrap items-start gap-2 shrink-0">
                 <div class="px-3 py-1.5 rounded-lg bg-blue-900/80 border border-blue-800 flex items-center gap-2">
                     <span class="w-2 h-2 rounded-full {{ $rangkuman['totalDokumen'] > 0 ? 'bg-emerald-400' : 'bg-slate-500' }}"></span>
@@ -259,21 +273,8 @@
                     <span>Dokumen: <strong class="text-white">{{ $rangkuman['totalDokumen'] }} file</strong></span>
                 </div>
             </div>
+            @endif
         </div>
-    </div>
-
-    <!-- PENJELASAN MEKANISME TAHUN -->
-    <div class="note">
-        <p class="font-semibold">Cara kerja pemilihan tahun</p>
-        <p class="mt-1">
-            Setiap komponen punya pemilih tahun sendiri, jadi Anda bisa membandingkan dokumen antar tahun dalam satu halaman.
-            Tahun <strong>{{ date('Y') }}</strong> dan <strong>{{ date('Y') + 1 }}</strong> selalu tersedia otomatis tanpa perlu apa pun,
-            sehingga tahun baru langsung muncul sendiri setiap pergantian tahun.
-            Admin juga bisa menambah tahun khusus di luar rentang itu lewat tombol <strong>"+ Tambah Tahun"</strong>.
-        </p>
-        <p class="mt-1">
-            Komponen hanya menampilkan berkas yang diunggah pada tahun yang dipilih. Belum ada dokumen? Kotaknya kosong &mdash; bukan data contoh.
-        </p>
     </div>
 
     <!-- TAHUN GLOBAL -->
@@ -303,7 +304,8 @@
         </div>
     </div>
 
-    <!-- STATS OVERVIEW -->
+    <!-- STATS OVERVIEW: hanya untuk Admin & Pegawai -->
+    @if($bolehLihatStatistik)
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         <!-- Residu -->
         <div class="stat">
@@ -357,6 +359,7 @@
             <p class="stat-note">Total {{ $rangkuman['jumlahTahun'] }} tahun selectable</p>
         </div>
     </div>
+    @endif
 
     <!-- SECTION TITLE -->
     <div class="pt-1">
@@ -433,11 +436,7 @@
 
                 <div>
                     <h3 class="text-sm sm:text-base font-bold text-slate-900">1. Identitas Pegawai &amp; Penugasan PIC (3 Lapis) &mdash; Tahun {{ $tahunPenugasan }}</h3>
-                    <p class="text-xs text-slate-500 mt-0.5">
-                        Hierarki pertanggungjawaban tersusun ke bawah: lapis 1 Pemilik Risiko, lapis 2 Pengendali Mutu,
-                        lapis 3 Tim Pengendali Risiko (banyak orang, digeser ke samping). Penugasan di bawah berlaku
-                        khusus untuk tahun {{ $tahunPenugasan }} dan tidak mengubah tahun lain.
-                    </p>
+
                 </div>
 
                 <!-- === LAPIS 1: PEMILIK RISIKO (paling atas) === -->
@@ -563,16 +562,8 @@
                         </span>
                     </div>
 
-                    <p class="text-[11px] text-slate-500 leading-relaxed">
-                        Dokumen pendukung identitas pegawai tahun {{ $tahunPenugasan }}: SK/KP, surat keputusan,
-                        atau berkas delegasi lain. Kalau berkasnya berada di Google Drive, cukup isi tautannya lewat
-                        tombol <strong>"Link Drive"</strong>, lalu tautannya tampil sebagai tombol pembuka.
-                    </p>
 
-                    <p class="hint">
-                        Berkas di bawah memakai tahun identitas yang sama dengan penugasan di atas. Kalau lebih dari
-                        satu file, pakai tombol <strong>Sebelumnya/Berikutnya</strong> supaya tidak menumpuk ke bawah.
-                    </p>
+
 
                     @include('crmc.partials.daftar-dokumen', [
                         'kategori' => $komponenIdentitas['kategori'],
