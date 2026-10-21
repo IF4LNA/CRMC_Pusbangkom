@@ -39,7 +39,7 @@
 
             <h1 class="text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.1] italic">
                 Continuous Monitoring
-                <span class="block text-blue-300">on Risk Control (CRMC)</span>
+                <span class="block text-blue-300">on Risk Control (CMRC)</span>
             </h1>
 
             <p class="text-sm md:text-base text-slate-300 leading-relaxed mt-6 max-w-2xl">

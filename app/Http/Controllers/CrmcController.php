@@ -11,8 +11,10 @@ use App\Models\TahunAnggaran;
 use App\Models\TautanDriveCrmc;
 use App\Models\User;
 use App\Rules\BerkasDokumen;
+use App\Support\KompresiBerkas;
 use App\Support\PenyimpananGambar;
 use App\Support\SkalaResiduRisiko;
+use App\Support\TautanBerkas;
 use App\Support\TautanGoogleDrive;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -36,6 +38,18 @@ class CrmcController extends Controller
         'bukti_pelaksanaan'     => ['nomor' => 6, 'judul' => 'Bukti Pelaksanaan', 'ikon' => 'link-2'],
         'evaluasi'              => ['nomor' => 8, 'judul' => 'Evaluasi & Rencana Perbaikan', 'ikon' => 'trending-up'],
     ];
+
+    /**
+     * Kategori upload yang ukuran filenya tidak dibatasi sama sekali.
+     *
+     * Komponen 6 (Bukti Pelaksanaan) berisi foto/video bukti kegiatan yang
+     * bisa sangat besar, jadi unggahannya tidak divalidasi batas ukuran dan
+     * tidak dikompres otomatis. Batas praktis yang tersisa hanyalah
+     * upload_max_filesize di php.ini server.
+     *
+     * @var array<int, string>
+     */
+    private const KATEGORI_TANPA_BATAS_UKURAN = ['bukti_pelaksanaan'];
 
     /**
      * Komponen 1 (identitas pegawai) sebagai komponen dokumen.
@@ -435,6 +449,11 @@ class CrmcController extends Controller
             abort(403, 'Anda harus login untuk mengunggah dokumen.');
         }
 
+        // Kategori dibaca sebelum validasi karena besaran batas ukuran
+        // bergantung pada komponen yang dipilih.
+        $kategori = $request->input('kategori_komponen');
+        $tanpaBatasUkuran = in_array($kategori, self::KATEGORI_TANPA_BATAS_UKURAN, true);
+
         $request->validate([
             'kategori_komponen' => 'required|string|max:100',
             'tahun_pelaksanaan' => 'required|numeric|min:2000|max:2100',
@@ -442,16 +461,20 @@ class CrmcController extends Controller
             // Rule BerkasDokumen dipakai, bukan "mimes", supaya .xlsx/.docx
             // yang oleh fileinfo terdeteksi sebagai "application/zip" tetap
             // bisa diunggah. Lihat App\Rules\BerkasDokumen.
-            'files.*' => ['file', 'max:20480', new BerkasDokumen()],
+            //
+            // Komponen 6 (Bukti Pelaksanaan) tidak dibatasi ukurannya sama
+            // sekali; komponen lain maksimal 50MB karena berkas di atas
+            // batas 20MB dikompres otomatis (App\Support\KompresiBerkas).
+            'files.*' => $tanpaBatasUkuran
+                ? ['file', new BerkasDokumen()]
+                : ['file', 'max:'.KompresiBerkas::MAKS_UNGGAH_KB, new BerkasDokumen()],
             'keterangan' => 'nullable|array',
             'keterangan.*' => 'nullable|string|max:1000',
         ], [
             'files.required' => 'Pilih minimal 1 file untuk diunggah.',
-            'files.*.max' => 'Ukuran file maksimal 20MB per file.',
+            'files.*.max' => 'Ukuran file maksimal 50MB per file. File di atas 20MB akan dikompres otomatis; bila kompresi gagal, file ditolak.',
             'keterangan.*.max' => 'Keterangan maksimal 1000 karakter.',
         ]);
-
-        $kategori = $request->input('kategori_komponen');
 
         // Batasi kategori ke komponen yang memang punya slot upload, supaya
         // request buatan tangan tidak bisa menulis kategori bebas ke tabel.
@@ -479,10 +502,23 @@ class CrmcController extends Controller
         $folder = "crmc/{$tahun}/{$subMenu->id}/{$kategori}";
         $jumlahBerhasil = 0;
         $keteranganTersimpan = 0;
+        $gagalKompresi = [];
 
         // Upload setiap file
         foreach ($request->file('files') as $index => $file) {
             $originalName = $file->getClientOriginalName();
+
+            // Untuk komponen dengan batas ukuran: file di atas 20MB dikompres
+            // otomatis dulu (gambar lewat GD, .docx/.xlsx lewat rekompresi
+            // arsip). Kalau tetap tidak muat setelah dikompres, file dilewati
+            // dan namanya dilaporkan ke pengguna, bukan diam-dimpan dalam
+            // ukuran yang melanggar batas. Komponen 6 (Bukti Pelaksanaan)
+            // dilewati sepenuhnya karena memang tanpa batas ukuran.
+            if (! $tanpaBatasUkuran && ! KompresiBerkas::kompres($file)) {
+                $gagalKompresi[] = $originalName;
+                continue;
+            }
+
             $extension = $file->getClientOriginalExtension();
 
             $path = $file->storeAs(
@@ -502,7 +538,14 @@ class CrmcController extends Controller
                 'kategori_komponen' => $kategori,
                 'nama_file' => $originalName,
                 'keterangan' => $ket !== '' ? $ket : null,
-                'file_path' => Storage::disk('public')->url($path),
+                // Disimpan sebagai jalur relatif berawalan "/storage/"
+                // (mis. "/storage/crmc/2026/3/sop/sop.pdf"), BUKAN URL penuh.
+                // URL penuh membekukan host saat unggah (mis. IP lokal)
+                // sehingga dokumen tidak bisa dibuka setelah aplikasi
+                // dipindah ke server lain. Jalur relatif tanpa host selalu
+                // mengikuti alamat yang sedang dipakai pengguna, dan tetap
+                // dibaca sebagai jalur relatif oleh TautanBerkas::relatif().
+                'file_path' => TautanBerkas::relatif(Storage::disk('public')->url($path)),
                 'tipe_file' => strtolower($extension),
             ]);
 
@@ -511,14 +554,28 @@ class CrmcController extends Controller
 
         $judul = $semuaKategoriDokumen[$kategori]['judul'];
 
-        $pesan = "{$jumlahBerhasil} dokumen berhasil diunggah pada Komponen {$this->nomorKomponen($kategori)} — {$judul} — tahun {$tahun}.";
-        if ($keteranganTersimpan > 0) {
-            $pesan .= " {$keteranganTersimpan} berkas disertai keterangan.";
+        $redirect = redirect()
+            ->route('crmc.show', $this->urlTujuanKomponen($slug, $kategori, $tahun));
+
+        if ($jumlahBerhasil > 0) {
+            $pesan = "{$jumlahBerhasil} dokumen berhasil diunggah pada Komponen {$this->nomorKomponen($kategori)} — {$judul} — tahun {$tahun}.";
+            if ($keteranganTersimpan > 0) {
+                $pesan .= " {$keteranganTersimpan} berkas disertai keterangan.";
+            }
+
+            $redirect->with('success', $pesan);
         }
 
-        return redirect()
-            ->route('crmc.show', $this->urlTujuanKomponen($slug, $kategori, $tahun))
-            ->with('success', $pesan);
+        if ($gagalKompresi !== []) {
+            $redirect->with(
+                'error',
+                count($gagalKompresi).' file tidak dapat diunggah karena ukurannya tetap melebihi 20MB setelah dikompres otomatis: '
+                    .implode(', ', $gagalKompresi)
+                    .'. Silakan kompres file secara manual lalu unggah ulang.'
+            );
+        }
+
+        return $redirect;
     }
 
     /**

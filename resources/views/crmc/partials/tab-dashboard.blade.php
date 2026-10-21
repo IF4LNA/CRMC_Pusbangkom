@@ -23,7 +23,7 @@
                         <span>Sistem Pengendalian Risiko Terintegrasi</span>
                     </span>
                     <h2 class="text-xl sm:text-2xl font-bold tracking-tight text-white mb-1.5">
-                        Continuous Monitoring on Risk Control (CRMC)
+                        Continuous Monitoring on Risk Control (CMRC)
                     </h2>
                     <p class="text-blue-200 text-xs sm:text-sm max-w-xl leading-relaxed">
                         Pusat Pengembangan Kompetensi Sumber Daya Air, Cipta Karya dan Prasarana Strategis
@@ -36,10 +36,10 @@
                 <div class="mt-auto pt-5 border-t border-blue-900/60 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                     <p class="flex items-center gap-2 text-xs text-blue-200">
                         <i data-lucide="quote" class="w-4 h-4 text-blue-400 shrink-0"></i>
-                        <span class="italic font-medium">"Infrastruktur untuk Indonesia Maju"</span>
+                        <span class="italic font-medium">"Sigap Membangun Negeri Untuk Rakyat"</span>
                     </p>
                     <button onclick="switchTab('umum-tu')" class="btn btn-sm btn-kuning shrink-0">
-                        <span>Mulai Kelola CRMC</span>
+                        <span>Mulai Kelola CMRC</span>
                         <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
                     </button>
                 </div>

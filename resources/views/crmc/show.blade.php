@@ -1086,7 +1086,7 @@
                         <div class="border border-dashed border-slate-300 rounded-lg p-6 text-center hover:border-blue-400 transition cursor-pointer" onclick="document.getElementById('uploadFiles').click();">
                             <i data-lucide="cloud-upload" class="w-7 h-7 text-slate-400 mx-auto mb-2"></i>
                             <p class="text-slate-600 font-medium">Klik atau seret file ke sini</p>
-                            <p class="text-[10px] text-slate-400 mt-1">PDF, DOC, DOCX, XLS, XLSX, JPG, PNG, WebP (maks. 20MB per file)</p>
+                            <p class="text-[10px] text-slate-400 mt-1">PDF, DOC, DOCX, XLS, XLSX, JPG, PNG, WebP (maks. 50MB per file — di atas 20MB dikompres otomatis; Komponen 6 tanpa batas ukuran)</p>
                         </div>
                         <input type="file" name="files[]" id="uploadFiles" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.webp" class="hidden" onchange="bangunDaftarBerkas(this)">
                     </div>

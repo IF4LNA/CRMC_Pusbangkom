@@ -79,7 +79,9 @@ class DokumenCrmcController extends Controller
                         'dokumen_crmc_id' => $dokumen->id,
                         'kategori_komponen' => $kategori,
                         'nama_file' => $originalName,
-                        'file_path' => Storage::disk('public')->url($path),
+                        // Jalur relatif berawalan "/storage/", bukan URL penuh
+                        // supaya tetap valid setelah aplikasi pindah server.
+                        'file_path' => \App\Support\TautanBerkas::relatif(Storage::disk('public')->url($path)),
                         'tipe_file' => strtolower($extension),
                     ]);
                 }

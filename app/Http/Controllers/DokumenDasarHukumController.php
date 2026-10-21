@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\DokumenDasarHukum;
 use App\Rules\BerkasDokumen;
+use App\Support\KompresiBerkas;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -23,8 +24,14 @@ class DokumenDasarHukumController extends Controller
     /** Format berkas yang masih berguna untuk pratinjau dan unduh. */
     private const MIME_TIPE = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'jpg', 'jpeg', 'png'];
 
-    /** Batas ukuran berkas: 20 MB, sama dengan Komponen dokumen CRMC. */
-    private const MAKS_UKURAN_KB = 20480;
+    /** Batas ukuran akhir berkas: 20 MB, sama dengan Komponen dokumen CRMC. */
+    private const MAKS_UKURAN_KB = KompresiBerkas::BATAS_KB;
+
+    /**
+     * Batas penerimaan unggahan: 50 MB. Lebih longgar daripada batas akhir
+     * supaya berkas besar masih sempat dikompres otomatis sebelum ditolak.
+     */
+    private const MAKS_UNGGAH_KB = KompresiBerkas::MAKS_UNGGAH_KB;
 
     /**
      * Unggah berkas untuk satu regulasi, mengganti berkas sebelumnya.
@@ -42,15 +49,27 @@ class DokumenDasarHukumController extends Controller
                 'required',
                 'file',
                 new BerkasDokumen(self::MIME_TIPE),
-                'max:'.self::MAKS_UKURAN_KB,
+                'max:'.self::MAKS_UNGGAH_KB,
             ],
         ], [
             'berkas.required' => 'Pilih berkas terlebih dahulu.',
             'berkas.file' => 'Berkas yang dipilih tidak valid.',
-            'berkas.max' => 'Ukuran berkas maksimal 20 MB.',
+            'berkas.max' => 'Ukuran berkas maksimal 50MB. Berkas di atas 20MB akan dikompres otomatis; bila kompresi gagal, berkas ditolak.',
         ]);
 
         $berkas = $request->file('berkas');
+
+        // Berkas di atas batas 20MB dikompres otomatis. Kalau ukurannya masih
+        // melebihi batas setelah dikompres, unggahan dibatalkan dan berkas
+        // lama tetap utuh. Lihat App\Support\KompresiBerkas.
+        if (! KompresiBerkas::kompres($berkas)) {
+            $batasMb = self::MAKS_UKURAN_KB / 1024;
+
+            return back()->withErrors([
+                'berkas' => 'Ukuran berkas "'.$berkas->getClientOriginalName().'" tetap melebihi '.$batasMb.'MB setelah dikompres otomatis. Silakan kompres berkas secara manual lalu unggah ulang.',
+            ]);
+        }
+
         $pathLama = $dokumen->path;
 
         $pathBaru = $berkas->store('dasar-hukum', 'public');
@@ -62,7 +81,9 @@ class DokumenDasarHukumController extends Controller
                 'path' => $pathBaru,
                 'nama_file' => $berkas->getClientOriginalName(),
                 'tipe_file' => strtolower($berkas->getClientOriginalExtension()),
-                'ukuran' => $berkas->getSize(),
+                // Dibaca langsung dari disk karena getSize() bisa masih
+                // menyimpan ukuran sebelum kompresi (di-cache sejak validasi).
+                'ukuran' => KompresiBerkas::ukuranAkhir($berkas),
             ]);
         } catch (\Throwable $e) {
             Storage::disk('public')->delete($pathBaru);

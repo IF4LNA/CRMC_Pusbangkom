@@ -145,7 +145,10 @@
                             Diunggah {{ $sop->created_at?->translatedFormat('d M Y') ?? '-' }}
                         </span>
 
-                        <a href="{{ $sop->file_path }}" target="_blank" rel="noopener"
+                        {{-- Dipakai accessor url supaya berkas lama (berisi URL)
+                             maupun baru (jalur "/storage/...") sama-sama menuju
+                             host yang sedang aktif. --}}
+                        <a href="{{ \App\Support\TautanBerkas::relatif($sop->url) }}" target="_blank" rel="noopener"
                            class="btn btn-sm btn-primary shrink-0">
                             <i data-lucide="download" class="w-3.5 h-3.5"></i>
                             Buka

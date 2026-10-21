@@ -26,6 +26,13 @@ class PenyimpananGambar
     public const KUALITAS_JPEG = 85;
 
     /**
+     * Batas megapiksel citra kerja saat kompresi berbasis ukuran. Scan
+     * dokumen bisa berukuran raksasa (mis. 10.000 px per sisi); tanpa batas
+     * ini memori 512 MB bisa habis hanya untuk satu berkas.
+     */
+    public const MEGAPIKSEL_KERJA = 30_000_000;
+
+    /**
      * Simpan file ke disk, lalu optimalkan di tempat (in-place).
      *
      * Format dan ekstensi file tidak diubah, supaya Content-Type yang
@@ -76,22 +83,113 @@ class PenyimpananGambar
         // Hitung skala hanya kalau memang melebihi batas.
         $sisiTerpanjang = max($lebar, $tinggi);
         if ($sisiTerpanjang > self::MAKS_SISI) {
-            $skala = self::MAKS_SISI / $sisiTerpanjang;
-            $lebarBaru = max(1, (int) round($lebar * $skala));
-            $tinggiBaru = max(1, (int) round($tinggi * $skala));
-
-            $tujuan = imagecreatetruecolor($lebarBaru, $tinggiBaru);
-            self::pertahankanTransparansi($tujuan, $tipe);
-
-            imagecopyresampled($tujuan, $sumber, 0, 0, 0, 0, $lebarBaru, $tinggiBaru, imagesx($sumber), imagesy($sumber));
+            $diperkecil = self::skalakan($sumber, self::MAKS_SISI / $sisiTerpanjang, $tipe);
             imagedestroy($sumber);
-            $sumber = $tujuan;
+            $sumber = $diperkecil;
         }
 
         $berhasil = self::tulis($sumber, $pathAbsolut, $tipe);
         imagedestroy($sumber);
 
         return $berhasil;
+    }
+
+    /**
+     * Kompres gambar di tempat yang sama sampai ukuran filenya muat di
+     * $targetBytes. Berbeda dengan optimalkan() yang memangkas ke piksel
+     * tampilan, fungsi ini hanya menjaga file tetap di bawah batas ukuran
+     * unggahan: kualitas diturunkan dulu, lalu dimensi dikurangi bertahap
+     * bila menurunkan kualitas saja tidak cukup.
+     *
+     * Format file tidak diubah. Bila file tidak bisa dikecilkan sampai
+     * target (mis. PNG hasil scan yang sangat besar), fungsi mengembalikan
+     * false dan file asli tetap utuh.
+     *
+     * @return bool true bila file berhasil ditulis ulang dan muat di target
+     */
+    public static function kompresUkuran(string $path, int $targetBytes): bool
+    {
+        $info = @getimagesize($path);
+        if ($info === false) {
+            return false;
+        }
+
+        [, , $tipe] = $info;
+
+        // Hanya format ini yang bisa direkompres dengan kontrol ukuran.
+        // GIF sengaja dilewati karena animasinya hilang kalau lewat GD.
+        if (! in_array($tipe, [IMAGETYPE_JPEG, IMAGETYPE_PNG, IMAGETYPE_WEBP], true)) {
+            return false;
+        }
+
+        $sumber = self::baca($path, $tipe);
+        if ($sumber === null) {
+            return false;
+        }
+
+        $sumber = self::terapkanOrientasiExif($sumber, $path);
+
+        $megapiksel = imagesx($sumber) * imagesy($sumber);
+        $skalaAwal = $megapiksel > self::MEGAPIKSEL_KERJA
+            ? sqrt(self::MEGAPIKSEL_KERJA / $megapiksel)
+            : 1.0;
+
+        // PNG sudah terkompresi di level piksel, jadi kualitasnya hanya
+        // diatur lewat level zlib (9 = paling rapat) dan cukup sekali
+        // percobaan per skala. JPEG/WebP memakai tangga kualitas.
+        $kualitasList = $tipe === IMAGETYPE_PNG ? [9] : [85, 75, 65, 55, 45, 35, 25];
+
+        $muat = false;
+
+        for ($skala = $skalaAwal; $skala >= 0.2 && ! $muat; $skala *= 0.7) {
+            $gambar = $skala >= 0.999
+                ? $sumber
+                : self::skalakan($sumber, $skala, $tipe);
+
+            foreach ($kualitasList as $kualitas) {
+                $tmp = tempnam(sys_get_temp_dir(), 'kompres-gambar');
+                if ($tmp === false) {
+                    break 2;
+                }
+
+                self::tulisKualitas($gambar, $tmp, $tipe, $kualitas);
+
+                if (filesize($tmp) <= $targetBytes) {
+                    $muat = @rename($tmp, $path);
+                    if (! $muat) {
+                        // Cadangan bila rename ke direktori lain ditolak
+                        // sistem (jarang, tapi mungkin terjadi di Windows).
+                        $muat = @copy($tmp, $path);
+                        @unlink($tmp);
+                    }
+                    break;
+                }
+
+                @unlink($tmp);
+            }
+
+            if ($gambar !== $sumber) {
+                imagedestroy($gambar);
+            }
+        }
+
+        imagedestroy($sumber);
+
+        return $muat;
+    }
+
+    /** Salinan citra yang diskalakan ulang dengan resampling. */
+    private static function skalakan($sumber, float $skala, int $tipe)
+    {
+        $lebarBaru = max(1, (int) round(imagesx($sumber) * $skala));
+        $tinggiBaru = max(1, (int) round(imagesy($sumber) * $skala));
+
+        $tujuan = imagecreatetruecolor($lebarBaru, $tinggiBaru);
+        self::pertahankanTransparansi($tujuan, $tipe);
+
+        imagecopyresampled($tujuan, $sumber, 0, 0, 0, 0, $lebarBaru, $tinggiBaru, imagesx($sumber), imagesy($sumber));
+
+        return $tujuan;
     }
 
     /** Baca file gambar menjadi resource GD sesuai tipenya. */
@@ -109,10 +207,20 @@ class PenyimpananGambar
     /** Tulis resource GD kembali ke file, mempertahankan format aslinya. */
     private static function tulis($gambar, string $path, int $tipe): bool
     {
+        // JPEG/WebP memakai kualitas bawaan; PNG level zlib 6 (bawaan PHP),
+        // sesuai perilaku optimasi sebelumnya.
+        $kualitas = $tipe === IMAGETYPE_PNG ? 6 : self::KUALITAS_JPEG;
+
+        return self::tulisKualitas($gambar, $path, $tipe, $kualitas);
+    }
+
+    /** Seperti tulis(), tetapi kualitas/level kompresinya bisa diatur. */
+    private static function tulisKualitas($gambar, string $path, int $tipe, int $kualitas): bool
+    {
         return match ($tipe) {
-            IMAGETYPE_JPEG => imagejpeg($gambar, $path, self::KUALITAS_JPEG),
-            IMAGETYPE_PNG  => imagepng($gambar, $path, 6),
-            IMAGETYPE_WEBP => function_exists('imagewebp') ? imagewebp($gambar, $path, self::KUALITAS_JPEG) : false,
+            IMAGETYPE_JPEG => imagejpeg($gambar, $path, $kualitas),
+            IMAGETYPE_PNG  => imagepng($gambar, $path, $kualitas),
+            IMAGETYPE_WEBP => function_exists('imagewebp') ? imagewebp($gambar, $path, $kualitas) : false,
             IMAGETYPE_GIF  => imagegif($gambar, $path),
             default        => false,
         };

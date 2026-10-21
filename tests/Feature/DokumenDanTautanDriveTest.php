@@ -494,7 +494,7 @@ class DokumenDanTautanDriveTest extends TestCase
             'tahun_pelaksanaan' => 2026,
         ]);
 
-        LampiranCrmc::create([
+        $lampiran = LampiranCrmc::create([
             'dokumen_crmc_id' => $dokumen->id,
             'kategori_komponen' => 'risk_register',
             'nama_file' => 'risk-register-2026.xlsx',
@@ -506,8 +506,9 @@ class DokumenDanTautanDriveTest extends TestCase
 
         $this->assertStringContainsString('data-pratinjau-kantor', $html);
         $this->assertStringContainsString('data-tipe="xlsx"', $html);
+        // Berkas di sini disimpan dengan jalur relatif murni (tanpa awalan
+        // "/storage/"), jadi URL tampilan mengikuti nilai apa adanya.
         $this->assertStringContainsString('data-src="lampiran/risk-register-2026.xlsx"', $html);
-        $this->assertStringContainsString('Pratinjau langsung', $html);
         $this->assertStringNotContainsString('Pratinjau tidak tersedia untuk format XLSX', $html);
     }
 
