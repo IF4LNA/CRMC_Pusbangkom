@@ -434,8 +434,93 @@
             border-top: 1px solid var(--line);
         }
 
-        /* ---------- Toast ---------- */
-        #toast { transition: transform .2s, opacity .2s; }
+        /* ---------- Toast (notifikasi popup) ----------
+           Kontainer menumpuk toast di sudut KANAN ATAS layar dengan
+           position:fixed, sehingga tidak pernah mengubah layout halaman
+           dan tidak mendorong komponen lain.
+
+           pointer-events:none pada kontainer supaya area kosong di
+           sekitar toast tetap bisa diklik (mis. tombol di belakangnya);
+           hanya kartu toast-nya sendiri yang menangkap klik. */
+        #toastWrap {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            z-index: 60;              /* di atas modal (.modal z-index:50) */
+            display: flex;
+            flex-direction: column;
+            gap: .5rem;
+            width: min(21rem, calc(100vw - 2rem));
+            pointer-events: none;
+        }
+        .toast-item {
+            position: relative;
+            pointer-events: auto;
+            display: flex;
+            align-items: flex-start;
+            gap: .625rem;
+            padding: .7rem 2rem .7rem .8rem;
+            border: 1px solid var(--line);
+            border-radius: .625rem;
+            background: #fff;
+            box-shadow: 0 12px 24px -12px rgba(15, 23, 42, .3);
+            font-size: .8125rem;
+            line-height: 1.4;
+            transition: transform .25s ease, opacity .25s ease;
+        }
+        /* Posisi awal (masuk) sekaligus posisi akhir (keluar): bergeser
+           sedikit ke kanan lalu memudar. Geserannya sengaja dibuat 16px,
+           sama dengan lebar margin kanan kontainer, sehingga tidak pernah
+           memicu scrollbar horizontal pada halaman. */
+        .toast-item.toast-masuk,
+        .toast-item.toast-keluar { transform: translateX(16px); opacity: 0; }
+
+        /* Varian status: hijau = sukses, merah = gagal, biru = informasi. */
+        .toast-sukses { border-color: #a7f3d0; background: #ecfdf5; color: #065f46; }
+        .toast-gagal  { border-color: #fecdd3; background: #fff1f2; color: #9f1239; }
+        .toast-info   { border-color: #bfdbfe; background: #eff6ff; color: #1e40af; }
+
+        .toast-item .toast-ikon {
+            width: 1.125rem;
+            height: 1.125rem;
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+        .toast-item .toast-teks {
+            flex: 1;
+            min-width: 0;
+            font-weight: 500;
+            overflow-wrap: anywhere;
+        }
+
+        /* Tombol silang di sudut kanan atas tiap toast. */
+        .toast-tutup {
+            position: absolute;
+            top: .3rem;
+            right: .3rem;
+            width: 1.5rem;
+            height: 1.5rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            border: 0;
+            border-radius: .375rem;
+            background: transparent;
+            color: inherit;
+            font-size: 1.05rem;
+            line-height: 1;
+            cursor: pointer;
+            opacity: .7;
+            transition: background .15s, opacity .15s;
+        }
+        .toast-tutup:hover { background: rgba(15, 23, 42, .08); opacity: 1; }
+        .toast-tutup:focus-visible { outline: 2px solid currentColor; outline-offset: 1px; }
+
+        /* Layar sempit (mobile): lebar toast melebar mengikuti viewport. */
+        @media (max-width: 480px) {
+            #toastWrap { top: .5rem; right: .5rem; width: calc(100vw - 1rem); }
+        }
     </style>
     @stack('styles')
 </head>
@@ -529,10 +614,10 @@
     @yield('modals')
 
     <!-- TOAST NOTIFICATION -->
-    <div id="toast" class="fixed bottom-5 right-5 z-50 flex items-center gap-2.5 rounded-lg bg-slate-900 px-4 py-2.5 text-xs text-white shadow-lg translate-y-20 opacity-0">
-        <i data-lucide="check-circle-2" class="w-4 h-4 text-blue-400 shrink-0"></i>
-        <span id="toastMessage">Pesan Notifikasi</span>
-    </div>
+    {{-- Wadah kosong: kartu toast dibuat oleh showToast() pada script di
+         bawah, baik dari pesan flash Laravel (sukses/gagal/validasi)
+         maupun dari pemanggilan langsung di halaman. --}}
+    <div id="toastWrap" role="status" aria-live="polite"></div>
 
     <!-- GLOBAL SCRIPT -->
     <script>
@@ -683,16 +768,199 @@
             if (resultsContainer) resultsContainer.classList.add('hidden');
         }
 
-        function showToast(msg) {
-            const toast = document.getElementById('toast');
-            document.getElementById('toastMessage').textContent = msg;
-            toast.classList.remove('translate-y-20', 'opacity-0');
-            toast.classList.add('translate-y-0', 'opacity-100');
+        // ======================================================
+        // TOAST NOTIFICATION (POPUP STATUS)
+        // ======================================================
+        // Satu wadah (#toastWrap) dipakai semua notifikasi supaya tidak ada
+        // komponen notifikasi ganda. Tiap pesan punya indikator visual
+        // sesuai statusnya:
+        //   - 'success' -> ikon centang, warna hijau
+        //   - 'error'   -> ikon peringatan, warna merah
+        //   - 'info'    -> ikon informasi, warna biru (default)
+        //
+        // Toast menghilang sendiri setelah 3 detik dan bisa ditutup lebih
+        // awal lewat tombol silang (x) di sudut kanan atas kartunya.
+        const LAMA_TOAST_MS = 3000;        // 3 detik, sesuai kebutuhan
+        const MAKS_TOAST_TAMPIL = 3;       // batas toast berjajar agar tidak menumpuk
+        const GAYA_TOAST = { success: 'toast-sukses', error: 'toast-gagal', info: 'toast-info' };
+
+        // Ikon ditulis sebagai SVG inline (bukan <i data-lucide>) supaya
+        // toast tetap tampil utuh walaupun dipanggil sebelum pustaka lucide
+        // selesai dimuat. Isinya statis, jadi aman dimasukkan lewat innerHTML.
+        const IKON_TOAST = {
+            success: '<svg class="toast-ikon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>',
+            error: '<svg class="toast-ikon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>',
+            info: '<svg class="toast-ikon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>'
+        };
+
+        /** Tutup satu toast dengan animasi keluar lalu lepas dari DOM. */
+        function tutupToast(kartu) {
+            if (!kartu || kartu.dataset.tutup === '1') return;
+            kartu.dataset.tutup = '1';
+            kartu.classList.add('toast-keluar');
             setTimeout(() => {
-                toast.classList.remove('translate-y-0', 'opacity-100');
-                toast.classList.add('translate-y-20', 'opacity-0');
-            }, 3500);
+                if (kartu.parentNode) kartu.parentNode.removeChild(kartu);
+            }, 250);
         }
+
+        /**
+         * Tampilkan notifikasi popup.
+         *
+         * @param {string} pesan  Teks yang ditampilkan (di-escape oleh browser).
+         * @param {'success'|'error'|'info'} [tipe] Default 'info'.
+         */
+        function showToast(pesan, tipe) {
+            const wadah = document.getElementById('toastWrap');
+            if (!wadah || !pesan) return;
+
+            const jenis = GAYA_TOAST[tipe] ? tipe : 'info';
+
+            const kartu = document.createElement('div');
+            kartu.className = 'toast-item ' + GAYA_TOAST[jenis] + ' toast-masuk';
+            kartu.setAttribute('role', 'alert');
+            kartu.innerHTML = IKON_TOAST[jenis];
+
+            const teks = document.createElement('p');
+            teks.className = 'toast-teks';
+            teks.textContent = pesan;               // pesan tidak pernah dieksekusi sebagai HTML
+
+            const tutup = document.createElement('button');
+            tutup.type = 'button';
+            tutup.className = 'toast-tutup';
+            tutup.setAttribute('aria-label', 'Tutup notifikasi');
+            tutup.innerHTML = '&times;';
+            tutup.addEventListener('click', function () { tutupToast(kartu); });
+
+            kartu.appendChild(teks);
+            kartu.appendChild(tutup);
+            wadah.appendChild(kartu);
+
+            // Kalau ada notifikasi berurutan, yang paling lama ditutup
+            // lebih dulu supaya tidak menumpuk berlebihan di layar.
+            const masihTampil = Array.from(wadah.children)
+                .filter((k) => k.dataset.tutup !== '1');
+            while (masihTampil.length > MAKS_TOAST_TAMPIL) {
+                tutupToast(masihTampil.shift());
+            }
+
+            // Paksa reflow sekali supaya transisi masuk berjalan dari
+            // posisi awal (bukan langsung muncul tanpa animasi).
+            void kartu.offsetWidth;
+            kartu.classList.remove('toast-masuk');
+
+            // Hilang otomatis setelah 3 detik (tombol silang mempercepatnya).
+            setTimeout(function () { tutupToast(kartu); }, LAMA_TOAST_MS);
+        }
+
+        // ======================================================
+        // PERTAHANKAN POSISI SCROLL SETELAH FORM DISUBMIT
+        // ======================================================
+        // Form upload (dan form lain di halaman CRMC) memakai POST biasa
+        // lalu redirect 302 Laravel, sehingga halaman dimuat ulang dari
+        // posisi paling atas. Untuk menjaga posisi scroll pengguna:
+        //
+        //   1. Sebelum submit terkirim, posisi scroll disimpan ke
+        //      sessionStorage beserta path halamannya.
+        //   2. Setelah halaman tujuan dimuat, posisi itu dipulihkan.
+        //
+        // Berlaku untuk upload yang berhasil, upload yang gagal, maupun
+        // validasi yang membuat Laravel mengembalikan pengguna ke halaman
+        // yang sama. Data hanya dipakai bila path halaman tujuan sama
+        // dengan halaman saat form disubmit.
+        const KUNCI_SCROLL = 'crmc:posisi-scroll';
+
+        function simpanPosisiScroll() {
+            try {
+                sessionStorage.setItem(KUNCI_SCROLL, JSON.stringify({
+                    path: window.location.pathname,
+                    y: Math.round(window.scrollY || window.pageYOffset || 0)
+                }));
+            } catch (e) {
+                // sessionStorage bisa tidak tersedia (mode privat penuh,
+                // misalnya). Fitur lain tetap berjalan tanpa pemulihan ini.
+            }
+        }
+
+        function bacaPosisiScroll() {
+            try {
+                return JSON.parse(sessionStorage.getItem(KUNCI_SCROLL) || 'null');
+            } catch (e) {
+                return null;
+            }
+        }
+
+        function bersihkanPosisiScroll() {
+            try { sessionStorage.removeItem(KUNCI_SCROLL); } catch (e) { /* abaikan */ }
+        }
+
+        document.addEventListener('submit', function (e) {
+            if (e.target && String(e.target.tagName).toUpperCase() === 'FORM') {
+                simpanPosisiScroll();
+            }
+        });
+
+        let posisiTerakhirDipulihkan = null;
+
+        function pulihkanPosisiScroll(akhirMuat) {
+            const data = bacaPosisiScroll();
+            if (!data || typeof data.path !== 'string') return;
+
+            // Halaman tujuan berbeda (mis. setelah logout) -> buang data
+            // supaya tidak menyebabkan lompatan aneh di halaman lain.
+            if (data.path !== window.location.pathname) {
+                bersihkanPosisiScroll();
+                return;
+            }
+
+            const maksimum = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
+            const y = Math.min(Math.max(0, Number(data.y) || 0), maksimum);
+            window.scrollTo(0, y);
+            posisiTerakhirDipulihkan = window.scrollY;
+
+            // Data baru dilepas setelah pemulihan terakhir (saat seluruh
+            // aset selesai dimuat), supaya tinggi halaman yang berubah
+            // karena gambar bisa mengoreksi posisi sekali lagi.
+            if (akhirMuat) bersihkanPosisiScroll();
+        }
+
+        // Pemulihan awal segera setelah HTML siap, dan pemulihan kedua
+        // setelah seluruh aset (gambar/ikon) dimuat. Pemulihan kedua hanya
+        // dijalankan bila pengguna belum menggulir sendiri di antaranya.
+        document.addEventListener('DOMContentLoaded', function () {
+            pulihkanPosisiScroll(false);
+        });
+        window.addEventListener('load', function () {
+            const sudahDigulirManual = posisiTerakhirDipulihkan !== null
+                && Math.abs(window.scrollY - posisiTerakhirDipulihkan) > 4;
+
+            if (sudahDigulirManual) {
+                bersihkanPosisiScroll();
+            } else {
+                pulihkanPosisiScroll(true);
+            }
+        });
+
+        // ======================================================
+        // PESAN FLASH + VALIDASI -> POPUP
+        // ======================================================
+        // Hasil upload (sukses/gagal), pesan dari controller lain, dan
+        // error validasi Laravel semuanya lewat jalur yang sama sehingga
+        // pengguna selalu mendapat notifikasi status, bukan hanya pita
+        // pesan di paling atas halaman yang tidak terlihat saat scroll.
+        (function tampilkanPesanAwal() {
+            [
+                ['success', @json(session('success'))],
+                ['error', @json(session('error'))],
+                ['info', @json(session('info'))]
+            ].forEach(function (pasangan) {
+                if (pasangan[1]) showToast(pasangan[1], pasangan[0]);
+            });
+
+            const kesalahan = @json(isset($errors) ? $errors->all() : []);
+            if (Array.isArray(kesalahan) && kesalahan.length > 0) {
+                showToast(kesalahan.join(' '), 'error');
+            }
+        })();
     </script>
     @stack('scripts')
 </body>

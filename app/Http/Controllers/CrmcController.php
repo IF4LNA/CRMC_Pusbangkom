@@ -503,6 +503,7 @@ class CrmcController extends Controller
         $jumlahBerhasil = 0;
         $keteranganTersimpan = 0;
         $gagalKompresi = [];
+        $gagalSimpan = [];
 
         // Upload setiap file
         foreach ($request->file('files') as $index => $file) {
@@ -526,6 +527,16 @@ class CrmcController extends Controller
                 time() . '_' . Str::slug(pathinfo($originalName, PATHINFO_FILENAME)) . '.' . $extension,
                 'public'
             );
+
+            // storeAs() mengembalikan false bila penulisan file ke disk
+            // gagal (mis. izin folder atau disk penuh). File semacam ini
+            // tidak boleh dihitung berhasil dan tidak boleh punya baris
+            // lampiran yang menunjuk jalur kosong, supaya pesan sukses tidak
+            // pernah muncul untuk proses penyimpanan yang sebenarnya gagal.
+            if ($path === false) {
+                $gagalSimpan[] = $originalName;
+                continue;
+            }
 
             // Keterangan diambil berdasarkan indeks file yang sama.
             $ket = trim((string) ($keterangan[$index] ?? ''));
@@ -566,13 +577,32 @@ class CrmcController extends Controller
             $redirect->with('success', $pesan);
         }
 
+        // === LAPORAN GAGAL ===
+        // Semua penyebab kegagalan digabung dalam SATU flash 'error',
+        // karena flash dengan kunci sama saling menimpa. Bila tidak ada
+        // file yang tersimpan sama sekali, pesan sukses memang tidak boleh
+        // dikirim — pengguna tetap harus mendapat penjelasan lewat popup
+        // status bahwa upload-nya gagal.
+        $laporanGagal = [];
+
         if ($gagalKompresi !== []) {
-            $redirect->with(
-                'error',
-                count($gagalKompresi).' file tidak dapat diunggah karena ukurannya tetap melebihi 20MB setelah dikompres otomatis: '
-                    .implode(', ', $gagalKompresi)
-                    .'. Silakan kompres file secara manual lalu unggah ulang.'
-            );
+            $laporanGagal[] = count($gagalKompresi).' file tidak dapat diunggah karena ukurannya tetap melebihi 20MB setelah dikompres otomatis: '
+                .implode(', ', $gagalKompresi)
+                .'. Silakan kompres file secara manual lalu unggah ulang.';
+        }
+
+        if ($gagalSimpan !== []) {
+            $laporanGagal[] = count($gagalSimpan).' file gagal disimpan ke server: '
+                .implode(', ', $gagalSimpan)
+                .'. Silakan coba unggah ulang; bila tetap gagal, hubungi administrator.';
+        }
+
+        if ($laporanGagal === [] && $jumlahBerhasil === 0) {
+            $laporanGagal[] = 'Tidak ada file yang berhasil diunggah. Silakan coba lagi.';
+        }
+
+        if ($laporanGagal !== []) {
+            $redirect->with('error', implode(' ', $laporanGagal));
         }
 
         return $redirect;
