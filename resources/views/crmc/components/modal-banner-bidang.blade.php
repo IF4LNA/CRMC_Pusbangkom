@@ -44,15 +44,14 @@
                     <ul id="daftarErrorBannerBidang" class="mt-1.5 space-y-0.5 text-[11px] text-rose-700"></ul>
                 </div>
 
-                {{-- Pratinjau memakai proporsi banner sebenarnya, supaya admin
-                     tahu bagian foto mana yang akan terlihat. --}}
+                {{-- Pratinjau memakai gaya yang sama dengan banner dashboard:
+                     teks di atas gambar, tanpa overlay gelap. --}}
                 <div>
                     <p class="label !mb-1.5">Pratinjau Banner</p>
                     <div class="relative overflow-hidden rounded-lg h-28 bg-blue-950 border border-blue-900">
                         <img id="gambarPratinjauBanner" src="" alt="Pratinjau banner bidang"
                              class="absolute inset-0 h-full w-full object-cover object-center">
-                        <div class="absolute inset-0 bg-gradient-to-r from-blue-950/95 via-blue-950/80 to-blue-900/45"></div>
-                        <div class="relative h-full flex flex-col justify-center px-4">
+                        <div class="relative h-full flex flex-col justify-center px-4 drop-shadow-lg">
                             <span class="inline-flex items-center gap-1.5 px-2 py-0.5 bg-blue-900 text-blue-200 rounded text-[9px] font-bold border border-blue-800 uppercase tracking-wider w-fit">
                                 <i data-lucide="map" class="w-3 h-3"></i>
                                 Navigasi Bidang

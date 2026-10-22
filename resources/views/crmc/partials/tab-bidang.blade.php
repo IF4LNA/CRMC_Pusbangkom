@@ -13,22 +13,21 @@
     $urlCrtc = route('crmc.show', ['slug' => '__SLUG__']);
     // Banner navigasi bidang: gambar unggahan admin, atau foto bawaan
     // PUSBANGKOM selama admin belum menggantinya.
-    $bannerBidang = $bidang->gambar_latar_url ?? asset('images/crmc_hero.jpg');
+    $bannerBidang = $bidang->gambar_latar_url ?? asset('images/banner_bidang.png');
     $bannerKustom = (bool) $bidang->gambar_latar_url;
 @endphp
 <!-- //banner navigasi bidang -->
 <div class="space-y-3">
+    {{-- Banner kembali memakai gaya awal: teks berada di atas gambar.
+         Overlay/gradasi gelap tidak dipakai, jadi gambar tampil apa adanya;
+         bayangan teks tipis menjaga judul tetap terbaca. --}}
     <div class="relative overflow-hidden rounded-xl bg-blue-950 text-white border border-blue-900 min-h-[10rem]">
         <img src="{{ $bannerBidang }}"
              alt="Banner {{ $bidang->nama_bidang }}"
              loading="lazy" decoding="async"
              class="absolute inset-0 h-full w-full object-cover object-center">
 
-        {{-- Lapisan gelap: terang di kiri supaya foto tetap terlihat, makin
-             gelap ke arah teks dan tombol agar selalu kontras. --}}
-        <div class="absolute inset-0 bg-gradient-to-r from-blue-950/95 via-blue-950/80 to-blue-900/45"></div>
-
-        <div class="relative flex flex-col md:flex-row md:items-center justify-between gap-3 p-4 sm:p-5">
+        <div class="relative flex flex-col md:flex-row md:items-center justify-between gap-3 p-4 sm:p-5 min-h-[10rem] drop-shadow-lg">
             <div class="min-w-0">
                 <span class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-900 text-blue-200 rounded-md text-[11px] font-bold border border-blue-800 uppercase tracking-wider">
                     <i data-lucide="map" class="w-3.5 h-3.5"></i>
@@ -37,8 +36,8 @@
                 <h2 class="text-lg sm:text-xl font-bold tracking-tight text-white mt-2">
                     {{ $bidang->nama_bidang }}
                 </h2>
-                <p class="text-xs text-blue-200 max-w-2xl mt-1 leading-relaxed">
-                    {{ $bidang->sub_menus_count }} sub-bidang
+                <p class="text-xs text-blue-100 max-w-2xl mt-1 leading-relaxed">
+                    {{ $bidang->sub_menus_count }} Pengendalian Resiko
                     ({{ $bidang->jumlah_dokumen }} sudah punya dokumen).
                     Klik pada kartu untuk membuka &amp; mengelola 8 komponen CRMC.
                 </p>
@@ -47,7 +46,7 @@
             <div class="flex flex-wrap items-center gap-2 shrink-0">
                 <span class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-blue-900/80 border border-blue-800 text-[11px] font-semibold text-blue-200">
                     <i data-lucide="layers" class="w-3.5 h-3.5"></i>
-                    {{ $bidang->sub_menus_count }} Sub-bidang
+                    {{ $bidang->sub_menus_count }} Pengendalian Resiko
                 </span>
 
                 @if ($isAdmin)
