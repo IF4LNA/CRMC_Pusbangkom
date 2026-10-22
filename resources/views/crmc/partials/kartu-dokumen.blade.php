@@ -36,6 +36,10 @@
     // sedang dibuka, bukan host lama yang terekam saat berkas diunggah.
     $urlBerkas = \App\Support\TautanBerkas::relatif($lamp->file_path);
     $namaPendek = $namaTipeFile($lamp->tipe_file);
+    // Semua komponen memakai pemuatan pratinjau per slide. Nilai default
+    // false dipakai pemanggil lain (mis. tab Dasar Hukum) yang tidak
+    // mengirimkan variabel ini.
+    $pratinjauLazy = $pratinjauLazy ?? false;
 @endphp
 
 <article class="rounded-xl border border-slate-200 bg-white overflow-hidden">
@@ -83,6 +87,7 @@
             'namaFile' => $lamp->nama_file,
             'ikon' => $ikonTipeFile($lamp->tipe_file),
             'badge' => $badgeFile($lamp->tipe_file),
+            'pratinjauLazy' => $pratinjauLazy,
         ])
     </div>
 

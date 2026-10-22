@@ -12,7 +12,7 @@
 @php
     $urlCrtc = route('crmc.show', ['slug' => '__SLUG__']);
 @endphp
-
+<!-- //banner navigasi bidang -->
 <div class="space-y-3">
     <div class="card p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
         <div class="min-w-0">

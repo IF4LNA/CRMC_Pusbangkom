@@ -1742,9 +1742,18 @@
         const akar = document.getElementById('dok-' + kategori);
         if (!akar) return;
 
-        const total = parseInt(akar.dataset.total || '1', 10);
         const track = akar.querySelector('[data-peran="track"]');
-        if (!track || total < 1) return;
+        if (!track) return;
+
+        // Hanya slide yang lolos pencarian/filter (Komponen 6) yang
+        // dihitung. Untuk komponen lain semua slide selalu terlihat,
+        // sehingga perilakunya tetap sama seperti sebelumnya.
+        const semuaSlide = Array.prototype.slice.call(akar.querySelectorAll('[data-peran="slide-dokumen"]'));
+        const slideTerlihat = semuaSlide.filter(function (slide) {
+            return !slide.classList.contains('hidden');
+        });
+        const total = slideTerlihat.length;
+        if (total < 1) return;
 
         // Indeks dibungkus supaya navigasi dari slide terakhir kembali
         // ke slide pertama, bukan berhenti di luar jangkauan.
@@ -1762,6 +1771,16 @@
                 ? 'w-7 bg-blue-600'
                 : 'w-2 bg-slate-300 hover:bg-slate-400');
         });
+
+        // PEMUATAN PRATINJAU LAZY.
+        // Semua carousel komponen memasang data-lazy-pratinjau="1".
+        // Pemanggilan ini hanya mengisi src/merender slide yang sedang aktif
+        // (slide pertama sudah disiapkan saat halaman dimuat oleh skrip
+        // pratinjau). Tidak ada scrollIntoView di sini, sehingga posisi
+        // gulir halaman tidak berubah saat berpindah slide.
+        if (akar.dataset.lazyPratinjau === '1' && typeof window.crmcMuatSlide === 'function') {
+            if (slideTerlihat[posisi]) window.crmcMuatSlide(slideTerlihat[posisi]);
+        }
     };
 
     window.geserDokumen = function (kategori, arah) {
@@ -1771,6 +1790,105 @@
         const sekarang = typeof indeksDokumen[kategori] === 'number' ? indeksDokumen[kategori] : 0;
         window.tampilDokumen(kategori, sekarang + arah);
     };
+
+    // ======================================================
+    // PENCARIAN & FILTER DOKUMEN — HANYA KOMPONEN 6
+    // ======================================================
+    // Komponen lain tidak merender [data-peran="alat-cari"], jadi tidak
+    // memiliki input pencarian maupun filter. Pencarian mencocokkan nama
+    // berkas dan keterangan; filter mencocokkan kelompok format yang memang
+    // tersedia pada dokumen Komponen 6. Penyaringan dilakukan pada slide yang
+    // sudah dirender, sehingga struktur komponen dan carousel tetap utuh.
+    function terapkanCariDokumen(akar) {
+        const input = akar.querySelector('[data-peran="cari-dokumen"]');
+        const filter = akar.querySelector('[data-peran="filter-dokumen"]');
+        if (!input || !filter) return;
+
+        const kata = String(input.value || '').toLowerCase().trim();
+        const kelompok = filter.value;
+        const slides = Array.prototype.slice.call(akar.querySelectorAll('[data-peran="slide-dokumen"]'));
+        const titikSemua = Array.prototype.slice.call(akar.querySelectorAll('[data-peran="titik"]'));
+        const panggung = akar.querySelector('[data-peran="panggung-dokumen"]');
+        const kosong = akar.querySelector('[data-peran="kosong-cari"]');
+        const info = akar.querySelector('[data-peran="info-cari"]');
+        const kendali = Array.prototype.slice.call(akar.querySelectorAll('[data-peran="kendali-dokumen"]'));
+
+        const jumlahAsli = slides.length;
+        let jumlahTerlihat = 0;
+
+        slides.forEach(function (slide, i) {
+            const cocok = (kata === '' || (slide.dataset.cari || '').indexOf(kata) !== -1)
+                && (kelompok === '' || slide.dataset.kelompok === kelompok);
+
+            slide.classList.toggle('hidden', !cocok);
+
+            const titik = titikSemua[i];
+            if (!titik) return;
+
+            if (cocok) {
+                // Titik navigasi ikut diurutkan ulang supaya klik ke titik
+                // tetap membuka slide yang benar setelah penyaringan.
+                const nomorTampil = jumlahTerlihat + 1;
+                titik.style.display = '';
+                titik.dataset.index = String(jumlahTerlihat);
+                titik.setAttribute('aria-label', 'Tampilkan file ' + nomorTampil);
+                titik.setAttribute(
+                    'onclick',
+                    'tampilDokumen(' + JSON.stringify(akar.dataset.kategori) + ', ' + jumlahTerlihat + ')'
+                );
+                jumlahTerlihat++;
+            } else {
+                titik.style.display = 'none';
+            }
+        });
+
+        const adaHasil = jumlahTerlihat > 0;
+
+        if (panggung) panggung.classList.toggle('hidden', !adaHasil);
+        kendali.forEach(function (el) { el.classList.toggle('hidden', !adaHasil); });
+        if (kosong) kosong.classList.toggle('hidden', adaHasil);
+
+        if (info) {
+            if (kata !== '' || kelompok !== '') {
+                info.classList.remove('hidden');
+                info.textContent = 'Menampilkan ' + jumlahTerlihat + ' dari ' + jumlahAsli + ' berkas.';
+            } else {
+                info.classList.add('hidden');
+            }
+        }
+
+        // Selalu mulai dari slide pertama yang lolos filter. Ini juga
+        // memicu pemuatan lazy untuk slide tersebut, bukan semua hasil.
+        if (adaHasil) window.tampilDokumen(akar.dataset.kategori, 0);
+    }
+
+    document.querySelectorAll('[data-peran="alat-cari"]').forEach(function (alat) {
+        const akar = alat.closest('[data-peran="akar-dokumen"]');
+        if (!akar) return;
+
+        const input = akar.querySelector('[data-peran="cari-dokumen"]');
+        const filter = akar.querySelector('[data-peran="filter-dokumen"]');
+        let pewaktu = null;
+
+        if (input) {
+            // Tunda sebentar selama mengetik supaya pratinjau tidak dimuat
+            // berulang kali untuk setiap huruf yang diketik.
+            input.addEventListener('input', function () {
+                if (pewaktu) clearTimeout(pewaktu);
+                pewaktu = setTimeout(function () { terapkanCariDokumen(akar); }, 220);
+            });
+        }
+
+        if (filter) {
+            filter.addEventListener('change', function () { terapkanCariDokumen(akar); });
+        }
+
+        // Terapkan sekali saat halaman dimuat. Biasanya input masih kosong
+        // (tidak ada perubahan), tetapi peramban bisa memulihkan kata kunci
+        // lama saat pengguna menekan Back, dan hasilnya harus konsisten
+        // dengan isi kotak pencarian.
+        terapkanCariDokumen(akar);
+    });
 
     // Geser dengan keyboard dan sentuhan, supaya navigasi tetap tersedia
     // tanpa harus memakai mouse.

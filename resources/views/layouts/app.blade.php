@@ -547,7 +547,7 @@
                     <div class="min-w-0">
                         <div class="flex items-center gap-2">
                             <span class="text-[18px] font-bold tracking-widest text-yellow-400 uppercase leading-tight">
-                                CRMC
+                                CMRC
                             </span>
                             @auth
                                 @if(Auth::user()->isAdmin())

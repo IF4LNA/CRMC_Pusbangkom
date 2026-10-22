@@ -1,11 +1,15 @@
 {{-- ==========================================================================
      DAFTAR DOKUMEN SATU KOMPONEN, SATU FILE SATU HALAMAN (CAROUSEL)
 
-     Dipakai Komponen 1, 2, 3, 4, 5, 6, dan 8. Kalau komponen punya lebih
+     Komponen 1, 2, 3, 4, 5, 6, dan 8. Kalau komponen punya lebih
      dari satu file, file berikutnya tidak lagi ditumpuk ke bawah. Hanya
      satu file yang tampil pada satu waktu, lengkap dengan tombol
      Sebelumnya/Berikutnya, titik navigasi, dan penomoran "File 2 dari 5".
      Satu file saja tetap tampil utuh, tanpa navigasi yang tidak berguna.
+
+     Semua pemanggil memakai pratinjau lazy per slide. Khusus Komponen 6
+     (kategori "bukti_pelaksanaan"), partial ini juga menampilkan pencarian
+     nama/keterangan dan filter kelompok format berkas.
 
      Variabel yang dikirim saat partial dipanggil:
         $kategori : kategori komponen, sekaligus kunci carousel di JS
@@ -24,6 +28,28 @@
     $daftar = $daftar->values();
     $jumlahFile = $daftar->count();
     $judulKomponenLengkap = 'Komponen ' . $nomor . ' — ' . $judul;
+
+    // Semua komponen memakai pratinjau lazy per slide: hanya slide yang
+    // sedang aktif yang diunduh/dirender, bukan seluruh berkas sekaligus.
+    $pratinjauLazy = true;
+
+    // Pencarian dan filter dokumen sengaja hanya untuk Komponen 6 — Bukti
+    // Pelaksanaan. Komponen lain tetap memakai carousel tanpa alat cari agar
+    // tampilannya tidak berubah.
+    $khususCari = $kategori === 'bukti_pelaksanaan';
+    $kelompokTersedia = $khususCari
+        ? $daftar
+            ->map(fn ($lamp) => \App\Support\TipeBerkas::kelompok($lamp->tipe_file) ?? 'lainnya')
+            ->unique()
+            ->values()
+        : collect();
+
+    $labelKelompok = [
+        \App\Support\TipeBerkas::PDF => 'PDF',
+        \App\Support\TipeBerkas::GAMBAR => 'Gambar',
+        \App\Support\TipeBerkas::KANTOR => 'Word/Excel',
+        'lainnya' => 'Lainnya',
+    ];
 @endphp
 
 @if($jumlahFile > 0)
@@ -31,7 +57,40 @@
          data-peran="akar-dokumen"
          data-kategori="{{ $kategori }}"
          data-total="{{ $jumlahFile }}"
+         data-lazy-pratinjau="1"
+         @if($khususCari) data-khusus-cari="1" @endif
          class="space-y-2.5">
+
+        {{-- PENCARIAN & FILTER — HANYA KOMPONEN 6.
+             Pencarian menyaring nama berkas dan keterangan. Filter menyaring
+             kelompok format yang memang tersedia pada data (PDF, gambar,
+             Word/Excel, lainnya). Kategori komponen, bidang, dan tahun tidak
+             dibuat sebagai pilihan karena halaman ini sudah menampilkan satu
+             kategori, satu bidang, dan tahun yang dipilih di atas. --}}
+        @if($khususCari && $jumlahFile > 1)
+            <div class="flex flex-col sm:flex-row sm:items-center gap-2" data-peran="alat-cari">
+                <label class="relative flex-1 min-w-0">
+                    <span class="sr-only">Cari dokumen berdasarkan nama atau keterangan</span>
+                    <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"></i>
+                    <input type="search"
+                           data-peran="cari-dokumen"
+                           autocomplete="off"
+                           placeholder="Cari nama atau keterangan dokumen..."
+                           class="input !pl-9 !py-1.5 !text-xs">
+                </label>
+
+                <label class="shrink-0">
+                    <span class="sr-only">Filter format dokumen</span>
+                    <select data-peran="filter-dokumen" class="input !w-full sm:!w-auto !py-1.5 !text-xs !px-2.5">
+                        <option value="">Semua format</option>
+                        @foreach($kelompokTersedia as $kelompok)
+                            <option value="{{ $kelompok }}">{{ $labelKelompok[$kelompok] ?? strtoupper($kelompok) }}</option>
+                        @endforeach
+                    </select>
+                </label>
+            </div>
+            <p data-peran="info-cari" class="text-[11px] text-slate-500 hidden"></p>
+        @endif
 
         {{-- KEPALA CAROUSEL: penomoran file + tombol geser. Bagian kendali
              disembunyikan saat cetak (lihat blok @push('styles') di
@@ -61,20 +120,40 @@
         </div>
 
         {{-- SLIDE: satu file = satu slide selebar penuh container --}}
-        <div class="relative overflow-hidden rounded-xl bg-slate-100">
+        <div data-peran="panggung-dokumen" class="relative overflow-hidden rounded-xl bg-slate-100">
             <div data-peran="track" tabindex="0" role="group"
                  aria-label="Dokumen {{ $judulKomponenLengkap }} tahun {{ $tahun }}"
                  class="flex transition-transform duration-300 ease-out">
                 @foreach($daftar as $idx => $lamp)
-                    <div data-peran="slide-dokumen" class="w-full shrink-0">
+                    @php
+                        $teksCari = \Illuminate\Support\Str::lower(trim($lamp->nama_file.' '.($lamp->keterangan ?? '')));
+                        $kelompokLampiran = \App\Support\TipeBerkas::kelompok($lamp->tipe_file) ?? 'lainnya';
+                    @endphp
+                    <div data-peran="slide-dokumen" class="w-full shrink-0"
+                         @if($khususCari)
+                             data-cari="{{ $teksCari }}"
+                             data-kelompok="{{ $kelompokLampiran }}"
+                         @endif>
                         @include('crmc.partials.kartu-dokumen', [
                             'index' => $idx + 1,
                             'total' => $jumlahFile,
+                            'pratinjauLazy' => $pratinjauLazy,
                         ])
                     </div>
                 @endforeach
             </div>
         </div>
+
+        {{-- PESAN KOSONG SAAT PENCARIAN/FILTER TIDAK MENEMUKAN HASIL.
+             Struktur carousel tetap ada; JS hanya menyembunyikan panggung
+             dan navigasinya selama tidak ada hasil. --}}
+        @if($khususCari)
+            <div data-peran="kosong-cari" class="empty hidden">
+                <i data-lucide="search-x" class="w-8 h-8 text-slate-300 mx-auto"></i>
+                <p class="text-xs font-bold text-slate-600">Dokumen tidak ditemukan</p>
+                <p class="text-[11px] text-slate-400">Ubah kata kunci atau pilihan format dokumen.</p>
+            </div>
+        @endif
 
         {{-- TITIK NAVIGASI: nama file ikut ditulis (tapi disembunyikan dari
              layar) supaya semua berkas komponen ini tetap bisa dibaca

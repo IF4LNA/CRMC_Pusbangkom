@@ -38,6 +38,11 @@
     $ikon = $ikon ?? 'file';
     $badge = $badge ?? 'bg-slate-100 text-slate-700 border-slate-200';
     $label = \App\Support\TipeBerkas::label($tipe);
+    // Semua komponen mengirim true: pratinjau tidak langsung dimuat semua,
+    // melainkan dimuat oleh skrip saat slide-nya aktif. Pemanggil lain
+    // (mis. tab Dasar Hukum) tidak mengirim variabel ini sehingga tetap
+    // memakai markup langsung seperti sebelumnya.
+    $pratinjauLazy = $pratinjauLazy ?? false;
 
     // URL berkas diturunkan ke jalur relatifnya. URL yang tersimpan bisa
     // memuat host lama (mis. http://crmc_pusbangkom.test) sehingga
@@ -48,18 +53,58 @@
 @endphp
 
 @if ($kelompok === 'pdf')
-    {{-- loading="lazy" supaya berkas yang belum terlihat tidak ikut dimuat. --}}
-    <iframe src="{{ $url }}#view=FitH"
-            title="Pratinjau {{ $judul }}"
-            loading="lazy"
-            class="w-full {{ $tinggi }} border-0 bg-white"></iframe>
+    @if ($pratinjauLazy)
+        {{-- src iframe sengaja dikosongkan. Skrip mengisinya hanya ketika
+             slide ini aktif (atau slide pertama saat halaman dibuka),
+             sehingga puluhan PDF tidak diunduh sekaligus. --}}
+        <div class="relative w-full {{ $tinggi }} bg-slate-100" data-lazy-wadah>
+            <div data-lazy-pesan
+                 class="absolute inset-0 z-10 flex flex-col items-center justify-center gap-1.5 p-6 text-center bg-slate-100">
+                <i data-lucide="loader-circle" class="w-5 h-5 text-slate-400 animate-spin"></i>
+                <p class="text-xs font-semibold text-slate-500">Memuat pratinjau&hellip;</p>
+                <p class="text-[10px] text-slate-400">PDF dimuat saat slide ini ditampilkan.</p>
+            </div>
+            <iframe data-lazy-media
+                    data-lazy-jenis="pdf"
+                    data-src="{{ $url }}#view=FitH"
+                    data-nama="{{ $namaFile ?? $judul }}"
+                    title="Pratinjau {{ $judul }}"
+                    loading="lazy"
+                    class="relative w-full h-full border-0 bg-white"></iframe>
+        </div>
+    @else
+        {{-- loading="lazy" supaya berkas yang belum terlihat tidak ikut dimuat. --}}
+        <iframe src="{{ $url }}#view=FitH"
+                title="Pratinjau {{ $judul }}"
+                loading="lazy"
+                class="w-full {{ $tinggi }} border-0 bg-white"></iframe>
+    @endif
 
 @elseif ($kelompok === 'gambar')
-    <div class="w-full {{ $tinggi }} p-3 flex items-center justify-center bg-slate-100">
-        <img src="{{ $url }}" alt="Pratinjau {{ $judul }}"
-             loading="lazy" decoding="async"
-             class="max-w-full max-h-full object-contain rounded-lg border border-slate-300 bg-white">
-    </div>
+    @if ($pratinjauLazy)
+        {{-- Gambar baru diberi src saat slide aktif. decoding async tetap
+             dipakai supaya gambar tidak memblokir render. --}}
+        <div class="relative w-full {{ $tinggi }} p-3 flex items-center justify-center bg-slate-100" data-lazy-wadah>
+            <div data-lazy-pesan
+                 class="absolute inset-0 flex flex-col items-center justify-center gap-1.5 p-6 text-center">
+                <i data-lucide="loader-circle" class="w-5 h-5 text-slate-400 animate-spin"></i>
+                <p class="text-xs font-semibold text-slate-500">Memuat gambar&hellip;</p>
+            </div>
+            <img data-lazy-media
+                 data-lazy-jenis="gambar"
+                 data-src="{{ $url }}"
+                 data-nama="{{ $namaFile ?? $judul }}"
+                 alt="Pratinjau {{ $judul }}"
+                 loading="lazy" decoding="async"
+                 class="max-w-full max-h-full object-contain rounded-lg border border-slate-300 bg-white opacity-0 transition-opacity duration-200">
+        </div>
+    @else
+        <div class="w-full {{ $tinggi }} p-3 flex items-center justify-center bg-slate-100">
+            <img src="{{ $url }}" alt="Pratinjau {{ $judul }}"
+                 loading="lazy" decoding="async"
+                 class="max-w-full max-h-full object-contain rounded-lg border border-slate-300 bg-white">
+        </div>
+    @endif
 
 @elseif ($kelompok === 'kantor')
     {{-- Wadah pratinjau sisi klien. Isinya diisi skrip di bagian bawah
@@ -68,6 +113,7 @@
          kotak informasi + tombol unduh. --}}
     <div class="{{ $tinggi }} w-full overflow-auto bg-white relative"
          data-pratinjau-kantor
+         @if($pratinjauLazy) data-pratinjau-lazy="1" data-pratinjau-retry="1" @endif
          data-src="{{ $url }}"
          data-tipe="{{ strtolower((string) $tipe) }}"
          data-nama="{{ $namaFile }}">
@@ -79,14 +125,6 @@
         </div>
         <div data-pratinjau-isi class="text-slate-800 p-3"></div>
     </div>
-
-    {{-- Skrip pemuat library dipasang HANYA bila ada berkas kantor, dan
-         sekali saja per halaman walau ada banyak berkas. --}}
-    @once('crmc-pratinjau-berkas-skrip')
-        @push('scripts')
-            @include('crmc.partials.pratinjau-berkas-skrip')
-        @endpush
-    @endonce
 
 @else
     {{-- Format yang tidak bisa dibaca peramban sama sekali. Yang ditampilkan
@@ -114,4 +152,17 @@
             </div>
         </div>
     </div>
+@endif
+
+{{-- Skrip pratinjau dipasang sekali per halaman bila ada berkas kantor
+     ATAU bila ada pratinjau lazy yang benar-benar membutuhkannya (PDF atau
+     gambar per slide). Berkas yang hanya berupa format tak terbaca (mis.
+     DOC lama) tidak memerlukan skrip ini. @once menjaga library tidak
+     dimuat berulang. --}}
+@if ($kelompok === 'kantor' || ($pratinjauLazy && in_array($kelompok, ['pdf', 'gambar'], true)))
+    @once('crmc-pratinjau-berkas-skrip')
+        @push('scripts')
+            @include('crmc.partials.pratinjau-berkas-skrip')
+        @endpush
+    @endonce
 @endif
