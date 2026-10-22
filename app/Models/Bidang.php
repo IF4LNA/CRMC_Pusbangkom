@@ -3,16 +3,32 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Storage;
 
 class Bidang extends Model
 {
     protected $table = 'bidang'; // Menentukan nama tabel secara eksplisit
 
-    protected $fillable = ['nama_bidang'];
+    protected $fillable = ['nama_bidang', 'gambar_latar'];
 
     public function subMenus()
     {
         return $this->hasMany(SubMenu::class, 'bidang_id');
+    }
+
+    /**
+     * Banner navigasi bidang.
+     *
+     * Path relatif di disk "public" (folder "latar-bidang"). Dikembalikan
+     * sebagai URL siap pakai; null bila admin belum mengunggah banner.
+     */
+    public function getGambarLatarUrlAttribute(): ?string
+    {
+        if (empty($this->gambar_latar)) {
+            return null;
+        }
+
+        return Storage::disk('public')->url($this->gambar_latar);
     }
 
     /**

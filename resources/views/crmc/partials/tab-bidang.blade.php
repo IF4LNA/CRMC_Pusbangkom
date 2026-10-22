@@ -11,36 +11,73 @@
 --}}
 @php
     $urlCrtc = route('crmc.show', ['slug' => '__SLUG__']);
+    // Banner navigasi bidang: gambar unggahan admin, atau foto bawaan
+    // PUSBANGKOM selama admin belum menggantinya.
+    $bannerBidang = $bidang->gambar_latar_url ?? asset('images/crmc_hero.jpg');
+    $bannerKustom = (bool) $bidang->gambar_latar_url;
 @endphp
 <!-- //banner navigasi bidang -->
 <div class="space-y-3">
-    <div class="card p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
-        <div class="min-w-0">
-            <span class="eyebrow">Navigasi Bidang</span>
-            <h2 class="card-title mt-0.5">{{ $bidang->nama_bidang }}</h2>
-            <p class="page-sub mt-1">
-                {{ $bidang->sub_menus_count }} sub-bidang
-                ({{ $bidang->jumlah_dokumen }} sudah punya dokumen).
-                Klik pada kartu untuk membuka &amp; mengelola 8 komponen CRMC.
-            </p>
-        </div>
+    <div class="relative overflow-hidden rounded-xl bg-blue-950 text-white border border-blue-900 min-h-[10rem]">
+        <img src="{{ $bannerBidang }}"
+             alt="Banner {{ $bidang->nama_bidang }}"
+             loading="lazy" decoding="async"
+             class="absolute inset-0 h-full w-full object-cover object-center">
 
-        <div class="flex items-center gap-2 shrink-0">
-            <span class="badge badge-accent">{{ $bidang->sub_menus_count }} Sub-bidang</span>
+        {{-- Lapisan gelap: terang di kiri supaya foto tetap terlihat, makin
+             gelap ke arah teks dan tombol agar selalu kontras. --}}
+        <div class="absolute inset-0 bg-gradient-to-r from-blue-950/95 via-blue-950/80 to-blue-900/45"></div>
 
-            @if ($isAdmin)
-                {{-- Data dikirim lewat atribut data-*, BUKAN JSON yang disisipkan
-                         ke dalam onclick. Atribut onclick yang memuat JSON
-                         terpotong kutip pertamanya oleh parser HTML, sehingga
-                         tombolnya diam-diam mati saat diklik. --}}
-                <button type="button"
-                        data-bidang-sub="{{ $bidang->id }}"
-                        onclick="bukaModalSubBidang({ id: null, bidang_id: this.dataset.bidangSub })"
-                        class="btn btn-sm btn-primary">
-                    <i data-lucide="plus" class="w-3.5 h-3.5"></i>
-                    Tambah Sub-Bidang
-                </button>
-            @endif
+        <div class="relative flex flex-col md:flex-row md:items-center justify-between gap-3 p-4 sm:p-5">
+            <div class="min-w-0">
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-900 text-blue-200 rounded-md text-[11px] font-bold border border-blue-800 uppercase tracking-wider">
+                    <i data-lucide="map" class="w-3.5 h-3.5"></i>
+                    Navigasi Bidang
+                </span>
+                <h2 class="text-lg sm:text-xl font-bold tracking-tight text-white mt-2">
+                    {{ $bidang->nama_bidang }}
+                </h2>
+                <p class="text-xs text-blue-200 max-w-2xl mt-1 leading-relaxed">
+                    {{ $bidang->sub_menus_count }} sub-bidang
+                    ({{ $bidang->jumlah_dokumen }} sudah punya dokumen).
+                    Klik pada kartu untuk membuka &amp; mengelola 8 komponen CRMC.
+                </p>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-2 shrink-0">
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-blue-900/80 border border-blue-800 text-[11px] font-semibold text-blue-200">
+                    <i data-lucide="layers" class="w-3.5 h-3.5"></i>
+                    {{ $bidang->sub_menus_count }} Sub-bidang
+                </span>
+
+                @if ($isAdmin)
+                    {{-- Banner bisa diganti admin kapan saja. Data dikirim
+                         lewat atribut data-* agar tidak terpotong parser HTML. --}}
+                    <button type="button"
+                            data-banner-id="{{ $bidang->id }}"
+                            data-banner-nama="{{ $bidang->nama_bidang }}"
+                            data-banner-punya-gambar="{{ $bannerKustom ? '1' : '0' }}"
+                            data-banner-gambar="{{ $bidang->gambar_latar_url ?? '' }}"
+                            onclick="bukaModalBannerBidang(this)"
+                            class="btn btn-sm btn-outline"
+                            title="Ganti gambar banner navigasi bidang">
+                        <i data-lucide="image" class="w-3.5 h-3.5"></i>
+                        Ganti Banner
+                    </button>
+
+                    {{-- Data dikirim lewat atribut data-*, BUKAN JSON yang disisipkan
+                             ke dalam onclick. Atribut onclick yang memuat JSON
+                             terpotong kutip pertamanya oleh parser HTML, sehingga
+                             tombolnya diam-diam mati saat diklik. --}}
+                    <button type="button"
+                            data-bidang-sub="{{ $bidang->id }}"
+                            onclick="bukaModalSubBidang({ id: null, bidang_id: this.dataset.bidangSub })"
+                            class="btn btn-sm btn-primary">
+                        <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                        Tambah Sub-Bidang
+                    </button>
+                @endif
+            </div>
         </div>
     </div>
 

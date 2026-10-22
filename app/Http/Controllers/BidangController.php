@@ -275,6 +275,63 @@ class BidangController extends Controller
     }
 
     // ========================
+    // ADMIN: Banner Navigasi Bidang
+    // ========================
+
+    /**
+     * Ganti (atau hapus) gambar banner pada panel "Navigasi Bidang".
+     *
+     * Satu endpoint dipakai untuk dua aksi karena hanya satu gambar yang
+     * boleh aktif per bidang: unggah berkas baru berarti mengganti banner,
+     * sedangkan mencentang "hapus_gambar" berarti kembali ke banner bawaan.
+     */
+    public function simpanBannerBidang(Request $request, $id)
+    {
+        $this->wajibAdmin();
+
+        $bidang = Bidang::findOrFail($id);
+
+        $request->validateWithBag('bannerBidang', [
+            'gambar' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
+            'hapus_gambar' => ['nullable', 'boolean'],
+        ], [
+            'gambar.image' => 'Berkas yang dipilih bukan gambar.',
+            'gambar.mimes' => 'Format gambar harus JPG, PNG, atau WebP.',
+            'gambar.max' => 'Ukuran gambar maksimal 4 MB.',
+        ]);
+
+        $pathLama = $bidang->gambar_latar;
+
+        if ($request->hasFile('gambar')) {
+            $pathBaru = PenyimpananGambar::simpan($request->file('gambar'), 'latar-bidang');
+
+            $bidang->update(['gambar_latar' => $pathBaru]);
+
+            // File lama baru dihapus setelah baris database tersimpan,
+            // supaya kegagalan update tidak meninggalkan banner kosong.
+            if ($pathLama && $pathLama !== $pathBaru) {
+                Storage::disk('public')->delete($pathLama);
+            }
+
+            return back()->with('success', 'Banner navigasi bidang "' . $bidang->nama_bidang . '" berhasil diperbarui.');
+        }
+
+        if ($request->boolean('hapus_gambar')) {
+            $bidang->update(['gambar_latar' => null]);
+
+            if ($pathLama) {
+                Storage::disk('public')->delete($pathLama);
+            }
+
+            return back()->with('success', 'Banner navigasi bidang "' . $bidang->nama_bidang . '" telah dikembalikan ke gambar bawaan.');
+        }
+
+        return back()->withErrors([
+            'gambar' => 'Pilih gambar banner terlebih dahulu, atau centang opsi hapus banner.',
+        ], 'bannerBidang');
+    }
+
+    // ========================
     // Helper
     // ========================
 

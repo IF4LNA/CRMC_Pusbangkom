@@ -56,5 +56,6 @@
          sendiri tetap memeriksa ulang peran admin di server. --}}
     @if ($isAdmin)
         @include('crmc.components.modal-sub-bidang')
+        @include('crmc.components.modal-banner-bidang')
     @endif
 @endsection

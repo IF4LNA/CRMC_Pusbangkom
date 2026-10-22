@@ -46,6 +46,11 @@ Route::middleware('auth')->prefix('bidang/sub-bidang')->name('bidang.sub-bidang.
     Route::delete('/{id}', [BidangController::class, 'hapusSubBidang'])->name('hapus');
 });
 
+// ADMIN: Banner navigasi bidang (panel di atas kartu sub-bidang).
+Route::middleware('auth')
+    ->post('/bidang/{id}/banner', [BidangController::class, 'simpanBannerBidang'])
+    ->name('bidang.banner.simpan');
+
 // ========================
 // ADMIN: Management Tahun Anggaran
 // Catatan urutan: lihat catatan di atas soal path literal vs {slug}.
