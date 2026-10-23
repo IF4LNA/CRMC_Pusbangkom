@@ -373,7 +373,7 @@
     <div class="space-y-4">
 
         <!-- ============ KOMPONEN 1: IDENTITAS PEGAWAI ============ -->
-        <div class="card">
+        <div id="komponen-1" class="card scroll-mt-28">
             <div class="space-y-4 p-4 sm:p-5">
                 <div class="flex items-center justify-between gap-3 flex-wrap">
                     <div class="flex items-center space-x-2">
@@ -603,7 +603,7 @@
             $daftar = $meta['lampiran'];
             $tahunK = $meta['tahun'];
         @endphp
-        <div class="card">
+        <div id="komponen-{{ $meta['nomor'] }}" class="card scroll-mt-28">
             <div class="space-y-4 p-4 sm:p-5">
                 <!-- HEADER -->
                 <div class="flex items-start justify-between gap-2 flex-wrap">
@@ -671,7 +671,7 @@
         @endforeach
 
         <!-- ============ KOMPONEN 7: STATUS RESIDU ============ -->
-        <div class="card">
+        <div id="komponen-7" class="card scroll-mt-28">
             <div class="space-y-4 p-4 sm:p-5">
                 <div class="flex items-start justify-between gap-2 flex-wrap">
                     <span class="badge badge-accent">Komponen 7</span>
@@ -777,7 +777,7 @@
             $daftar8 = $meta8['lampiran'];
             $tahun8 = $meta8['tahun'];
         @endphp
-        <div class="card">
+        <div id="komponen-8" class="card scroll-mt-28">
             <div class="space-y-4 p-4 sm:p-5">
                 <div class="flex items-start justify-between gap-2 flex-wrap">
                     <div class="flex items-center gap-2">
@@ -1034,6 +1034,57 @@
                 </a>
             @endif
         </div>
+    </div>
+
+    {{-- NAVIGASI CEPAT KOMPONEN
+         Satu tombol melayang yang membuka daftar 1-8. Diletakkan di sini
+         agar tidak mengubah susunan konten yang sudah ada. --}}
+    @php
+        $menuKomponen = [
+            ['nomor' => 1, 'judul' => $komponenIdentitas['judul']],
+        ];
+
+        foreach ($komponen as $kategori => $meta) {
+            if ($kategori === 'evaluasi') {
+                continue;
+            }
+
+            $menuKomponen[] = ['nomor' => $meta['nomor'], 'judul' => $meta['judul']];
+        }
+
+        $menuKomponen[] = ['nomor' => 7, 'judul' => 'Status Residu Risiko'];
+        $menuKomponen[] = ['nomor' => 8, 'judul' => $komponen['evaluasi']['judul']];
+    @endphp
+
+    <div id="navCepatKomponen" class="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-30 print:hidden">
+        <div id="menuCepatKomponen"
+             class="hidden mb-2 w-60 max-h-[65vh] overflow-y-auto rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl">
+            <p class="px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                Lompat ke Komponen
+            </p>
+
+            @foreach ($menuKomponen as $item)
+                <a href="#komponen-{{ $item['nomor'] }}"
+                   onclick="lompatKeKomponen(event, 'komponen-{{ $item['nomor'] }}')"
+                   class="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[11px] font-semibold text-slate-600 transition hover:bg-blue-50 hover:text-blue-700">
+                    <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-slate-100 text-[10px] font-bold text-slate-500">
+                        {{ $item['nomor'] }}
+                    </span>
+                    <span class="truncate">{{ $item['judul'] }}</span>
+                </a>
+            @endforeach
+        </div>
+
+        <button type="button"
+                id="tombolCepatKomponen"
+                onclick="toggleMenuCepatKomponen()"
+                aria-expanded="false"
+                aria-controls="menuCepatKomponen"
+                title="Navigasi cepat komponen"
+                class="ml-auto flex h-11 w-11 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2">
+            <i data-lucide="list" class="h-5 w-5"></i>
+            <span class="sr-only">Navigasi cepat ke komponen</span>
+        </button>
     </div>
 
 </main>
@@ -2163,6 +2214,57 @@
                 const el = document.getElementById(id);
                 if (el) el.classList.add('hidden');
             });
+    });
+
+    // ======================================================
+    // NAVIGASI CEPAT KOMPONEN
+    // ======================================================
+    function toggleMenuCepatKomponen() {
+        const menu = document.getElementById('menuCepatKomponen');
+        const tombol = document.getElementById('tombolCepatKomponen');
+        if (!menu || !tombol) return;
+
+        const akanDibuka = menu.classList.contains('hidden');
+        menu.classList.toggle('hidden', !akanDibuka);
+        tombol.setAttribute('aria-expanded', akanDibuka ? 'true' : 'false');
+    }
+
+    function tutupMenuCepatKomponen() {
+        const menu = document.getElementById('menuCepatKomponen');
+        const tombol = document.getElementById('tombolCepatKomponen');
+        if (!menu || !tombol) return;
+
+        menu.classList.add('hidden');
+        tombol.setAttribute('aria-expanded', 'false');
+    }
+
+    function lompatKeKomponen(event, id) {
+        event.preventDefault();
+
+        const target = document.getElementById(id);
+        if (!target) return;
+
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        tutupMenuCepatKomponen();
+
+        if (window.history && window.history.replaceState) {
+            window.history.replaceState(null, '', '#' + id);
+        }
+    }
+
+    // Klik di luar tombol/menu menutup daftar, termasuk saat pengguna
+    // menggulir halaman lalu mengklik area lain.
+    document.addEventListener('click', function (e) {
+        const nav = document.getElementById('navCepatKomponen');
+        if (nav && !nav.contains(e.target)) {
+            tutupMenuCepatKomponen();
+        }
+    });
+
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') {
+            tutupMenuCepatKomponen();
+        }
     });
 </script>
 @endpush

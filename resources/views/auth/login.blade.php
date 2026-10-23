@@ -141,8 +141,8 @@
         <a href="{{ route('beranda') }}" class="flex items-center gap-2.5 min-w-0">
             <img src="{{ asset('images/Logo_PU.svg') }}" alt="Logo PUPR" class="w-8 h-8 object-contain shrink-0">
             <span class="min-w-0">
-                <span class="block text-[10px] font-bold tracking-widest text-yellow-400 uppercase leading-tight">Kementerian Pekerjaan Umum</span>
-                <span class="block text-sm font-bold text-white leading-tight truncate">BPSDM</span>
+                <span class="block text-[10px] font-bold tracking-widest text-yellow-400 uppercase leading-tight">CRMC</span>
+                <span class="block text-sm font-bold text-white leading-tight truncate">Pusbangkom SDA CKPS</span>
             </span>
         </a>
         <a href="{{ route('beranda') }}" class="btn btn-on-dark shrink-0">
