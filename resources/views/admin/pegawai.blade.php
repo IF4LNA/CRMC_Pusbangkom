@@ -165,6 +165,7 @@
                         <th>Jabatan</th>
                         <th>Email</th>
                         <th>Role</th>
+                        <th>Bidang Akses</th>
                         <th class="text-center">Aksi</th>
                     </tr>
                 </thead>
@@ -179,15 +180,36 @@
                         <td>{{ $u->jabatan ?? '-' }}</td>
                         <td>{{ $u->email }}</td>
                         <td>
-                            @if($u->role === 'admin')
+                            @if($u->isAdmin())
                                 <span class="badge badge-accent">Admin</span>
                             @else
                                 <span class="badge badge-info">Pegawai</span>
                             @endif
                         </td>
+                        <td>
+                            @if($u->isAdmin())
+                                <span class="badge badge-accent">Semua bidang</span>
+                            @elseif($u->bidang->isEmpty())
+                                <span class="badge" title="Pegawai ini belum ditugaskan ke bidang mana pun">Belum ada akses</span>
+                            @else
+                                <div class="flex flex-wrap gap-1 max-w-[16rem]">
+                                    @foreach($u->bidang as $bidangUser)
+                                        <span class="badge badge-info">{{ $bidangUser->nama_bidang }}</span>
+                                    @endforeach
+                                </div>
+                            @endif
+                        </td>
                         <td class="text-center">
                             <div class="flex items-center justify-center gap-1.5">
-                                <button onclick="openEditModal({{ json_encode($u) }})" class="icon-btn" title="Edit">
+                                <button onclick="openEditModal({{ json_encode([
+                                    'id' => $u->id,
+                                    'name' => $u->name,
+                                    'nip' => $u->nip,
+                                    'jabatan' => $u->jabatan,
+                                    'email' => $u->email,
+                                    'role' => $u->role,
+                                    'bidang_ids' => $u->bidang->pluck('id')->values(),
+                                ]) }})" class="icon-btn" title="Edit">
                                     <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
                                 </button>
                                 @if($u->id !== Auth::id())
@@ -273,6 +295,24 @@
                     </div>
                 </div>
 
+                <div>
+                    <label class="label">Bidang yang Dapat Diakses</label>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 rounded-lg border border-slate-200 bg-slate-50/60 p-3">
+                        @foreach($daftarBidang as $bidangAkses)
+                            <label class="flex items-start gap-2 text-xs text-slate-700 cursor-pointer">
+                                <input type="checkbox" name="bidang_ids[]" value="{{ $bidangAkses->id }}"
+                                       class="mt-0.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500">
+                                <span>{{ $bidangAkses->nama_bidang }}</span>
+                            </label>
+                        @endforeach
+                    </div>
+                    <p class="hint">
+                        Pegawai hanya dapat membuka bidang yang dicentang beserta sub-bidangnya.
+                        Kosongkan semua centang bila pegawai belum boleh mengakses bidang apa pun.
+                        Admin selalu memiliki akses penuh.
+                    </p>
+                </div>
+
             </div>
 
             <div class="modal-foot">
@@ -345,6 +385,24 @@
                     </div>
                 </div>
 
+                <div>
+                    <label class="label">Bidang yang Dapat Diakses</label>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 rounded-lg border border-slate-200 bg-slate-50/60 p-3">
+                        @foreach($daftarBidang as $bidangAkses)
+                            <label class="flex items-start gap-2 text-xs text-slate-700 cursor-pointer">
+                                <input type="checkbox" name="bidang_ids[]" value="{{ $bidangAkses->id }}"
+                                       class="checkbox-bidang-edit mt-0.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500">
+                                <span>{{ $bidangAkses->nama_bidang }}</span>
+                            </label>
+                        @endforeach
+                    </div>
+                    <p class="hint">
+                        Pegawai hanya dapat membuka bidang yang dicentang beserta sub-bidangnya.
+                        Kosongkan semua centang bila pegawai belum boleh mengakses bidang apa pun.
+                        Admin selalu memiliki akses penuh.
+                    </p>
+                </div>
+
             </div>
 
             <div class="modal-foot">
@@ -384,6 +442,14 @@
         document.getElementById('editJabatan').value = user.jabatan || '';
         document.getElementById('editEmail').value = user.email;
         document.getElementById('editRole').value = user.role;
+
+        // Centang bidang yang memang sudah ditugaskan. Nilai dari server
+        // berupa array id, jadi dibandingkan sebagai angka.
+        const bidangIds = (user.bidang_ids || []).map(Number);
+        document.querySelectorAll('.checkbox-bidang-edit').forEach(function (checkbox) {
+            checkbox.checked = bidangIds.includes(Number(checkbox.value));
+        });
+
         document.getElementById('editModal').classList.remove('hidden');
     }
     function closeEditModal() {
@@ -401,6 +467,10 @@
             document.getElementById('editJabatan').value = @json(old('jabatan'));
             document.getElementById('editEmail').value = @json(old('email'));
             document.getElementById('editRole').value = @json(old('role'));
+            var bidangLama = @json(array_map('intval', old('bidang_ids', [])));
+            document.querySelectorAll('.checkbox-bidang-edit').forEach(function (checkbox) {
+                checkbox.checked = bidangLama.includes(Number(checkbox.value));
+            });
             document.getElementById('editModal').classList.remove('hidden');
             document.getElementById('editModal').scrollIntoView({ behavior: 'smooth', block: 'center' });
         })();

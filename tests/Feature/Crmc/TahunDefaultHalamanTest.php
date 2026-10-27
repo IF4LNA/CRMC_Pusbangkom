@@ -6,6 +6,7 @@ use App\Models\Bidang;
 use App\Models\DokumenCrmc;
 use App\Models\SubMenu;
 use App\Models\TahunAnggaran;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -28,6 +29,17 @@ class TahunDefaultHalamanTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+
+        // Badge ringkasan tahun hanya dirender untuk Admin/Pegawai.
+        // Pengujian tahun default memakai admin agar badge itu terlihat.
+        $this->actingAs(User::create([
+            'name' => 'Admin Tahun',
+            'nip' => '19900101202607777',
+            'jabatan' => 'Administrator',
+            'email' => 'admin.tahun@pu.go.id',
+            'password' => 'rahasia123',
+            'role' => 'admin',
+        ]));
 
         $this->tahun = (int) date('Y');
 

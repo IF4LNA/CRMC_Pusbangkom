@@ -29,11 +29,15 @@
          bisa menyalakan tautan ini ketika tab dashboard yang dibuka.
          Tanpa itu, pindah tab lalu kembali ke dashboard lewat URL
          ?tab=dashboard akan tampil tanpa penanda aktif. --}}
-    <a href="{{ route('crmc.dashboard') }}" id="nav-dashboard"
-       class="nav-link {{ $diDashboard && $tabAktif === 'dashboard' ? 'is-active' : '' }}">
-        <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
-        <span>Dashboard</span>
-    </a>
+    {{-- Pengunjung tanpa login hanya melihat Beranda dan Dasar Hukum.
+         Dashboard, daftar bidang, dan SOP memerlukan akun yang berwenang. --}}
+    @auth
+        <a href="{{ route('crmc.dashboard') }}" id="nav-dashboard"
+           class="nav-link {{ $diDashboard && $tabAktif === 'dashboard' ? 'is-active' : '' }}">
+            <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+            <span>Dashboard</span>
+        </a>
+    @endauth
 
     <button type="button" onclick="switchTab('dasar-hukum')" id="nav-dasar-hukum"
             class="nav-link nav-btn {{ $tabAktif === 'dasar-hukum' ? 'is-active' : '' }}">
@@ -41,19 +45,21 @@
         <span>Dasar Hukum</span>
     </button>
 
-    @foreach ($navBidang as $bidang)
-        <button type="button" onclick="switchTab('{{ $bidang['tab'] }}')" id="nav-{{ $bidang['tab'] }}"
-                class="nav-link nav-btn {{ $tabAktif === $bidang['tab'] ? 'is-active' : '' }}">
-            <i data-lucide="{{ $bidang['ikon'] }}" class="w-4 h-4"></i>
-            <span>{{ $bidang['nama'] }}</span>
-            <span class="count">{{ $bidang['jumlah'] }}</span>
-        </button>
-    @endforeach
+    @auth
+        @foreach ($navBidang as $bidang)
+            <button type="button" onclick="switchTab('{{ $bidang['tab'] }}')" id="nav-{{ $bidang['tab'] }}"
+                    class="nav-link nav-btn {{ $tabAktif === $bidang['tab'] ? 'is-active' : '' }}">
+                <i data-lucide="{{ $bidang['ikon'] }}" class="w-4 h-4"></i>
+                <span>{{ $bidang['nama'] }}</span>
+                <span class="count">{{ $bidang['jumlah'] }}</span>
+            </button>
+        @endforeach
 
-    <a href="{{ route('sop.index') }}"
-       class="nav-link {{ request()->routeIs('sop.index') ? 'is-active' : '' }}">
-        <i data-lucide="book-open-text" class="w-4 h-4"></i>
-        <span>SOP</span>
-        <span class="count">{{ $navSopJumlah }}</span>
-    </a>
+        <a href="{{ route('sop.index') }}"
+           class="nav-link {{ request()->routeIs('sop.index') ? 'is-active' : '' }}">
+            <i data-lucide="book-open-text" class="w-4 h-4"></i>
+            <span>SOP</span>
+            <span class="count">{{ $navSopJumlah }}</span>
+        </a>
+    @endauth
 </nav>

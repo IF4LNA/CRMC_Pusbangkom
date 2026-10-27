@@ -130,7 +130,16 @@ class HalamanBerandaTest extends TestCase
 
     public function test_navbar_memuat_tautan_sop(): void
     {
-        $res = $this->get('/home');
+        $admin = \App\Models\User::create([
+            'name' => 'Admin Uji',
+            'nip' => '199001012026011234',
+            'jabatan' => 'Staf',
+            'email' => 'admin.uji@pu.go.id',
+            'password' => bcrypt('password123'),
+            'role' => 'admin',
+        ]);
+
+        $res = $this->actingAs($admin)->get('/home');
 
         $res->assertOk();
         $res->assertSee('href="' . route('sop.index') . '"', false);

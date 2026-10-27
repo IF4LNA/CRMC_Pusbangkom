@@ -13,11 +13,13 @@
 <section id="galeri" class="scroll-mt-20 py-10 bg-white border-b border-slate-200">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
-        <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-3 mb-6">
+        <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-6">
             <div class="max-w-2xl">
                 <span class="eyebrow mb-2 block">Sarana dan Prasarana</span>
-                <h2 class="section-title">Pendukung Pelaksanaan Pengendalian</h2>
-                <p class="page-sub mt-2 leading-relaxed">
+                <h2 class="text-xl md:text-2xl font-bold tracking-tight text-slate-900">
+                    Pendukung Pelaksanaan Pengendalian
+                </h2>
+                <p class="page-sub mt-2 leading-relaxed max-w-xl">
                     Sarana dan prasarana yang mendukung pelaksanaan pengendalian
                     risiko, mulai dari ruang kerja, perangkat, hingga infrastruktur
                     digital.
@@ -26,14 +28,6 @@
 
             @if ($bisaKelola)
                 <div class="flex items-center gap-2 shrink-0">
-                    @if ($total > 1)
-                        <button onclick="geserGaleri(-1)" title="Gambar sebelumnya" class="icon-btn">
-                            <i data-lucide="chevron-left" class="w-4 h-4"></i>
-                        </button>
-                        <button onclick="geserGaleri(1)" title="Gambar berikutnya" class="icon-btn">
-                            <i data-lucide="chevron-right" class="w-4 h-4"></i>
-                        </button>
-                    @endif
                     <button onclick="bukaModalGaleri()" class="btn btn-dark">
                         <i data-lucide="image-plus" class="w-4 h-4"></i>
                         Unggah Gambar
@@ -61,15 +55,17 @@
         @else
             {{-- ===================== CAROUSEL ===================== --}}
             <div id="galeriGaleri" class="relative"
+                 role="region"
+                 aria-roledescription="carousel"
+                 aria-label="Galeri sarana dan prasarana"
                  data-total="{{ $total }}"
                  data-interval="6000"
                  onmouseenter="jedaGaleri(true)"
                  onmouseleave="jedaGaleri(false)">
 
-                {{-- Viewport: hanya satu slide terlihat, slide lain
-                     absolut dan translate-geser. --}}
-                <div class="relative overflow-hidden rounded-xl border border-slate-200 bg-slate-100">
-                    <div id="galeriTrack" class="flex transition-transform duration-500 ease-out">
+                {{-- Viewport --}}
+                <div class="relative overflow-hidden rounded-2xl border border-slate-200 bg-slate-100">
+                    <div id="galeriTrack" class="flex transition-transform duration-500 ease-out motion-reduce:transition-none" tabindex="0">
                         @foreach ($galeri as $g)
                             @php
                                 $dataUbah = [
@@ -79,9 +75,7 @@
                                 ];
                             @endphp
                             <div class="w-full shrink-0 relative">
-                                <div class="relative w-full h-64 sm:h-80 md:h-[420px] bg-slate-200">
-                                    {{-- object-cover menjaga seluruh area terisi
-                                         walau rasio gambar berbeda-beda. --}}
+                                <div class="relative w-full h-64 sm:h-80 md:h-[440px] bg-slate-200">
                                     <img src="{{ $g->url }}"
                                          alt="{{ $g->judul }}"
                                          width="1200"
@@ -90,13 +84,12 @@
                                          decoding="async"
                                          class="w-full h-full object-cover">
 
-                                    {{-- Gradien agar teks tetap terbaca di atas
-                                         foto yang terang. --}}
-                                    <div class="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-slate-950/25 to-transparent"></div>
+                                    {{-- Gradien bawah untuk keterbacaan teks --}}
+                                    <div class="absolute inset-0 bg-gradient-to-t from-slate-900/75 via-slate-900/20 to-transparent pointer-events-none"></div>
 
                                     {{-- Keterangan slide --}}
                                     <div class="absolute bottom-0 left-0 right-0 p-5 md:p-7 text-white">
-                                        <h3 class="text-lg md:text-2xl font-extrabold leading-tight">
+                                        <h3 class="text-lg md:text-2xl font-bold leading-tight max-w-3xl">
                                             {{ $g->judul }}
                                         </h3>
                                         @if ($g->keterangan)
@@ -106,27 +99,26 @@
                                         @endif
                                     </div>
 
-                                    <span class="absolute top-3 right-3 px-2 py-0.5 bg-slate-950/70 text-white text-[10px] font-semibold rounded border border-white/20">
-                                        {{ $loop->iteration }} / {{ $total }}
+                                    <span class="absolute top-3 right-3 px-2 py-1 bg-slate-900/70 text-white text-[10px] font-semibold rounded-md border border-white/20">
+                                        {{ str_pad($loop->iteration, 2, '0', STR_PAD_LEFT) }} / {{ str_pad($total, 2, '0', STR_PAD_LEFT) }}
                                     </span>
                                 </div>
 
                                 {{-- Tombol admin per gambar --}}
                                 @if ($bisaKelola)
-                                    {{-- Argumen @json ditulis dalam satu baris:
-                                         Blade hanya mengenali argumen direktif
-                                         sampai tanda kurung tertutup pertama. --}}
-                                    <div class="absolute top-3 left-3 flex items-center gap-1.5">
+                                    <div class="absolute top-3 left-3 flex items-center gap-1.5 z-10">
                                         <button type="button"
                                                 onclick='bukaModalGaleri(@json($dataUbah))'
                                                 title="Ubah gambar ini"
-                                                class="icon-btn">
+                                                aria-label="Ubah gambar ini"
+                                                class="icon-btn !bg-white/90 hover:!bg-white shadow-sm">
                                             <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
                                         </button>
                                         <button type="button"
                                                 onclick="konfirmasiHapusGaleri({{ $g->id }}, @js($g->judul))"
                                                 title="Hapus gambar ini"
-                                                class="icon-btn icon-btn-danger">
+                                                aria-label="Hapus gambar ini"
+                                                class="icon-btn icon-btn-danger !bg-white/90 hover:!bg-white shadow-sm">
                                             <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
                                         </button>
                                     </div>
@@ -134,32 +126,55 @@
                             </div>
                         @endforeach
                     </div>
+
+                    {{-- Tombol panah (semua pengguna) --}}
+                    @if ($total > 1)
+                        <button type="button"
+                                onclick="geserGaleri(-1)"
+                                aria-label="Gambar sebelumnya"
+                                class="absolute left-3 top-1/2 -translate-y-1/2 z-10 inline-flex items-center justify-center w-10 h-10 rounded-full bg-white/90 hover:bg-white text-slate-700 shadow-sm border border-slate-200 transition">
+                            <i data-lucide="chevron-left" class="w-5 h-5"></i>
+                        </button>
+                        <button type="button"
+                                onclick="geserGaleri(1)"
+                                aria-label="Gambar berikutnya"
+                                class="absolute right-3 top-1/2 -translate-y-1/2 z-10 inline-flex items-center justify-center w-10 h-10 rounded-full bg-white/90 hover:bg-white text-slate-700 shadow-sm border border-slate-200 transition">
+                            <i data-lucide="chevron-right" class="w-5 h-5"></i>
+                        </button>
+                    @endif
                 </div>
 
-                {{-- Titik navigasi --}}
+                {{-- Kontrol: titik navigasi + jeda/putar --}}
                 @if ($total > 1)
-                    <div id="galeriTitik" class="flex items-center justify-center gap-2 mt-5">
-                        @for ($i = 0; $i < $total; $i++)
+                    <div class="mt-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+                        <p class="text-[11px] text-slate-400 order-2 sm:order-1">
+                            Gunakan panah, titik, atau geser untuk berpindah gambar.
+                        </p>
+                        <div class="flex items-center gap-3 order-1 sm:order-2">
+                            <div id="galeriTitik" class="flex items-center justify-center gap-1.5 flex-wrap">
+                                @for ($i = 0; $i < $total; $i++)
+                                    <button type="button"
+                                            onclick="tampilGaleri({{ $i }})"
+                                            data-titik="{{ $i }}"
+                                            aria-label="Gambar {{ $i + 1 }}"
+                                            class="h-2 rounded-full transition-all {{ $i === 0 ? 'w-7 bg-blue-600' : 'w-2 bg-slate-300 hover:bg-slate-400' }}"></button>
+                                @endfor
+                            </div>
                             <button type="button"
-                                    onclick="tampilGaleri({{ $i }})"
-                                    data-titik="{{ $i }}"
-                                    aria-label="Gambar {{ $i + 1 }}"
-                                    class="h-2 rounded-full transition-all {{ $i === 0 ? 'w-7 bg-blue-600' : 'w-2 bg-slate-300 hover:bg-slate-400' }}"></button>
-                        @endfor
+                                    id="galeriJedaPutar"
+                                    onclick="togglePutarGaleri()"
+                                    aria-pressed="true"
+                                    aria-label="Jeda putar otomatis"
+                                    title="Jeda putar otomatis"
+                                    class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border border-slate-200 bg-white text-xs font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-800 transition">
+                                <i data-lucide="pause" class="w-3.5 h-3.5 ikon-jeda"></i>
+                                <i data-lucide="play" class="w-3.5 h-3.5 ikon-putar hidden"></i>
+                                <span class="label-putar">Jeda</span>
+                            </button>
+                        </div>
                     </div>
                 @endif
             </div>
-
-            {{-- Daftar judul (berguna sebagai teks alternatif dan agar
-                 gambar dapat dicari lewat Ctrl+F) --}}
-            <ul class="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                @foreach ($galeri as $g)
-                    <li class="flex items-center gap-2 text-[11px] text-slate-500">
-                        <span class="w-1.5 h-1.5 rounded-full bg-slate-300 shrink-0"></span>
-                        <span class="truncate">{{ $g->judul }}</span>
-                    </li>
-                @endforeach
-            </ul>
         @endif
     </div>
 </section>
@@ -167,9 +182,6 @@
 @push('scripts')
 <script>
     // ===================== CAROUSEL SARANA DAN PRASARANA =====================
-    // Berjalan sendiri, berhenti saat kursor di atas carousel, dan berhenti
-    // juga sementara ketika tab browser tidak aktif supaya tidak berjalan
-    // di belakang layar.
     (function () {
         const root = document.getElementById('galeriGaleri');
         if (!root) return;
@@ -181,7 +193,15 @@
 
         let index = 0;
         let timer = null;
-        let dijeda = false;
+        let dijedaHover = false;
+
+        const reducedMotion = window.matchMedia &&
+            window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        let autoDiinginkan = !reducedMotion;
+
+        function autoBerjalan() {
+            return total >= 2 && autoDiinginkan && !dijedaHover && !dijedaManual && !document.hidden;
+        }
 
         window.tampilGaleri = function (i) {
             index = ((i % total) + total) % total;
@@ -201,14 +221,35 @@
         };
 
         window.jedaGaleri = function (nyata) {
-            dijeda = nyata;
+            dijedaHover = !!nyata;
             if (nyata) berhenti();
             else mulai();
         };
 
+        window.togglePutarGaleri = function () {
+            autoDiinginkan = !autoDiinginkan;
+            perbaruiTombolPutar();
+            if (autoDiinginkan) mulai();
+            else berhenti();
+        };
+
+        function perbaruiTombolPutar() {
+            const btn = document.getElementById('galeriJedaPutar');
+            if (!btn) return;
+            btn.setAttribute('aria-pressed', autoDiinginkan ? 'true' : 'false');
+            btn.setAttribute('aria-label', autoDiinginkan ? 'Jeda putar otomatis' : 'Putar otomatis');
+            btn.setAttribute('title', autoDiinginkan ? 'Jeda putar otomatis' : 'Putar otomatis');
+            const ikonJeda = btn.querySelector('.ikon-jeda');
+            const ikonPutar = btn.querySelector('.ikon-putar');
+            const label = btn.querySelector('.label-putar');
+            if (ikonJeda) ikonJeda.classList.toggle('hidden', !autoDiinginkan);
+            if (ikonPutar) ikonPutar.classList.toggle('hidden', autoDiinginkan);
+            if (label) label.textContent = autoDiinginkan ? 'Jeda' : 'Putar';
+        }
+
         function mulai() {
             berhenti();
-            if (total < 2 || dijeda || document.hidden) return;
+            if (!autoBerjalan()) return;
             timer = setInterval(function () { tampilGaleri(index + 1); }, interval);
         }
 
@@ -216,26 +257,29 @@
             if (timer) { clearInterval(timer); timer = null; }
         }
 
-        // Geser dengan keyboard saat carousel difokuskan, supaya
-        // navigasi tetap tersedia tanpa mouse.
+        // Geser dengan keyboard saat carousel difokuskan.
         track.setAttribute('tabindex', '0');
         track.addEventListener('keydown', function (e) {
             if (e.key === 'ArrowLeft') { window.geserGaleri(-1); e.preventDefault(); }
             if (e.key === 'ArrowRight') { window.geserGaleri(1); e.preventDefault(); }
         });
 
-        document.addEventListener('visibilitychange', mulai);
+        document.addEventListener('visibilitychange', function () {
+            if (document.hidden) berhenti();
+            else mulai();
+        });
 
         // Geser dengan sentuhan di perangkat layar sentuh.
-        let SentuhAwalX = 0;
+        let sentuhAwalX = 0;
         track.addEventListener('touchstart', function (e) {
-            SentuhAwalX = e.changedTouches[0].clientX;
+            sentuhAwalX = e.changedTouches[0].clientX;
         }, { passive: true });
         track.addEventListener('touchend', function (e) {
-            const delta = e.changedTouches[0].clientX - SentuhAwalX;
+            const delta = e.changedTouches[0].clientX - sentuhAwalX;
             if (Math.abs(delta) > 45) window.geserGaleri(delta < 0 ? 1 : -1);
         }, { passive: true });
 
+        perbaruiTombolPutar();
         mulai();
     })();
 </script>

@@ -5,14 +5,18 @@
 @section('content')
 <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-4 space-y-4">
 
-    <!-- Mobile Search Bar -->
-    <div class="md:hidden">
-        <div class="relative">
-            <input type="text" oninput="handleSearch(this.value)" placeholder="Cari bidang, SOP, dokumen..."
-                   class="input pl-8">
-            <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-2.5 top-2.5"></i>
+    {{-- Pencarian hanya untuk pengguna yang berwenang; tamu hanya melihat
+         Beranda dan Dasar Hukum. --}}
+    @auth
+        <!-- Mobile Search Bar -->
+        <div class="md:hidden">
+            <div class="relative">
+                <input type="text" oninput="handleSearch(this.value)" placeholder="Cari bidang, SOP, dokumen..."
+                       class="input pl-8">
+                <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-2.5 top-2.5"></i>
+            </div>
         </div>
-    </div>
+    @endauth
 
     <!-- SEARCH RESULTS CONTAINER -->
     <div id="searchResultsContainer" class="hidden">
@@ -32,7 +36,18 @@
 
     <!-- TAB CONTENTS -->
     <div id="tab-dashboard" class="tab-content">
-        @include('crmc.partials.tab-dashboard')
+        @auth
+            @include('crmc.partials.tab-dashboard')
+        @else
+            <div class="card p-6 text-center">
+                <i data-lucide="lock" class="w-7 h-7 text-slate-300 mx-auto mb-2"></i>
+                <p class="font-semibold text-slate-600">Dashboard CRMC Memerlukan Login</p>
+                <p class="text-[11px] text-slate-400 mt-1">
+                    Silakan <a href="{{ route('login') }}" class="text-blue-600 font-semibold">masuk</a>
+                    untuk mengakses dashboard dan dokumen CRMC.
+                </p>
+            </div>
+        @endauth
     </div>
 
     <div id="tab-dasar-hukum" class="tab-content hidden">

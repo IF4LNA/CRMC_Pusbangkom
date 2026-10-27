@@ -38,7 +38,7 @@ class PenyimpananPathDokumenTest extends TestCase
         static $urut = 0;
         $urut++;
 
-        return User::create([
+        $user = User::create([
             'name' => 'Pegawai '.$urut,
             'nip' => '1990010120260'.str_pad((string) $urut, 5, '0', STR_PAD_LEFT),
             'jabatan' => 'Staf',
@@ -46,6 +46,15 @@ class PenyimpananPathDokumenTest extends TestCase
             'password' => 'rahasia123',
             'role' => $role,
         ]);
+
+        // Pembatasan akses per bidang: pegawai harus punya bidang agar
+        // unggahan/penghapusan yang diuji di sini tidak ditolak 403.
+        if ($role === 'pegawai') {
+            $bidang = Bidang::first() ?: Bidang::create(['nama_bidang' => 'Bidang Uji']);
+            $user->bidang()->attach($bidang->id);
+        }
+
+        return $user;
     }
 
     private function buatLampiran(string $filePath, string $nama = 'uji.pdf'): LampiranCrmc
@@ -72,7 +81,7 @@ class PenyimpananPathDokumenTest extends TestCase
 
     public function test_unggahan_baru_menyimpan_jalur_tanpa_host()
     {
-        Storage::fake('public');
+        Storage::fake('local');
         $this->actingAs($this->buatUser());
         $this->buatSubBidang();
 
@@ -87,25 +96,28 @@ class PenyimpananPathDokumenTest extends TestCase
 
         $lampiran = LampiranCrmc::where('nama_file', 'SOP-2026.pdf')->firstOrFail();
 
-        // Tanpa host, tetapi tetap berawalan "/storage/" supaya langsung
-        // bisa dipakai sebagai URL pratinjau.
+        // Berkas baru disimpan sebagai jalur relatif murni di disk privat.
+        // URL tampilan memakai route ber-otorisasi, bukan "/storage/...".
         $this->assertStringNotContainsString('http', $lampiran->file_path);
-        $this->assertStringStartsWith('/storage/crmc/', $lampiran->file_path);
-        $this->assertStringStartsWith('/storage/crmc/', (string) $lampiran->url);
-        $this->assertStringEndsWith($lampiran->storage_path, (string) $lampiran->url);
-        Storage::disk('public')->assertExists($lampiran->storage_path);
+        $this->assertStringStartsWith('crmc/', $lampiran->file_path);
+        $this->assertSame(
+            route('crmc.lampiran.berkas', ['id' => $lampiran->id], false),
+            (string) $lampiran->url
+        );
+        Storage::disk('local')->assertExists($lampiran->storage_path);
     }
 
     /**
      * Regresi: berkas yang baru diunggah pernah muncul sebagai 404 karena
      * file_path disimpan tanpa awalan "/storage/" sehingga URL pratinjau
      * menjadi relatif terhadap halaman (mis. "/crmc/crmc/2026/...pdf").
+     * Sekarang pratinjau memakai route berkas ber-otorisasi.
      */
     public function test_pratinjau_berkas_baru_menunjuk_jalur_storage_yang_benar()
     {
-        Storage::fake('public');
+        Storage::fake('local');
         $this->actingAs($this->buatUser());
-        $subMenu = $this->buatSubBidang();
+        $this->buatSubBidang();
 
         $this->post('/crmc/manajemen-risiko/upload-dokumen', [
             'kategori_komponen' => 'sop',
@@ -119,9 +131,11 @@ class PenyimpananPathDokumenTest extends TestCase
             ->get('/crmc/manajemen-risiko?tahun=2026')
             ->getContent();
 
-        $this->assertStringContainsString('src="/storage/crmc/2026/'.$subMenu->id.'/sop/', $html);
+        $url = route('crmc.lampiran.berkas', ['id' => $lampiran->id], false);
+
+        $this->assertStringContainsString('data-src="'.$url.'#view=FitH"', $html);
         $this->assertStringNotContainsString('src="/crmc/crmc/', $html);
-        $this->assertStringContainsString($lampiran->storage_path, $html);
+        $this->assertStringNotContainsString('/storage/crmc/', $html);
     }
 
     public function test_url_lampiran_dibentuk_dinamis_dari_disk_public()
@@ -129,18 +143,24 @@ class PenyimpananPathDokumenTest extends TestCase
         Storage::fake('public');
 
         // Data lama berupa URL host lain harus tetap menghasilkan URL
-        // memakai konfigurasi disk yang aktif, bukan host lamanya.
+        // memakai host yang sedang dibuka, bukan host lamanya.
         $lampiran = $this->buatLampiran('http://172.10.10.168:8000/storage/crmc/2026/1/sop/uji.pdf');
 
         $this->assertSame('crmc/2026/1/sop/uji.pdf', $lampiran->storage_path);
         $this->assertStringNotContainsString('172.10.10.168', (string) $lampiran->url);
-        $this->assertStringContainsString('/storage/crmc/2026/1/sop/uji.pdf', (string) $lampiran->url);
+        $this->assertSame(
+            route('crmc.lampiran.berkas', ['id' => $lampiran->id], false),
+            (string) $lampiran->url
+        );
 
         // Jalur relatif (format penyimpanan baru) juga menghasilkan URL benar.
         $baru = $this->buatLampiran('/storage/crmc/2026/1/sop/baru.pdf', 'baru.pdf');
 
         $this->assertSame('crmc/2026/1/sop/baru.pdf', $baru->storage_path);
-        $this->assertStringContainsString('/storage/crmc/2026/1/sop/baru.pdf', (string) $baru->url);
+        $this->assertSame(
+            route('crmc.lampiran.berkas', ['id' => $baru->id], false),
+            (string) $baru->url
+        );
     }
 
     public function test_penghapusan_memakai_jalur_yang_benar_untuk_kedua_format()
@@ -293,13 +313,15 @@ class PenyimpananPathDokumenTest extends TestCase
     {
         Storage::fake('public');
 
-        $this->buatLampiran('http://172.10.10.168:8000/storage/crmc/2026/1/sop/uji.pdf');
+        $lampiran = $this->buatLampiran('http://172.10.10.168:8000/storage/crmc/2026/1/sop/uji.pdf');
 
         $html = $this->actingAs($this->buatUser())
             ->get('/crmc/manajemen-risiko?tahun=2026')
             ->getContent();
 
-        $this->assertStringContainsString('/storage/crmc/2026/1/sop/uji.pdf', $html);
+        $url = route('crmc.lampiran.berkas', ['id' => $lampiran->id], false);
+
+        $this->assertStringContainsString('data-src="'.$url.'#view=FitH"', $html);
         $this->assertStringNotContainsString('172.10.10.168', $html);
     }
 

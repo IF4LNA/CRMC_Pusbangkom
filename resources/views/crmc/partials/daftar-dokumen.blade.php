@@ -182,11 +182,11 @@
         <i data-lucide="file-plus-2" class="w-8 h-8 text-slate-300 mx-auto"></i>
         <p class="text-xs font-bold text-slate-600">Belum ada dokumen tahun {{ $tahun }}</p>
         <p class="text-[11px] text-slate-400">Komponen ini hanya menampilkan berkas yang benar-benar diunggah.</p>
-        @auth
+        @if($bolehKelola ?? false)
             <button onclick="openUploadModal(@js($kategori), @js($judulKomponenLengkap), {{ (int) $tahun }})"
                     class="btn btn-sm btn-primary mt-1">
                 <i data-lucide="upload" class="w-3 h-3"></i><span>Upload {{ $tahun }}</span>
             </button>
-        @endauth
+        @endif
     </div>
 @endif

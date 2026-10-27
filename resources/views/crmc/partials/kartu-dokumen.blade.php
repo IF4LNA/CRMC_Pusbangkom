@@ -32,9 +32,11 @@
      ========================================================================== --}}
 @php
     $bisaDirender = \App\Support\TipeBerkas::kelompok($lamp->tipe_file);
-    // Jalur relatif supaya tautan dan pratinjau selalu menuju host yang
-    // sedang dibuka, bukan host lama yang terekam saat berkas diunggah.
-    $urlBerkas = \App\Support\TautanBerkas::relatif($lamp->file_path);
+    // Semua berkas kini dilayani lewat route ber-otorisasi
+    // (crmc.lampiran.berkas). Accessor url membentuk tautan relatif supaya
+    // tetap mengikuti host yang sedang dibuka.
+    $urlBerkas = $lamp->url ?: \App\Support\TautanBerkas::relatif($lamp->file_path);
+    $urlUnduh = $lamp->url_unduh ?: $urlBerkas;
     $namaPendek = $namaTipeFile($lamp->tipe_file);
     // Semua komponen memakai pemuatan pratinjau per slide. Nilai default
     // false dipakai pemanggil lain (mis. tab Dasar Hukum) yang tidak
@@ -64,8 +66,10 @@
                 {{ $bisaDirender ? 'Pratinjau langsung' : 'Perlu diunduh' }}
             </span>
             <a href="{{ $urlBerkas }}" target="_blank" rel="noopener" class="icon-btn" title="Buka di tab baru"><i data-lucide="external-link" class="w-3.5 h-3.5"></i></a>
-            <a href="{{ $urlBerkas }}" download class="icon-btn" title="Unduh"><i data-lucide="download" class="w-3.5 h-3.5"></i></a>
-            <button onclick="openKeteranganModal({{ $lamp->id }}, @js($lamp->nama_file), @js($lamp->keterangan ?? ''))" class="icon-btn" title="Keterangan"><i data-lucide="text-quote" class="w-3.5 h-3.5"></i></button>
+            <a href="{{ $urlUnduh }}" download class="icon-btn" title="Unduh"><i data-lucide="download" class="w-3.5 h-3.5"></i></a>
+            @if($isAdmin)
+                <button onclick="openKeteranganModal({{ $lamp->id }}, @js($lamp->nama_file), @js($lamp->keterangan ?? ''))" class="icon-btn" title="Keterangan"><i data-lucide="text-quote" class="w-3.5 h-3.5"></i></button>
+            @endif
             @if($isAdmin)
                 <form action="{{ route('crmc.lampiran.delete', $lamp->id) }}" method="POST"
                       data-konfirmasi="Hapus dokumen &quot;{{ $lamp->nama_file }}&quot;? File fisik di storage ikut terhapus dan tidak bisa dibatalkan.">
@@ -97,10 +101,12 @@
             <i data-lucide="{{ !empty($lamp->keterangan) ? 'info' : 'text-quote' }}" class="w-3.5 h-3.5 {{ !empty($lamp->keterangan) ? 'text-blue-500' : 'text-slate-300' }} shrink-0 mt-0.5"></i>
             @if(!empty($lamp->keterangan))
                 <p class="text-[11px] text-slate-600 leading-relaxed whitespace-pre-line">{{ $lamp->keterangan }}</p>
-            @else
+            @elseif($isAdmin)
                 <button onclick="openKeteranganModal({{ $lamp->id }}, @js($lamp->nama_file), '')" class="text-[11px] text-slate-400 hover:text-blue-600 italic transition">
                     Belum ada keterangan. Klik untuk menambah.
                 </button>
+            @else
+                <p class="text-[11px] text-slate-400 italic">Belum ada keterangan.</p>
             @endif
         </div>
     </footer>

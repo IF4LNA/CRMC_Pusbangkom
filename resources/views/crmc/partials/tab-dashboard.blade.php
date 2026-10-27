@@ -38,10 +38,12 @@
                         <i data-lucide="quote" class="w-4 h-4 text-blue-400 shrink-0"></i>
                         <span class="italic font-medium">"Sigap Membangun Negeri Untuk Rakyat"</span>
                     </p>
-                    <button onclick="switchTab('umum-tu')" class="btn btn-sm btn-kuning shrink-0">
-                        <span>Mulai Kelola CMRC</span>
-                        <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
-                    </button>
+                    @if($tabAwal ?? null)
+                        <button onclick="switchTab('{{ $tabAwal }}')" class="btn btn-sm btn-kuning shrink-0">
+                            <span>Mulai Kelola CRMC</span>
+                            <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+                        </button>
+                    @endif
                 </div>
             </div>
         </div>
@@ -134,12 +136,21 @@
                 </div>
             @empty
                 <div class="empty md:col-span-3">
-                    <i data-lucide="folder-plus" class="w-7 h-7 text-slate-300 mx-auto mb-2"></i>
-                    <p class="font-semibold text-slate-600">Belum Ada Bidang</p>
-                    <p class="text-[11px] text-slate-400 mt-1">
-                        Tambahkan data pada tabel <span class="font-mono">bidang</span> untuk
-                        menampilkan bidang di dashboard.
-                    </p>
+                    @if($tidakPunyaBidang ?? false)
+                        <i data-lucide="lock" class="w-7 h-7 text-slate-300 mx-auto mb-2"></i>
+                        <p class="font-semibold text-slate-600">Belum Ada Bidang yang Ditugaskan</p>
+                        <p class="text-[11px] text-slate-400 mt-1 max-w-lg mx-auto leading-relaxed">
+                            Akun Anda belum mendapat akses ke bidang mana pun. Hubungi Administrator
+                            untuk menetapkan bidang pada menu Kelola Akun Pegawai.
+                        </p>
+                    @else
+                        <i data-lucide="folder-plus" class="w-7 h-7 text-slate-300 mx-auto mb-2"></i>
+                        <p class="font-semibold text-slate-600">Belum Ada Bidang</p>
+                        <p class="text-[11px] text-slate-400 mt-1">
+                            Tambahkan data pada tabel <span class="font-mono">bidang</span> untuk
+                            menampilkan bidang di dashboard.
+                        </p>
+                    @endif
                 </div>
             @endforelse
         </div>

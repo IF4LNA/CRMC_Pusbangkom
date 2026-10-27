@@ -36,7 +36,7 @@ class DokumenDanTautanDriveTest extends TestCase
         static $urut = 0;
         $urut++;
 
-        return User::create([
+        $user = User::create([
             'name' => 'Pegawai '.$urut,
             'nip' => '1990010120260'.str_pad((string) $urut, 5, '0', STR_PAD_LEFT),
             'jabatan' => 'Staf',
@@ -44,6 +44,16 @@ class DokumenDanTautanDriveTest extends TestCase
             'password' => 'rahasia123',
             'role' => $role,
         ]);
+
+        // Pegawai hanya boleh mengunggah/mengubah pada bidang yang
+        // ditugaskan. Beri bidang default supaya pengujian fitur lama tetap
+        // menguji fiturnya, bukan dinding 403 dari pembatasan akses.
+        if ($role === 'pegawai') {
+            $bidang = Bidang::first() ?: Bidang::create(['nama_bidang' => 'Bidang Uji']);
+            $user->bidang()->attach($bidang->id);
+        }
+
+        return $user;
     }
 
     // ======================================================
@@ -52,7 +62,7 @@ class DokumenDanTautanDriveTest extends TestCase
 
     public function test_pegawai_bisa_mengunggah_berkas_pada_komponen_1()
     {
-        Storage::fake('public');
+        Storage::fake('local');
         $this->actingAs($this->buatUser());
         $this->buatSubBidang();
 
@@ -81,7 +91,7 @@ class DokumenDanTautanDriveTest extends TestCase
      */
     public function test_xlsx_yang_terdeteksi_sebagai_zip_tetap_bisa_diunggah()
     {
-        Storage::fake('public');
+        Storage::fake('local');
         $this->actingAs($this->buatUser());
         $this->buatSubBidang();
 
@@ -100,12 +110,12 @@ class DokumenDanTautanDriveTest extends TestCase
         $this->assertNotNull($lampiran);
         $this->assertSame('risk_register', $lampiran->kategori_komponen);
         $this->assertSame('xlsx', $lampiran->tipe_file);
-        Storage::disk('public')->assertExists($lampiran->storage_path);
+        Storage::disk('local')->assertExists($lampiran->storage_path);
     }
 
     public function test_berkas_berekstensi_berbahaya_tetap_ditolak()
     {
-        Storage::fake('public');
+        Storage::fake('local');
         $this->actingAs($this->buatUser());
         $this->buatSubBidang();
 
@@ -188,7 +198,16 @@ class DokumenDanTautanDriveTest extends TestCase
     {
         $this->buatSubBidang();
 
-        $response = $this->get('/crmc/manajemen-risiko');
+        $admin = \App\Models\User::create([
+            'name' => 'Admin Uji',
+            'nip' => '199001012026011234',
+            'jabatan' => 'Administrator',
+            'email' => 'admin.dd@pu.go.id',
+            'password' => bcrypt('password123'),
+            'role' => 'admin',
+        ]);
+
+        $response = $this->actingAs($admin)->get('/crmc/manajemen-risiko');
 
         $response->assertOk();
         $response->assertSee('Belum ada dokumen tahun', false);
@@ -374,7 +393,7 @@ class DokumenDanTautanDriveTest extends TestCase
      */
     public function test_form_hapus_tautan_berdiri_sendiri_di_luar_form_simpan()
     {
-        $pegawai = $this->buatUser();
+        $admin = $this->buatUser('admin');
         $subMenu = $this->buatSubBidang();
 
         TautanDriveCrmc::create([
@@ -384,7 +403,7 @@ class DokumenDanTautanDriveTest extends TestCase
             'url' => 'https://drive.google.com/drive/folders/abc',
         ]);
 
-        $html = $this->actingAs($pegawai)->get('/crmc/manajemen-risiko?tahun=2026')->getContent();
+        $html = $this->actingAs($admin)->get('/crmc/manajemen-risiko?tahun=2026')->getContent();
 
         $mulai = strpos($html, 'id="tautanDriveModal"');
         $selesai = strpos($html, 'id="keteranganModal"');
@@ -453,7 +472,7 @@ class DokumenDanTautanDriveTest extends TestCase
         $response->assertSee('Folder SK 2026');
     }
 
-    public function test_halaman_tamu_menampilkan_tombol_drive_tanpa_form_isi()
+    public function test_halaman_tamu_tidak_bisa_membuka_halaman_komponen()
     {
         $subMenu = $this->buatSubBidang();
 
@@ -464,15 +483,7 @@ class DokumenDanTautanDriveTest extends TestCase
             'url' => 'https://drive.google.com/drive/folders/abc',
         ]);
 
-        $response = $this->get('/crmc/manajemen-risiko?tahun=2026');
-
-        $response->assertOk();
-        $response->assertSee('Buka Google Drive');
-        // Pengunjung tidak boleh mendapat tombol maupun form untuk mengisi
-        // tautan; yang tersedia hanya tombol pembuka tautannya.
-        $response->assertDontSee('Ubah Link Drive');
-        $response->assertDontSee('id="tautanDriveForm"', false);
-        $response->assertDontSee('id="tautanDriveHapusForm"', false);
+        $this->get('/crmc/manajemen-risiko?tahun=2026')->assertForbidden();
     }
 
     // ======================================================
@@ -506,9 +517,12 @@ class DokumenDanTautanDriveTest extends TestCase
 
         $this->assertStringContainsString('data-pratinjau-kantor', $html);
         $this->assertStringContainsString('data-tipe="xlsx"', $html);
-        // Berkas di sini disimpan dengan jalur relatif murni (tanpa awalan
-        // "/storage/"), jadi URL tampilan mengikuti nilai apa adanya.
-        $this->assertStringContainsString('data-src="lampiran/risk-register-2026.xlsx"', $html);
+        // Semua berkas kini dilayani lewat route ber-otorisasi, bukan URL
+        // "/storage/..." yang dapat dibuka tanpa pemeriksaan bidang.
+        $this->assertStringContainsString(
+            'data-src="'.route('crmc.lampiran.berkas', ['id' => $lampiran->id], false).'"',
+            $html
+        );
         $this->assertStringNotContainsString('Pratinjau tidak tersedia untuk format XLSX', $html);
     }
 
@@ -528,7 +542,7 @@ class DokumenDanTautanDriveTest extends TestCase
             'tahun_pelaksanaan' => 2026,
         ]);
 
-        LampiranCrmc::create([
+        $lampiran = LampiranCrmc::create([
             'dokumen_crmc_id' => $dokumen->id,
             'kategori_komponen' => 'risk_register',
             'nama_file' => 'register-risiko.docx',
@@ -538,7 +552,10 @@ class DokumenDanTautanDriveTest extends TestCase
 
         $html = $this->actingAs($pegawai)->get('/crmc/manajemen-risiko?tahun=2026')->getContent();
 
-        $this->assertStringContainsString('data-src="/storage/lampiran/register-risiko.docx"', $html);
+        $url = route('crmc.lampiran.berkas', ['id' => $lampiran->id], false);
+
+        $this->assertStringContainsString('data-src="'.$url.'"', $html);
+        $this->assertStringContainsString('data-src="/crmc/lampiran/', $html);
         $this->assertStringNotContainsString('data-src="http://crmc_pusbangkom.test', $html);
     }
 

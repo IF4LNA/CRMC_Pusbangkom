@@ -130,6 +130,11 @@
 
         $isAdmin = auth()->check() && auth()->user()->isAdmin();
 
+        // Dihitung controller lewat App\Support\AksesBidang: admin atau
+        // pegawai yang ditugaskan pada bidang sub-bidang ini. Dipakai untuk
+        // menampilkan tombol unggah/ubah; route tetap memeriksa ulang.
+        $bolehKelola = $bolehKelola ?? false;
+
         // Ringkasan angka (badge tahun/komponen/dokumen di banner dan kartu
         // "Stats Overview") hanya untuk pengguna yang berhak: Admin dan
         // Pegawai. Pengunjung yang belum masuk tidak melihat ringkasan ini.
@@ -820,7 +825,7 @@
                 </div>
 
                 <!-- FORM RINGKASAN EVALUASI (data nyata, bukan dummy) -->
-                @auth
+                @if($isAdmin)
                 <form action="{{ route('crmc.update', $slug) }}" method="POST" class="space-y-2 pt-1">
                     @csrf
                     <input type="hidden" name="tahun_pelaksanaan" value="{{ $tahun8 }}">
@@ -844,7 +849,7 @@
                         <span class="label">Ringkasan Evaluasi Tahun {{ $tahun8 }}</span>
                         <p class="text-xs text-slate-700 leading-relaxed mt-1 whitespace-pre-line">{{ $residuTerpilih['rangkumanEvaluasi'] ?: 'Belum ada ringkasan evaluasi untuk tahun ini.' }}</p>
                     </div>
-                @endauth
+                @endif
 
                 <!-- DAFTAR DOKUMEN: partial yang sama dengan Komponen 1-6, jadi
                      behavior-nya ikut sama (satu file satu tampilan). -->
@@ -1282,6 +1287,7 @@
     @endauth
 
     <!-- ===================== MODAL KETERANGAN SATU DOKUMEN ===================== -->
+    @if($isAdmin)
     <div id="keteranganModal" class="modal hidden">
         <div class="modal-card !max-w-lg">
             <div class="modal-head">
@@ -1322,6 +1328,7 @@
             </form>
         </div>
     </div>
+    @endif
 
     <!-- ===================== MODAL TAMBAH TAHUN (ADMIN) ===================== -->
     @if($isAdmin)

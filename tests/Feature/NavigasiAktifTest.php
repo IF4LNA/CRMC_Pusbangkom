@@ -21,12 +21,23 @@ class NavigasiAktifTest extends TestCase
 {
     use RefreshDatabase;
 
+    private \App\Models\User $admin;
+
     protected function setUp(): void
     {
         parent::setUp();
 
         $bidang = Bidang::create(['nama_bidang' => 'Bagian Umum Program & Tata Usaha']);
         SubMenu::create(['bidang_id' => $bidang->id, 'nama_sub_menu' => 'Manajemen Risiko']);
+
+        $this->admin = \App\Models\User::create([
+            'name' => 'Admin Uji',
+            'nip' => '199001012026011234',
+            'jabatan' => 'Administrator',
+            'email' => 'admin.uji.nav@pu.go.id',
+            'password' => bcrypt('password123'),
+            'role' => 'admin',
+        ]);
     }
 
     // ====================
@@ -118,7 +129,7 @@ class NavigasiAktifTest extends TestCase
      */
     public function test_tautan_dashboard_punya_id_untuk_switchtab(): void
     {
-        $res = $this->get('/dashboard');
+        $res = $this->actingAs($this->admin)->get('/dashboard');
 
         $res->assertOk();
         $res->assertSee('id="nav-dashboard"', false);
@@ -127,7 +138,7 @@ class NavigasiAktifTest extends TestCase
     public function test_hanya_satu_tautan_aktif_per_waktu(): void
     {
         // Tanpa ?tab, tab dashboard yang aktif.
-        $html = $this->get('/dashboard')->assertOk()->getContent();
+        $html = $this->actingAs($this->admin)->get('/dashboard')->assertOk()->getContent();
 
         $this->assertSame(
             1,
@@ -136,7 +147,7 @@ class NavigasiAktifTest extends TestCase
         );
 
         // Dengan ?tab=dasar-hukum, yang aktif pindah ke Dasar Hukum.
-        $html = $this->get('/dashboard?tab=dasar-hukum')->assertOk()->getContent();
+        $html = $this->actingAs($this->admin)->get('/dashboard?tab=dasar-hukum')->assertOk()->getContent();
 
         $nav = $this->navUtama($html);
         $this->assertSame(1, substr_count($nav, 'is-active'));

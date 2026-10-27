@@ -24,7 +24,16 @@ class NavigasiCepatKomponenTest extends TestCase
             'nama_sub_menu' => 'Manajemen Risiko',
         ]);
 
-        $res = $this->get('/crmc/manajemen-risiko');
+        $admin = \App\Models\User::create([
+            'name' => 'Admin Uji',
+            'nip' => '199001012026011234',
+            'jabatan' => 'Administrator',
+            'email' => 'admin.cek@pu.go.id',
+            'password' => bcrypt('password123'),
+            'role' => 'admin',
+        ]);
+
+        $res = $this->actingAs($admin)->get('/crmc/manajemen-risiko');
 
         $res->assertOk()
             ->assertSee('id="navCepatKomponen"', false)

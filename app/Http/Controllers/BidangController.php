@@ -9,6 +9,7 @@ use App\Models\LampiranCrmc;
 use App\Models\PenugasanCrmc;
 use App\Models\SubMenu;
 use App\Models\User;
+use App\Support\AksesBidang;
 use App\Support\PenyimpananGambar;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -29,9 +30,20 @@ class BidangController extends Controller
     {
         $daftarBidang = $this->daftarBidang();
 
+        // Pegawai tanpa satu pun bidang tetap boleh membuka dashboard,
+        // tetapi mendapat penjelasan kosong yang jelas (bukan daftar bidang
+        // milik unit lain).
+        $batas = AksesBidang::batasBidangIds();
+        $tidakPunyaBidang = $batas !== null && $batas === [];
+
         return view('crmc.index', [
             'daftarBidang' => $daftarBidang,
             'isAdmin' => $this->bolehKelola(),
+            'tidakPunyaBidang' => $tidakPunyaBidang,
+            // Tab pertama yang boleh dibuka, dipakai tombol "Mulai Kelola".
+            'tabAwal' => $daftarBidang->isNotEmpty()
+                ? 'bidang-' . $daftarBidang->first()->id
+                : null,
             'ringkasanPersonel' => $this->ringkasanPersonel((int) date('Y')),
             // Bagan struktur organisasi (Pemilik Risiko -> Pengendali Mutu
             // tiap bidang) untuk tahun berjalan.
@@ -60,11 +72,16 @@ class BidangController extends Controller
      */
     private function strukturOrganisasi(int $tahun): array
     {
+        // Batasi penugasan pada sub-bidang yang boleh dilihat. null berarti
+        // tamu/admin (tidak dibatasi), array kosong berarti tidak ada.
+        $batasSubMenu = AksesBidang::batasSubMenuIds();
+
         // Pemilik Risiko ditulis ke seluruh sub-bidang (lihat
         // CrmcController::updatePenugasan), jadi cukup ambil satu baris.
         $pemilikRisiko = PenugasanCrmc::query()
             ->tahun($tahun)
             ->where('peran', 'pemilik_risiko')
+            ->when($batasSubMenu !== null, fn ($q) => $q->whereIn('sub_menu_id', $batasSubMenu))
             ->with('user')
             ->first()
             ?->user;
@@ -75,14 +92,15 @@ class BidangController extends Controller
         $mutuPerBidang = PenugasanCrmc::query()
             ->tahun($tahun)
             ->where('peran', 'pengendali_mutu')
+            ->when($batasSubMenu !== null, fn ($q) => $q->whereIn('sub_menu_id', $batasSubMenu))
             ->with(['user', 'subMenu'])
             ->get()
             ->groupBy(fn (PenugasanCrmc $p) => $p->subMenu?->bidang_id)
             ->map(fn ($grup) => $grup->first()?->user);
 
-        // Semua bidang tetap ditampilkan walau belum punya pengendali mutu,
-        // supaya kursi yang masih kosong terlihat (bukan hilang dari bagan).
-        $pengendaliMutu = Bidang::orderBy('id')->get()->map(fn (Bidang $bidang) => [
+        // Semua bidang yang boleh dilihat tetap ditampilkan walau belum
+        // punya pengendali mutu, supaya kursi yang masih kosong terlihat.
+        $pengendaliMutu = $this->bidangQuery()->get()->map(fn (Bidang $bidang) => [
             'bidang' => $bidang,
             'user' => $mutuPerBidang->get($bidang->id),
         ]);
@@ -115,11 +133,14 @@ class BidangController extends Controller
      */
     private function ringkasanPersonel(int $tahun): array
     {
+        $batasSubMenu = AksesBidang::batasSubMenuIds();
+
         // Cukup user_id yang unik per peran: dashboard tidak menampilkan
         // nama, jadi model `user` pun tidak perlu dimuat.
         $jumlahPerPeran = fn (string $peran) => PenugasanCrmc::query()
             ->tahun($tahun)
             ->where('peran', $peran)
+            ->when($batasSubMenu !== null, fn ($q) => $q->whereIn('sub_menu_id', $batasSubMenu))
             ->distinct()
             ->count('user_id');
 
@@ -148,7 +169,7 @@ class BidangController extends Controller
         // alfabetis. Kalau diurutkan nama, urutan kartu akan berbeda dari
         // urutan yang terlihat di Manage/Kelola, sehingga admin bingung
         // mencocokkan kartu dengan barisnya.
-        return Bidang::query()
+        return $this->bidangQuery()
             ->with([
                 'subMenus' => fn ($q) => $q->orderBy('id'),
             ])
@@ -159,8 +180,23 @@ class BidangController extends Controller
             // Urutan bidang mengikuti urutan pembuatan (id), bukan alfabetis.
             // Jika diurutkan nama, "Bidang CKPS" akan muncul sebelum
             // "Bidang SDA" dan urutan tab berubah dari yang biasa dipakai.
-            ->orderBy('id')
             ->get();
+    }
+
+    /**
+     * Query bidang yang boleh dilihat pengguna saat ini.
+     *
+     * Tamu dan admin tidak dibatasi; pegawai dibatasi pada bidang yang
+     * ditugaskan. Pegawai tanpa penugasan mendapat whereIn kosong sehingga
+     * tidak ada bidang yang lolos.
+     */
+    private function bidangQuery()
+    {
+        $batas = AksesBidang::batasBidangIds();
+
+        return Bidang::query()
+            ->when($batas !== null, fn ($q) => $q->whereIn('id', $batas))
+            ->orderBy('id');
     }
 
     // ========================
@@ -256,10 +292,7 @@ class BidangController extends Controller
             'dokumen_crmc_id',
             DokumenCrmc::where('sub_menu_id', $subMenu->id)->select('id')
         )->get() as $lampiran) {
-            $path = $lampiran->storage_path;
-            if ($path && Storage::disk('public')->exists($path)) {
-                Storage::disk('public')->delete($path);
-            }
+            $lampiran->hapusBerkas();
         }
 
         if ($subMenu->gambar_latar) {

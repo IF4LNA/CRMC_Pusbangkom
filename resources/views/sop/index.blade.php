@@ -95,10 +95,17 @@
         <div class="empty">
             <i data-lucide="book-open-text" class="w-7 h-7 text-slate-300 mx-auto mb-2"></i>
             <p class="font-semibold text-slate-600">
-                {{ $totalSop === 0 ? 'Belum Ada Dokumen SOP' : 'Tidak Ada SOP yang Cocok' }}
+                @if($tidakPunyaBidang ?? false)
+                    Belum Ada Bidang yang Ditugaskan
+                @else
+                    {{ $totalSop === 0 ? 'Belum Ada Dokumen SOP' : 'Tidak Ada SOP yang Cocok' }}
+                @endif
             </p>
             <p class="text-[11px] text-slate-400 mt-1 max-w-md mx-auto leading-relaxed">
-                @if ($totalSop === 0)
+                @if($tidakPunyaBidang ?? false)
+                    Akun Anda belum mendapat akses ke bidang mana pun, sehingga belum ada SOP
+                    yang dapat ditampilkan. Hubungi Administrator untuk menetapkan bidang.
+                @elseif ($totalSop === 0)
                     SOP diunggah dari halaman 8 Komponen tiap sub-bidang,
                     pada Komponen 3 "Standar Operasional Prosedur (SOP)".
                 @else
@@ -145,10 +152,9 @@
                             Diunggah {{ $sop->created_at?->translatedFormat('d M Y') ?? '-' }}
                         </span>
 
-                        {{-- Dipakai accessor url supaya berkas lama (berisi URL)
-                             maupun baru (jalur "/storage/...") sama-sama menuju
-                             host yang sedang aktif. --}}
-                        <a href="{{ \App\Support\TautanBerkas::relatif($sop->url) }}" target="_blank" rel="noopener"
+                        {{-- Semua berkas dilayani route ber-otorisasi; accessor
+                             url/url_unduh membentuk tautan relatif ke host aktif. --}}
+                        <a href="{{ $sop->url_unduh }}" target="_blank" rel="noopener"
                            class="btn btn-sm btn-primary shrink-0">
                             <i data-lucide="download" class="w-3.5 h-3.5"></i>
                             Buka

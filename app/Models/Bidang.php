@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Support\Facades\Storage;
 
 class Bidang extends Model
@@ -14,6 +15,17 @@ class Bidang extends Model
     public function subMenus()
     {
         return $this->hasMany(SubMenu::class, 'bidang_id');
+    }
+
+    /**
+     * Pegawai yang ditugaskan pada bidang ini.
+     *
+     * Admin tidak muncul di sini karena admin selalu punya akses penuh
+     * tanpa perlu baris pivot.
+     */
+    public function pengguna(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'bidang_user')->withTimestamps();
     }
 
     /**

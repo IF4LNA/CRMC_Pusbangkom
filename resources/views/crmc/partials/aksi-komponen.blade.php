@@ -32,7 +32,7 @@
 
 <div class="flex items-center gap-2 flex-wrap justify-end shrink-0">
 
-    @auth
+    @if($bolehKelola ?? false)
         <button onclick="openUploadModal(@js($kategori), @js($judulLengkap), {{ $tahunInt }})"
                 class="btn btn-sm btn-quiet" title="Unggah {{ $judulLengkap }}">
             <i data-lucide="upload" class="w-3 h-3"></i><span>Upload</span>
@@ -43,7 +43,7 @@
             <i data-lucide="folder-symlink" class="w-3 h-3"></i>
             <span>{{ $tautan ? 'Ubah Link Drive' : 'Link Drive' }}</span>
         </button>
-    @endauth
+    @endif
 
     {{-- Tautan yang sudah tersimpan ditampilkan sebagai tombol. Label
          teksnya diambil dari isi field label, atau teks bawaan kalau

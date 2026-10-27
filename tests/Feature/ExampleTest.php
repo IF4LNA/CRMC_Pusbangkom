@@ -64,7 +64,16 @@ class ExampleTest extends TestCase
 
     public function test_crmc_show_page_returns_successful_response(): void
     {
-        $response = $this->get('/crmc/manajemen-risiko');
+        $admin = \App\Models\User::create([
+            'name' => 'Admin Uji',
+            'nip' => '199001012026011234',
+            'jabatan' => 'Administrator',
+            'email' => 'admin.uji2@pu.go.id',
+            'password' => bcrypt('password123'),
+            'role' => 'admin',
+        ]);
+
+        $response = $this->actingAs($admin)->get('/crmc/manajemen-risiko');
 
         $response->assertStatus(200);
         $response->assertSee('Rincian 8 Komponen');
@@ -73,18 +82,17 @@ class ExampleTest extends TestCase
 
     public function test_crmc_update_redirects_successfully(): void
     {
-        $pegawai = User::create([
+        $admin = User::create([
             'name' => 'Fajar Fikri',
             'nip' => '199001012026011234',
-            'jabatan' => 'Staf',
+            'jabatan' => 'Administrator',
             'email' => 'fajar@pu.go.id',
             'password' => Hash::make('password123'),
-            'role' => 'pegawai',
+            'role' => 'admin',
         ]);
 
-        // Penyimpanan ringkasan hanya boleh dilakukan pengguna yang login,
-        // jadi test harus menyamar sebagai pegawai.
-        $response = $this->actingAs($pegawai)->post('/crmc/manajemen-risiko', [
+        // Ringkasan residu/evaluasi hanya boleh diubah Administrator.
+        $response = $this->actingAs($admin)->post('/crmc/manajemen-risiko', [
             'pegawai' => 'Fajar Fikri',
             'risk_register' => 'RR-TEST-001',
             'residu' => 'waspada_i',
@@ -94,6 +102,29 @@ class ExampleTest extends TestCase
 
         $response->assertRedirect('/crmc/manajemen-risiko?tahun=2026');
         $response->assertSessionHas('success');
+    }
+
+    public function test_pegawai_tidak_bisa_mengubah_ringkasan_crmc(): void
+    {
+        $pegawai = User::create([
+            'name' => 'Pegawai Biasa',
+            'nip' => '199001012026011235',
+            'jabatan' => 'Staf',
+            'email' => 'pegawai.biasa@pu.go.id',
+            'password' => Hash::make('password123'),
+            'role' => 'pegawai',
+        ]);
+
+        $this->actingAs($pegawai)->post('/crmc/manajemen-risiko', [
+            'residu' => 'waspada_i',
+            'evaluasi' => 'Tidak boleh tersimpan.',
+            'tahun_pelaksanaan' => 2026,
+        ])->assertForbidden();
+
+        $this->assertDatabaseMissing('dokumen_crmc', [
+            'tahun_pelaksanaan' => 2026,
+            'status_residu_risiko' => 'waspada_i',
+        ]);
     }
 
     public function test_admin_can_update_penugasan_for_sub_bidang(): void

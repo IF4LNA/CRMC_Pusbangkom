@@ -34,7 +34,7 @@ class PratinjauDanCariDokumenTest extends TestCase
         static $urut = 0;
         $urut++;
 
-        return User::create([
+        $user = User::create([
             'name' => 'Pegawai '.$urut,
             'nip' => '1990010120260'.str_pad((string) $urut, 5, '0', STR_PAD_LEFT),
             'jabatan' => 'Staf',
@@ -42,6 +42,14 @@ class PratinjauDanCariDokumenTest extends TestCase
             'password' => 'rahasia123',
             'role' => 'pegawai',
         ]);
+
+        // Halaman 8 Komponen hanya boleh dibuka pegawai pada bidang yang
+        // ditugaskan. Pasang bidang default agar pengujian pratinjau tetap
+        // menguji pratinjau, bukan mendapat 403.
+        $bidang = Bidang::first() ?: Bidang::create(['nama_bidang' => 'Bidang Uji']);
+        $user->bidang()->attach($bidang->id);
+
+        return $user;
     }
 
     private function buatLampiran(
@@ -51,13 +59,13 @@ class PratinjauDanCariDokumenTest extends TestCase
         string $path,
         string $tipe,
         ?string $keterangan = null,
-    ): void {
+    ): LampiranCrmc {
         $dokumen = DokumenCrmc::firstOrCreate([
             'sub_menu_id' => $subMenu->id,
             'tahun_pelaksanaan' => 2026,
         ]);
 
-        LampiranCrmc::create([
+        return LampiranCrmc::create([
             'dokumen_crmc_id' => $dokumen->id,
             'kategori_komponen' => $kategori,
             'nama_file' => $nama,
@@ -78,8 +86,8 @@ class PratinjauDanCariDokumenTest extends TestCase
     {
         $subMenu = $this->buatSubBidang();
         $this->buatLampiran($subMenu, 'identitas_pegawai', 'identitas.pdf', 'lampiran/identitas.pdf', 'pdf');
-        $this->buatLampiran($subMenu, 'risk_register', 'risiko.pdf', 'lampiran/risiko.pdf', 'pdf');
-        $this->buatLampiran($subMenu, 'sop', 'sop.png', 'lampiran/sop.png', 'png');
+        $risiko = $this->buatLampiran($subMenu, 'risk_register', 'risiko.pdf', 'lampiran/risiko.pdf', 'pdf');
+        $sop = $this->buatLampiran($subMenu, 'sop', 'sop.png', 'lampiran/sop.png', 'png');
         $this->buatLampiran($subMenu, 'bukti_pelaksanaan', 'bukti.pdf', 'lampiran/bukti.pdf', 'pdf');
         $this->buatLampiran($subMenu, 'evaluasi', 'evaluasi.xlsx', 'lampiran/evaluasi.xlsx', 'xlsx');
 
@@ -92,11 +100,12 @@ class PratinjauDanCariDokumenTest extends TestCase
             $this->assertStringContainsString('data-lazy-pratinjau="1"', $akar[0]);
         }
 
-        // PDF dan gambar tidak lagi memakai src langsung.
-        $this->assertStringContainsString('data-src="lampiran/risiko.pdf#view=FitH"', $html);
-        $this->assertDoesNotMatchRegularExpression('/<iframe src="lampiran\/risiko\.pdf/', $html);
-        $this->assertStringContainsString('data-src="lampiran/sop.png"', $html);
-        $this->assertDoesNotMatchRegularExpression('/<img src="lampiran\/sop\.png/', $html);
+        // PDF dan gambar tidak lagi memakai src langsung. URL berkas kini
+        // melewati route ber-otorisasi, bukan jalur "/storage/...".
+        $this->assertStringContainsString('data-src="'.$risiko->url.'#view=FitH"', $html);
+        $this->assertDoesNotMatchRegularExpression('/<iframe src="\/crmc\/lampiran\//', $html);
+        $this->assertStringContainsString('data-src="'.$sop->url.'"', $html);
+        $this->assertDoesNotMatchRegularExpression('/<img src="\/crmc\/lampiran\//', $html);
 
         // Berkas kantor juga baru diproses saat slide aktif, dengan retry.
         $this->assertStringContainsString('data-pratinjau-lazy="1"', $html);
@@ -159,7 +168,7 @@ class PratinjauDanCariDokumenTest extends TestCase
     public function test_komponen_lain_tetap_lazy_tanpa_pencarian_dan_filter(): void
     {
         $subMenu = $this->buatSubBidang();
-        $this->buatLampiran($subMenu, 'risk_register', 'risiko.pdf', 'lampiran/risiko.pdf', 'pdf');
+        $risiko = $this->buatLampiran($subMenu, 'risk_register', 'risiko.pdf', 'lampiran/risiko.pdf', 'pdf');
         $this->buatLampiran($subMenu, 'risk_register', 'risiko.xlsx', 'lampiran/risiko.xlsx', 'xlsx');
 
         $html = $this->ambilHalaman($subMenu);
@@ -173,7 +182,7 @@ class PratinjauDanCariDokumenTest extends TestCase
         $this->assertStringContainsString('data-lazy-pratinjau="1"', $akar[0]);
 
         // Pratinjau komponen lain tetap lazy, termasuk berkas kantor.
-        $this->assertStringContainsString('data-src="lampiran/risiko.pdf#view=FitH"', $html);
+        $this->assertStringContainsString('data-src="'.$risiko->url.'#view=FitH"', $html);
         $this->assertStringContainsString('data-pratinjau-lazy="1"', $html);
         $this->assertStringContainsString('data-pratinjau-retry="1"', $html);
     }

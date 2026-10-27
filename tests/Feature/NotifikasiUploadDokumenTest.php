@@ -34,7 +34,7 @@ class NotifikasiUploadDokumenTest extends TestCase
 
     private function buatUser(): User
     {
-        return User::create([
+        $user = User::create([
             'name' => 'Pegawai Notifikasi',
             'nip' => '19900101202609999',
             'jabatan' => 'Staf',
@@ -42,11 +42,17 @@ class NotifikasiUploadDokumenTest extends TestCase
             'password' => 'rahasia123',
             'role' => 'pegawai',
         ]);
+
+        // Pegawai hanya boleh mengunggah pada bidang yang ditugaskan.
+        $bidang = Bidang::first() ?: Bidang::create(['nama_bidang' => 'Bidang Uji']);
+        $user->bidang()->attach($bidang->id);
+
+        return $user;
     }
 
     public function test_upload_berhasil_mengirim_flash_sukses_ke_popup_dan_instrumen_scroll_ikut_termuat()
     {
-        Storage::fake('public');
+        Storage::fake('local');
         $this->actingAs($this->buatUser());
         $this->buatSubBidang();
 

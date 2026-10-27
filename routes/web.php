@@ -65,6 +65,9 @@ Route::delete('/crmc/tahun/{id}', [CrmcController::class, 'hapusTahun'])->name('
 Route::post('/crmc/hapus-dokumen-tahun', [CrmcController::class, 'hapusDokumenTahunSemua'])->name('crmc.hapus.tahun.semua');
 
 // Lampiran individual (path literal "lampiran" agar tidak jadi {slug})
+// Berkas hanya dikirim lewat route ini supaya akses bidang dapat diperiksa
+// walau berkasnya disimpan di disk privat.
+Route::get('/crmc/lampiran/{id}/berkas', [CrmcController::class, 'berkasLampiran'])->name('crmc.lampiran.berkas');
 Route::delete('/crmc/lampiran/{id}', [CrmcController::class, 'deleteLampiran'])->name('crmc.lampiran.delete');
 Route::patch('/crmc/lampiran/{id}/keterangan', [CrmcController::class, 'updateKeterangan'])->name('crmc.lampiran.keterangan');
 

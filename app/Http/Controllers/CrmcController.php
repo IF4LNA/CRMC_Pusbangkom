@@ -11,6 +11,7 @@ use App\Models\TahunAnggaran;
 use App\Models\TautanDriveCrmc;
 use App\Models\User;
 use App\Rules\BerkasDokumen;
+use App\Support\AksesBidang;
 use App\Support\KompresiBerkas;
 use App\Support\PenyimpananGambar;
 use App\Support\SkalaResiduRisiko;
@@ -156,6 +157,20 @@ class CrmcController extends Controller
         // terpisah setelah tahun ditentukan (lihat bawah), supaya yang
         // terbaca benar-benar penugasan tahun yang sedang dibuka.
         $subMenu?->load('bidang');
+
+        // Pegawai hanya boleh membuka sub-bidang pada bidang yang
+        // ditugaskan. Tamu tetap boleh membaca (perilaku lama), dan admin
+        // tidak dibatasi. Slug yang tidak dikenal juga ditolak untuk
+        // pegawai supaya tidak menjadi celah membuka halaman kosong.
+        if ($subMenu) {
+            AksesBidang::wajibLihatSubMenu($subMenu);
+        } elseif (Auth::check() && ! Auth::user()->isAdmin()) {
+            abort(403, 'Anda tidak memiliki akses ke sub-bidang ini.');
+        }
+
+        // Dipakai view untuk menampilkan tombol unggah/ubah. Tamu tidak
+        // pernah boleh menulis, sedangkan pegawai hanya pada bidangnya.
+        $bolehKelola = AksesBidang::bolehKelolaSubMenu($subMenu);
 
         // Sub-bidang tetangga (dalam bidang yang sama) untuk tombol
         // "Sebelumnya"/"Berikutnya". Null kalau tidak ada / di ujung daftar.
@@ -380,6 +395,7 @@ class CrmcController extends Controller
             'rangkuman',
             'tahunManual',
             'isAdmin',
+            'bolehKelola',
         ));
     }
 
@@ -391,8 +407,11 @@ class CrmcController extends Controller
      */
     public function update(Request $request, $slug)
     {
-        if (!Auth::check()) {
-            abort(403, 'Anda harus login untuk memperbarui data CRMC.');
+        // Ringkasan evaluasi dan status residu termasuk data yang hanya
+        // boleh diubah admin. Sebelumnya form ini terbuka untuk semua user
+        // yang login, padahal tombolnya di UI berlabel admin.
+        if (!Auth::check() || !Auth::user()->isAdmin()) {
+            abort(403, 'Akses Ditolak: Hanya Administrator yang dapat memperbarui ringkasan CRMC.');
         }
 
         $request->validate([
@@ -484,7 +503,9 @@ class CrmcController extends Controller
             abort(422, 'Komponen tidak dikenal.');
         }
 
-        $subMenu = $this->cariSubMenu($slug);
+        $subMenu = $this->cariSubMenuTersedia($slug);
+        abort_if($subMenu === null, 404, 'Sub-bidang tidak ditemukan.');
+        AksesBidang::wajibKelolaSubMenu($subMenu);
 
         $tahun = (int) $request->input('tahun_pelaksanaan');
         $keterangan = $request->input('keterangan', []);
@@ -525,7 +546,7 @@ class CrmcController extends Controller
             $path = $file->storeAs(
                 $folder,
                 time() . '_' . Str::slug(pathinfo($originalName, PATHINFO_FILENAME)) . '.' . $extension,
-                'public'
+                'local'
             );
 
             // storeAs() mengembalikan false bila penulisan file ke disk
@@ -549,14 +570,13 @@ class CrmcController extends Controller
                 'kategori_komponen' => $kategori,
                 'nama_file' => $originalName,
                 'keterangan' => $ket !== '' ? $ket : null,
-                // Disimpan sebagai jalur relatif berawalan "/storage/"
-                // (mis. "/storage/crmc/2026/3/sop/sop.pdf"), BUKAN URL penuh.
-                // URL penuh membekukan host saat unggah (mis. IP lokal)
-                // sehingga dokumen tidak bisa dibuka setelah aplikasi
-                // dipindah ke server lain. Jalur relatif tanpa host selalu
-                // mengikuti alamat yang sedang dipakai pengguna, dan tetap
-                // dibaca sebagai jalur relatif oleh TautanBerkas::relatif().
-                'file_path' => TautanBerkas::relatif(Storage::disk('public')->url($path)),
+                // Berkas baru disimpan di disk privat ("local"), jadi yang
+                // ditulis adalah jalur relatif murni tanpa awalan
+                // "/storage/". Semua akses berkas melewati route
+                // crmc.lampiran.berkas yang memeriksa bidang. Berkas lama
+                // di disk publik tetap dapat dibaca selama belum dipindahkan
+                // lewat perintah dokumen:pindahkan-ke-privat.
+                'file_path' => $path,
                 'tipe_file' => strtolower($extension),
             ]);
 
@@ -628,6 +648,7 @@ class CrmcController extends Controller
         // sampah di database.
         $subMenu = $this->cariSubMenuTersedia($slug);
         abort_if($subMenu === null, 404, 'Sub-bidang tidak ditemukan.');
+        AksesBidang::wajibKelolaSubMenu($subMenu);
 
         $request->validate([
             'kategori_komponen' => [
@@ -692,8 +713,14 @@ class CrmcController extends Controller
 
         $tautan = TautanDriveCrmc::with('subMenu')->findOrFail($id);
 
-        if (!Auth::user()->isAdmin() && $tautan->user_id !== Auth::id()) {
-            abort(403, 'Hanya Admin atau pembuat tautan yang dapat menghapus tautan ini.');
+        if (!Auth::user()->isAdmin()) {
+            // Pegawai harus punya akses ke bidangnya DAN hanya boleh
+            // menghapus tautan yang ia isi sendiri.
+            AksesBidang::wajibKelolaSubMenu($tautan->subMenu, 'Anda tidak memiliki akses untuk menghapus tautan pada bidang ini.');
+
+            if ($tautan->user_id !== Auth::id()) {
+                abort(403, 'Hanya Admin atau pembuat tautan yang dapat menghapus tautan ini.');
+            }
         }
 
         $kategori = $tautan->kategori_komponen;
@@ -738,12 +765,15 @@ class CrmcController extends Controller
     }
 
     /**
-     * Perbarui keterangan satu lampiran (Admin & Pegawai).
+     * Perbarui keterangan satu lampiran (Khusus Admin).
+     *
+     * Kebijakan aplikasi: pegawai hanya boleh mengunggah berkas, bukan
+     * mengubah keterangan atau menghapus dokumen yang sudah tersimpan.
      */
     public function updateKeterangan(Request $request, $id)
     {
-        if (!Auth::check()) {
-            abort(403, 'Anda harus login untuk mengubah keterangan.');
+        if (!Auth::check() || !Auth::user()->isAdmin()) {
+            abort(403, 'Akses Ditolak: Hanya Administrator yang dapat mengubah keterangan.');
         }
 
         $request->validate([
@@ -942,22 +972,19 @@ class CrmcController extends Controller
             ->whereIn('dokumen_crmc_id', $dokumenIds)
             ->when($kategori, fn ($q) => $q->where('kategori_komponen', $kategori));
 
-        $paths = (clone $lampiranQuery)->pluck('file_path')
-            ->map(fn ($p) => $this->pathDariUrl($p))
-            ->filter()
-            ->unique()
-            ->all();
+        // Simpan model lampiran lebih dulu supaya berkas fisik dapat dihapus
+        // dari disk yang benar (privat untuk unggahan baru, publik untuk
+        // data lama) sebelum barisnya hilang.
+        $lampiranDihapus = (clone $lampiranQuery)->get();
 
-        $jumlahLampiran = (clone $lampiranQuery)->count();
+        $jumlahLampiran = $lampiranDihapus->count();
         $jumlahSubMenu = (clone $dokumenQuery)->distinct()->count('sub_menu_id');
         $jumlahDokumen = $dokumenIds->count();
 
         // Hapus file fisik terlebih dahulu. Kalau gagal di tengah, record DB
         // masih utuh sehingga admin bisa mencoba ulang tanpa kehilangan data.
-        foreach ($paths as $path) {
-            if (Storage::disk('public')->exists($path)) {
-                Storage::disk('public')->delete($path);
-            }
+        foreach ($lampiranDihapus as $lampiran) {
+            $lampiran->hapusBerkas();
         }
 
         // Baris lampiran dihapus eksplisit supaya aman pada instalasi lama
@@ -1118,6 +1145,42 @@ class CrmcController extends Controller
     }
 
     /**
+     * Kirim isi berkas lampiran setelah memeriksa akses bidang.
+     *
+     * Endpoint ini menggantikan URL publik "/storage/crmc/...". Tamu tetap
+     * boleh membaca (perilaku lama), pegawai hanya berkas pada bidang yang
+     * ditugaskan, dan admin semua. Berkas baru berada di disk privat
+     * "local"; berkas lama di disk "public" tetap dilayani sampai
+     * dipindahkan oleh perintah dokumen:pindahkan-ke-privat.
+     */
+    public function berkasLampiran(Request $request, $id)
+    {
+        $lampiran = LampiranCrmc::with('dokumenCrmc.subMenu')->findOrFail($id);
+
+        AksesBidang::wajibLihatLampiran($lampiran);
+
+        $path = $lampiran->storage_path;
+        $disk = $lampiran->diskBerkas();
+
+        abort_if($path === null || $disk === null, 404, 'Berkas tidak ditemukan di penyimpanan.');
+
+        $penyimpanan = Storage::disk($disk);
+        $nama = $lampiran->nama_file ?: basename($path);
+
+        if ($request->boolean('unduh')) {
+            return $penyimpanan->download($path, $nama);
+        }
+
+        // Tampilkan langsung di peramban supaya PDF, gambar, dan pratinjau
+        // DOCX/XLSX tetap bekerja. Tipe MIME ditentukan dari isi berkas,
+        // bukan dari nama yang dikirim pengguna.
+        return response()->file($penyimpanan->path($path), [
+            'Content-Type' => $penyimpanan->mimeType($path) ?: 'application/octet-stream',
+            'Content-Disposition' => 'inline; filename="' . addslashes($nama) . '"',
+        ]);
+    }
+
+    /**
      * Hapus Lampiran Individual (Admin Only).
      */
     public function deleteLampiran($id)
@@ -1128,11 +1191,8 @@ class CrmcController extends Controller
 
         $lampiran = LampiranCrmc::findOrFail($id);
 
-        // Hapus file fisik dari storage
-        $relativePath = $lampiran->storage_path;
-        if ($relativePath && Storage::disk('public')->exists($relativePath)) {
-            Storage::disk('public')->delete($relativePath);
-        }
+        // Hapus file fisik dari disk mana pun tempatnya berada.
+        $lampiran->hapusBerkas();
 
         $namaFile = $lampiran->nama_file;
         $tahun = $lampiran->dokumenCrmc?->tahun_pelaksanaan;
@@ -1328,6 +1388,9 @@ class CrmcController extends Controller
         $peran = (string) $request->input('peran');
 
         $users = User::query()
+            // Relasi bidang dimuat sekaligus supaya tabel dan modal edit
+            // tidak menembak query per baris.
+            ->with('bidang')
             // Escape wildcard LIKE supaya "%" atau "_" yang diketik user
             // dicari apa adanya, bukan jadi pola bebas.
             ->when($kataKunci !== '', function ($q) use ($kataKunci) {
@@ -1348,6 +1411,7 @@ class CrmcController extends Controller
         // setiap kali mengetik dan jadi tidak berguna sebagai pembanding.
         return view('admin.pegawai', [
             'users' => $users,
+            'daftarBidang' => Bidang::orderBy('id')->get(),
             'kataKunci' => $kataKunci,
             'peran' => $peran,
             'totalPegawai' => User::count(),
@@ -1372,6 +1436,8 @@ class CrmcController extends Controller
             'email' => 'required|email|unique:users,email',
             'password' => 'required|string|min:6',
             'role' => 'required|in:admin,pegawai',
+            'bidang_ids' => 'nullable|array',
+            'bidang_ids.*' => 'integer|distinct|exists:bidang,id',
             'foto_profil' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:4096',
         ], self::pesanValidasiAkun());
 
@@ -1382,7 +1448,12 @@ class CrmcController extends Controller
             $data['foto_profil'] = PenyimpananGambar::simpan($request->file('foto_profil'), 'foto-pegawai');
         }
 
-        User::create($data);
+        $bidangIds = $request->input('bidang_ids', []);
+
+        DB::transaction(function () use ($data, $bidangIds) {
+            $user = User::create($data);
+            $user->bidang()->sync($bidangIds);
+        });
 
         return redirect()->route('admin.pegawai.index')->with('success', 'Akun pegawai "' . $data['name'] . '" berhasil dibuat.');
     }
@@ -1405,6 +1476,8 @@ class CrmcController extends Controller
             'email' => 'required|email|unique:users,email,' . $user->id,
             'password' => 'nullable|string|min:6',
             'role' => 'required|in:admin,pegawai',
+            'bidang_ids' => 'nullable|array',
+            'bidang_ids.*' => 'integer|distinct|exists:bidang,id',
             'foto_profil' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:4096',
         ], self::pesanValidasiAkun());
 
@@ -1423,6 +1496,11 @@ class CrmcController extends Controller
         }
 
         $user->update($data);
+
+        // Selalu sinkronkan pilihan bidang, termasuk saat admin mengosongkan
+        // semua centang (berarti pegawai tidak punya akses bidang).
+        $user->bidang()->sync($request->input('bidang_ids', []));
+        $user->segarkanBidang();
 
         if ($request->hasFile('foto_profil') && !empty($fotoLama) && $fotoLama !== $data['foto_profil']) {
             $this->hapusFotoPegawai($user, $fotoLama);
@@ -1484,6 +1562,10 @@ class CrmcController extends Controller
             'password.min' => 'Password minimal 6 karakter.',
             'role.required' => 'Role wajib dipilih.',
             'role.in' => 'Role harus Admin atau Pegawai.',
+            'bidang_ids.array' => 'Pilihan bidang tidak valid.',
+            'bidang_ids.*.integer' => 'Pilihan bidang tidak valid.',
+            'bidang_ids.*.distinct' => 'Bidang yang sama tidak boleh dipilih dua kali.',
+            'bidang_ids.*.exists' => 'Bidang yang dipilih tidak ditemukan.',
             'foto_profil.image' => 'Foto profil harus berupa file gambar (JPG, PNG, atau WebP).',
             'foto_profil.mimes' => 'Format foto harus JPG, PNG, atau WebP. File HEIC perlu dikonversi dulu.',
             'foto_profil.max' => 'Ukuran foto maksimal 4 MB. Foto tidak tersimpan karena melebihi batas.',

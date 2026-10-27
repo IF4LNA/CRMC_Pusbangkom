@@ -26,12 +26,23 @@ class NavigasiSubBidangTest extends TestCase
 
     private Bidang $bidangSda;
 
+    private \App\Models\User $admin;
+
     protected function setUp(): void
     {
         parent::setUp();
 
         $this->bidangUmum = Bidang::create(['nama_bidang' => 'Bagian Umum Program & Tata Usaha']);
         $this->bidangSda = Bidang::create(['nama_bidang' => 'Bidang SDA']);
+
+        $this->admin = \App\Models\User::create([
+            'name' => 'Admin Uji',
+            'nip' => '199001012026011234',
+            'jabatan' => 'Administrator',
+            'email' => 'admin.navsub@pu.go.id',
+            'password' => bcrypt('password123'),
+            'role' => 'admin',
+        ]);
     }
 
     private function buatSubBidang(Bidang $bidang, string $nama): SubMenu
@@ -48,7 +59,7 @@ class NavigasiSubBidangTest extends TestCase
         $this->buatSubBidang($this->bidangUmum, 'Manajemen Risiko');
         $this->buatSubBidang($this->bidangUmum, 'Evaluasi');
 
-        $response = $this->get('/crmc/manajemen-risiko');
+        $response = $this->actingAs($this->admin)->get('/crmc/manajemen-risiko');
 
         $response->assertOk();
         $response->assertSee('data-peran="navigasi-sub-bidang"', false);
@@ -65,7 +76,7 @@ class NavigasiSubBidangTest extends TestCase
         $this->buatSubBidang($this->bidangUmum, 'Perencanaan');
         $this->buatSubBidang($this->bidangUmum, 'Manajemen Risiko');
 
-        $response = $this->get('/crmc/perencanaan');
+        $response = $this->actingAs($this->admin)->get('/crmc/perencanaan');
 
         $response->assertOk();
         $response->assertSee(route('crmc.show', ['slug' => 'manajemen-risiko']), false);
@@ -79,7 +90,7 @@ class NavigasiSubBidangTest extends TestCase
         $this->buatSubBidang($this->bidangUmum, 'Perencanaan');
         $this->buatSubBidang($this->bidangUmum, 'Manajemen Risiko');
 
-        $response = $this->get('/crmc/manajemen-risiko');
+        $response = $this->actingAs($this->admin)->get('/crmc/manajemen-risiko');
 
         $response->assertOk();
         $response->assertSee(route('crmc.show', ['slug' => 'perencanaan']), false);
@@ -95,7 +106,7 @@ class NavigasiSubBidangTest extends TestCase
         $this->buatSubBidang($this->bidangUmum, 'Manajemen Risiko');
         $this->buatSubBidang($this->bidangSda, 'Pengelolaan SDA');
 
-        $response = $this->get('/crmc/manajemen-risiko');
+        $response = $this->actingAs($this->admin)->get('/crmc/manajemen-risiko');
 
         $response->assertOk();
         $response->assertSee(route('crmc.show', ['slug' => 'perencanaan']), false);
@@ -107,7 +118,7 @@ class NavigasiSubBidangTest extends TestCase
     {
         $this->buatSubBidang($this->bidangSda, 'Manajemen Risiko');
 
-        $response = $this->get('/crmc/manajemen-risiko');
+        $response = $this->actingAs($this->admin)->get('/crmc/manajemen-risiko');
 
         $response->assertOk();
         $response->assertDontSee('data-peran="navigasi-sub-bidang"', false);
@@ -118,7 +129,7 @@ class NavigasiSubBidangTest extends TestCase
         $this->buatSubBidang($this->bidangUmum, 'Perencanaan');
         $this->buatSubBidang($this->bidangUmum, 'Manajemen Risiko');
 
-        $response = $this->get('/crmc/perencanaan?tahun=2027');
+        $response = $this->actingAs($this->admin)->get('/crmc/perencanaan?tahun=2027');
 
         $response->assertOk();
         $response->assertSee(

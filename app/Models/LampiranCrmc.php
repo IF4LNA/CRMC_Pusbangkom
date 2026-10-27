@@ -57,23 +57,75 @@ class LampiranCrmc extends Model
     }
 
     /**
-     * URL berkas untuk tampilan, dibentuk dinamis dari konfigurasi disk
-     * "public" yang sedang aktif sehingga mengikuti host/APP_URL sekarang,
-     * bukan host lama yang terekam pada data lama.
+     * URL berkas untuk tampilan.
      *
-     * Data lama berupa URL penuh dipulihkan dulu ke jalur relatif lewat
-     * accessor storage_path. Bila storage_path kosong, nilai mentah
-     * dikembalikan agar tidak ada informasi yang hilang dari tampilan.
+     * Sejak berkas CRMC disimpan di disk privat, URL publik "/storage/..."
+     * tidak lagi dipakai. Semua tautan melewati route `crmc.lampiran.berkas`
+     * yang memeriksa akses bidang sebelum mengirim isi berkas. Route dibuat
+     * relatif supaya tetap mengikuti host yang sedang dibuka.
      */
     public function getUrlAttribute(): ?string
+    {
+        if (! $this->exists) {
+            return $this->file_path ?: null;
+        }
+
+        return route('crmc.lampiran.berkas', ['id' => $this->id], false);
+    }
+
+    /** URL unduhan paksa (Content-Disposition: attachment). */
+    public function getUrlUnduhAttribute(): ?string
+    {
+        $url = $this->url;
+
+        return $url === null ? null : $url . '?unduh=1';
+    }
+
+    /**
+     * Disk tempat berkas fisik berada.
+     *
+     * Berkas baru ada di disk "local" (storage/app/private). Berkas lama
+     * masih ada di disk "public" sampai perintah
+     * `dokumen:pindahkan-ke-privat` dijalankan. Disk "local" dicek lebih
+     * dulu karena unggahan baru selalu menulis ke sana.
+     */
+    public function diskBerkas(): ?string
     {
         $path = $this->storage_path;
 
         if ($path === null) {
-            return $this->file_path ?: null;
+            return null;
         }
 
-        return Storage::disk('public')->url($path);
+        foreach (['local', 'public'] as $disk) {
+            if (Storage::disk($disk)->exists($path)) {
+                return $disk;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Hapus berkas fisik dari disk mana pun tempat ia berada.
+     *
+     * Dipakai oleh aksi hapus lampiran, hapus dokumen per tahun, dan hapus
+     * sub-bidang. Tanpa pencarian di dua disk, berkas privat akan tertinggal
+     * sebagai sampah setelah baris database dihapus.
+     */
+    public function hapusBerkas(): void
+    {
+        $path = $this->storage_path;
+
+        if ($path === null) {
+            return;
+        }
+
+        foreach (['local', 'public'] as $disk) {
+            if (Storage::disk($disk)->exists($path)) {
+                Storage::disk($disk)->delete($path);
+            }
+        }
     }
 
     public function dokumenCrmc()

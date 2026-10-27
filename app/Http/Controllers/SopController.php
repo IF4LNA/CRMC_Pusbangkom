@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Bidang;
 use App\Models\LampiranCrmc;
+use App\Support\AksesBidang;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 
@@ -22,13 +23,27 @@ class SopController extends Controller
 
     public function index(Request $request)
     {
-        $daftarBidang = Bidang::orderBy('nama_bidang')->get();
+        // Pengunjung tanpa login hanya boleh membaca Beranda dan Dasar Hukum.
+        // SOP dan dokumen CRMC lain memerlukan akun yang berwenang.
+        if (AksesBidang::tamu()) {
+            abort(403, 'Silakan masuk untuk mengakses SOP.');
+        }
 
-        // Tahun yang benar-benar punya SOP, supaya dropdown tidak
-        // menawarkan tahun kosong.
+        $batasBidang = AksesBidang::batasBidangIds();
+
+        $daftarBidang = Bidang::query()
+            ->when($batasBidang !== null, fn (Builder $q) => $q->whereIn('id', $batasBidang))
+            ->orderBy('nama_bidang')
+            ->get();
+
+        // Tahun yang benar-benar punya SOP pada bidang yang boleh dilihat,
+        // supaya dropdown tidak menawarkan tahun kosong atau membocorkan
+        // tahun milik bidang lain.
         $daftarTahun = LampiranCrmc::query()
             ->where('kategori_komponen', 'sop')
             ->join('dokumen_crmc', 'dokumen_crmc.id', '=', 'lampiran_crmc.dokumen_crmc_id')
+            ->join('sub_menu', 'sub_menu.id', '=', 'dokumen_crmc.sub_menu_id')
+            ->when($batasBidang !== null, fn (Builder $q) => $q->whereIn('sub_menu.bidang_id', $batasBidang))
             ->distinct()
             ->orderByDesc('dokumen_crmc.tahun_pelaksanaan')
             ->pluck('dokumen_crmc.tahun_pelaksanaan')
@@ -40,6 +55,14 @@ class SopController extends Controller
             'q' => trim((string) $request->input('q', '')),
         ];
 
+        // Filter bidang dari URL tidak boleh dipakai untuk membuka bidang
+        // yang tidak ditugaskan. Paksa kembali ke daftar yang diizinkan.
+        if ($filter['bidang_id'] !== null && $batasBidang !== null) {
+            if (! in_array($filter['bidang_id'], $batasBidang, true)) {
+                $filter['bidang_id'] = null;
+            }
+        }
+
         $query = $this->querySop($filter);
 
         $daftarSop = $query->with(['dokumenCrmc.subMenu.bidang'])
@@ -48,12 +71,20 @@ class SopController extends Controller
             ->paginate(self::PER_HALAMAN)
             ->withQueryString();
 
+        $totalSop = LampiranCrmc::query()
+            ->where('kategori_komponen', 'sop')
+            ->join('dokumen_crmc', 'dokumen_crmc.id', '=', 'lampiran_crmc.dokumen_crmc_id')
+            ->join('sub_menu', 'sub_menu.id', '=', 'dokumen_crmc.sub_menu_id')
+            ->when($batasBidang !== null, fn (Builder $q) => $q->whereIn('sub_menu.bidang_id', $batasBidang))
+            ->count();
+
         return view('sop.index', [
             'daftarSop' => $daftarSop,
             'daftarBidang' => $daftarBidang,
             'daftarTahun' => $daftarTahun,
             'filter' => $filter,
-            'totalSop' => LampiranCrmc::where('kategori_komponen', 'sop')->count(),
+            'totalSop' => $totalSop,
+            'tidakPunyaBidang' => $batasBidang !== null && $batasBidang === [],
         ]);
     }
 
@@ -67,11 +98,13 @@ class SopController extends Controller
     private function querySop(array $filter): Builder
     {
         $namaBerkas = '%' . str_replace(['%', '_'], ['\%', '\_'], $filter['q']) . '%';
+        $batasBidang = AksesBidang::batasBidangIds();
 
         return LampiranCrmc::query()
             ->where('kategori_komponen', 'sop')
             ->join('dokumen_crmc', 'dokumen_crmc.id', '=', 'lampiran_crmc.dokumen_crmc_id')
             ->join('sub_menu', 'sub_menu.id', '=', 'dokumen_crmc.sub_menu_id')
+            ->when($batasBidang !== null, fn (Builder $q) => $q->whereIn('sub_menu.bidang_id', $batasBidang))
             ->when($filter['bidang_id'], fn (Builder $q, $bidang) => $q->where('sub_menu.bidang_id', $bidang))
             ->when($filter['tahun'], fn (Builder $q, $tahun) => $q->where('dokumen_crmc.tahun_pelaksanaan', $tahun))
             ->when($filter['q'] !== '', fn (Builder $q) => $q->where(function (Builder $dalam) use ($namaBerkas) {

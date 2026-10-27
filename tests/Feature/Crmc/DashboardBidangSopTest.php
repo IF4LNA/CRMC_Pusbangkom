@@ -63,7 +63,7 @@ class DashboardBidangSopTest extends TestCase
         SubMenu::create(['bidang_id' => $this->bidangUmum->id, 'nama_sub_menu' => 'Manajemen Risiko']);
         SubMenu::create(['bidang_id' => $this->bidangSda->id, 'nama_sub_menu' => 'Bangkom SDA']);
 
-        $res = $this->get('/dashboard');
+        $res = $this->actingAs($this->admin)->get('/dashboard');
 
         $res->assertOk();
         $res->assertSee('id="tab-bidang-' . $this->bidangUmum->id . '"', false);
@@ -77,7 +77,7 @@ class DashboardBidangSopTest extends TestCase
         SubMenu::create(['bidang_id' => $this->bidangSda->id, 'nama_sub_menu' => 'Bangkom SDA']);
         SubMenu::create(['bidang_id' => $this->bidangSda->id, 'nama_sub_menu' => 'Kurikulum SDA']);
 
-        $res = $this->get('/dashboard');
+        $res = $this->actingAs($this->admin)->get('/dashboard');
 
         $res->assertOk();
         $res->assertSee('switchTab(\'bidang-' . $this->bidangSda->id . '\')', false);
@@ -88,7 +88,7 @@ class DashboardBidangSopTest extends TestCase
     {
         SubMenu::create(['bidang_id' => $this->bidangSda->id, 'nama_sub_menu' => 'Tanpa Gambar']);
 
-        $res = $this->get('/dashboard');
+        $res = $this->actingAs($this->admin)->get('/dashboard');
 
         $res->assertOk();
         $res->assertSee('Tanpa Gambar');
@@ -293,7 +293,7 @@ class DashboardBidangSopTest extends TestCase
 
         // Slug yang dibentuk view (= normalisasiSlug) harus bisa membuka
         // halaman, bukan 404 atau membuat sub-bidang baru.
-        $res = $this->get('/crmc/kerjasama-pendidikan-mss');
+        $res = $this->actingAs($this->admin)->get('/crmc/kerjasama-pendidikan-mss');
         $res->assertOk();
         $res->assertSee('Kerjasama Pendidikan (MSS)');
 
@@ -304,14 +304,14 @@ class DashboardBidangSopTest extends TestCase
     // Halaman SOP
     // ====================
 
-    public function test_halaman_sop_terbuka_tanpa_login(): void
+    public function test_halaman_sop_memerlukan_login(): void
     {
-        $this->get('/sop')->assertOk()->assertSee('Kumpulan Standar Operasional Prosedur');
+        $this->get('/sop')->assertForbidden();
     }
 
     public function test_halaman_sop_kosong_menampilkan_pesan(): void
     {
-        $this->get('/sop')->assertOk()->assertSee('Belum Ada Dokumen SOP');
+        $this->actingAs($this->admin)->get('/sop')->assertOk()->assertSee('Belum Ada Dokumen SOP');
     }
 
     public function test_halaman_sop_menampilkan_dokumen_sop_dari_semua_sub_bidang(): void
@@ -322,7 +322,7 @@ class DashboardBidangSopTest extends TestCase
         $this->buatSop($subA, 2026, 'SOP A.pdf');
         $this->buatSop($subB, 2025, 'SOP B.pdf');
 
-        $res = $this->get('/sop');
+        $res = $this->actingAs($this->admin)->get('/sop');
 
         $res->assertOk();
         $res->assertSee('SOP A.pdf');
@@ -344,7 +344,7 @@ class DashboardBidangSopTest extends TestCase
             'tipe_file' => 'jpg',
         ]);
 
-        $this->get('/sop')->assertOk()->assertDontSee('bukti.jpg');
+        $this->actingAs($this->admin)->get('/sop')->assertOk()->assertDontSee('bukti.jpg');
     }
 
     public function test_filter_sop_berdasarkan_bidang(): void
@@ -355,7 +355,7 @@ class DashboardBidangSopTest extends TestCase
         $this->buatSop($subA, 2026, 'SOP Umum.pdf');
         $this->buatSop($subB, 2026, 'SOP SDA.pdf');
 
-        $res = $this->get('/sop?bidang=' . $this->bidangSda->id);
+        $res = $this->actingAs($this->admin)->get('/sop?bidang=' . $this->bidangSda->id);
 
         $res->assertOk();
         $res->assertSee('SOP SDA.pdf');
@@ -369,7 +369,7 @@ class DashboardBidangSopTest extends TestCase
         $this->buatSop($sub, 2025, 'SOP 2025.pdf');
         $this->buatSop($sub, 2026, 'SOP 2026.pdf');
 
-        $res = $this->get('/sop?tahun=2025');
+        $res = $this->actingAs($this->admin)->get('/sop?tahun=2025');
 
         $res->assertOk();
         $res->assertSee('SOP 2025.pdf');
@@ -391,7 +391,7 @@ class DashboardBidangSopTest extends TestCase
             'tipe_file' => 'pdf',
         ]);
 
-        $res = $this->get('/sop?q=Testing+Bangkom');
+        $res = $this->actingAs($this->admin)->get('/sop?q=Testing+Bangkom');
 
         $res->assertOk();
         $res->assertSee('dokumen.pdf');
@@ -405,7 +405,7 @@ class DashboardBidangSopTest extends TestCase
         $subLain = SubMenu::create(['bidang_id' => $this->bidangUmum->id, 'nama_sub_menu' => 'Lain']);
         $this->buatSop($subLain, 2026, 'sop-tidak-cocok.pdf');
 
-        $res = $this->get('/sop?q=Kurikulum');
+        $res = $this->actingAs($this->admin)->get('/sop?q=Kurikulum');
 
         $res->assertOk();
         $res->assertSee('sop-ada.pdf');
@@ -418,11 +418,11 @@ class DashboardBidangSopTest extends TestCase
         $this->buatSop($sub, 2026, 'sop-1.pdf');
         $this->buatSop($sub, 2026, 'sop-2.pdf');
 
-        $res = $this->get('/dashboard');
+        $res = $this->actingAs($this->admin)->get('/dashboard');
 
         $res->assertOk();
         // Badge jumlah SOP berada tepat setelah label "SOP" di navigasi.
-        $res->assertSee('SOP</span>' . "\n        <span class=\"count\">2</span>", false);
+        $res->assertSee('SOP</span>' . "\n            <span class=\"count\">2</span>", false);
     }
 
     private function buatSop(SubMenu $sub, int $tahun, string $namaFile): LampiranCrmc

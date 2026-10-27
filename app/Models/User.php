@@ -4,6 +4,7 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Storage;
@@ -13,6 +14,14 @@ use Laravel\Sanctum\HasApiTokens; // 1. Import trait HasApiTokens di sini
 class User extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable; // 2. Masukkan HasApiTokens ke dalam trait User
+
+    /**
+     * Cache id bidang per instance, supaya pemeriksaan akses di dalam loop
+     * (navigasi, kartu, pencarian) tidak menembak query berulang kali.
+     *
+     * @var array<int, int>|null
+     */
+    private ?array $cacheBidangIds = null;
 
     protected $fillable = [
         'name',
@@ -146,5 +155,50 @@ class User extends Authenticatable
     public function penugasan()
     {
         return $this->hasMany(PenugasanCrmc::class, 'user_id');
+    }
+
+    /**
+     * Bidang yang boleh dibuka pegawai ini.
+     *
+     * Many-to-many lewat pivot `bidang_user`. Admin tidak perlu baris pivot
+     * karena selalu lolos pemeriksaan di App\Support\AksesBidang.
+     */
+    public function bidang(): BelongsToMany
+    {
+        return $this->belongsToMany(Bidang::class, 'bidang_user')->withTimestamps();
+    }
+
+    /**
+     * Daftar id bidang yang ditugaskan, dalam bentuk array int.
+     *
+     * @return array<int, int>
+     */
+    public function bidangIds(): array
+    {
+        if ($this->cacheBidangIds === null) {
+            $this->cacheBidangIds = $this->bidang()
+                ->pluck('bidang.id')
+                ->map(fn ($id) => (int) $id)
+                ->unique()
+                ->values()
+                ->all();
+        }
+
+        return $this->cacheBidangIds;
+    }
+
+    /** Apakah pegawai ini ditugaskan pada bidang tertentu. */
+    public function memilikiBidang(int $bidangId): bool
+    {
+        return in_array($bidangId, $this->bidangIds(), true);
+    }
+
+    /**
+     * Buang cache id bidang setelah penugasan diubah pada request yang sama.
+     */
+    public function segarkanBidang(): void
+    {
+        $this->cacheBidangIds = null;
+        $this->unsetRelation('bidang');
     }
 }

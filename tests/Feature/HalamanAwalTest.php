@@ -19,12 +19,25 @@ class HalamanAwalTest extends TestCase
 {
     use RefreshDatabase;
 
+    private Bidang $bidang;
+
+    private User $admin;
+
     protected function setUp(): void
     {
         parent::setUp();
 
-        $bidang = Bidang::create(['nama_bidang' => 'Bagian Umum Program & Tata Usaha']);
-        SubMenu::create(['bidang_id' => $bidang->id, 'nama_sub_menu' => 'Manajemen Risiko']);
+        $this->bidang = Bidang::create(['nama_bidang' => 'Bagian Umum Program & Tata Usaha']);
+        SubMenu::create(['bidang_id' => $this->bidang->id, 'nama_sub_menu' => 'Manajemen Risiko']);
+
+        $this->admin = User::create([
+            'name' => 'Admin Uji',
+            'nip' => '199001012026999999',
+            'jabatan' => 'Administrator',
+            'email' => 'admin.halaman@pu.go.id',
+            'password' => bcrypt('password123'),
+            'role' => 'admin',
+        ]);
     }
 
     public function test_halaman_awal_membuka_beranda(): void
@@ -115,7 +128,7 @@ class HalamanAwalTest extends TestCase
      */
     public function test_hero_dashboard_memakai_foto_crmc_hero(): void
     {
-        $html = $this->get('/dashboard')->assertOk()->getContent();
+        $html = $this->actingAs($this->admin)->get('/dashboard')->assertOk()->getContent();
 
         $this->assertStringContainsString('images/crmc_hero.jpg', $html);
 
@@ -143,12 +156,12 @@ class HalamanAwalTest extends TestCase
      */
     public function test_tombol_mulai_kelola_hero_memakai_warna_kuning(): void
     {
-        $html = $this->get('/dashboard')->assertOk()->getContent();
+        $html = $this->actingAs($this->admin)->get('/dashboard')->assertOk()->getContent();
 
         $this->assertMatchesRegularExpression(
-            '/<button[^>]*onclick="switchTab\(\'umum-tu\'\)"[^>]*class="[^"]*btn-kuning[^"]*"/',
+            '/<button[^>]*onclick="switchTab\(\'bidang-'.$this->bidang->id.'\'\)"[^>]*class="[^"]*btn-kuning[^"]*"/',
             $html,
-            'Tombol "Mulai Kelola CRMC" harus memakai kelas btn-kuning.'
+            'Tombol "Mulai Kelola CRMC" harus membuka tab bidang yang boleh dilihat dan memakai kelas btn-kuning.'
         );
 
         $this->assertMatchesRegularExpression(
@@ -171,7 +184,7 @@ class HalamanAwalTest extends TestCase
      */
     public function test_tombol_mulai_kelola_berada_di_bawah_hero(): void
     {
-        $html = $this->get('/dashboard')->assertOk()->getContent();
+        $html = $this->actingAs($this->admin)->get('/dashboard')->assertOk()->getContent();
 
         $this->assertMatchesRegularExpression(
             '/<div class="mt-auto pt-5[^"]*">.*?Mulai Kelola CRMC/s',
@@ -190,7 +203,7 @@ class HalamanAwalTest extends TestCase
 
         // Kutipan dan tombol harus berada pada baris bawah hero yang sama.
         $this->assertMatchesRegularExpression(
-            '/<div class="mt-auto pt-5[^"]*">.*?Infrastruktur untuk Indonesia Maju.*?btn-kuning/s',
+            '/<div class="mt-auto pt-5[^"]*">.*?Sigap Membangun Negeri Untuk Rakyat.*?btn-kuning/s',
             $html,
             'Kutipan dan tombol harus berada pada baris bawah hero yang sama.'
         );

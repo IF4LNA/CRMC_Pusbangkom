@@ -87,7 +87,8 @@ class SemuaHalamanTest extends TestCase
         }
 
         foreach (SubMenu::all() as $sub) {
-            $this->get('/crmc/' . Str::slug($sub->nama_sub_menu))
+            $this->actingAs($this->admin())
+                ->get('/crmc/' . Str::slug($sub->nama_sub_menu))
                 ->assertOk();
         }
     }
