@@ -10,6 +10,23 @@
     $total = $galeri->count();
 @endphp
 
+@push('styles')
+<style>
+    .galeri-slide { will-change: transform, opacity; }
+    .galeri-slide .slide-caption,
+    .galeri-slide .slide-counter,
+    .galeri-slide .slide-admin {
+        transition: opacity .25s ease;
+    }
+    .galeri-slide:not(.is-active) .slide-caption,
+    .galeri-slide:not(.is-active) .slide-counter,
+    .galeri-slide:not(.is-active) .slide-admin {
+        opacity: 0;
+        pointer-events: none;
+    }
+</style>
+@endpush
+
 <section id="galeri" class="scroll-mt-20 py-10 bg-white border-b border-slate-200">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
@@ -53,7 +70,7 @@
                 </p>
             </div>
         @else
-            {{-- ===================== CAROUSEL ===================== --}}
+            {{-- ===================== CAROUSEL (TUMPUKAN) ===================== --}}
             <div id="galeriGaleri" class="relative"
                  role="region"
                  aria-roledescription="carousel"
@@ -65,7 +82,7 @@
 
                 {{-- Viewport --}}
                 <div class="relative overflow-hidden rounded-2xl border border-slate-200 bg-slate-100">
-                    <div id="galeriTrack" class="flex transition-transform duration-500 ease-out motion-reduce:transition-none" tabindex="0">
+                    <div id="galeriTrack" class="relative w-full min-h-[220px]" tabindex="0">
                         @foreach ($galeri as $g)
                             @php
                                 $dataUbah = [
@@ -74,21 +91,22 @@
                                     'keterangan' => $g->keterangan,
                                 ];
                             @endphp
-                            <div class="w-full shrink-0 relative">
-                                <div class="relative w-full h-64 sm:h-80 md:h-[440px] bg-slate-200">
+                            <article class="galeri-slide absolute inset-x-0 top-0 transition-all duration-500 ease-out motion-reduce:transition-none"
+                                     data-slide="{{ $loop->index }}">
+                                <div class="relative w-full rounded-2xl overflow-hidden bg-slate-100 border border-slate-200 shadow-sm">
                                     <img src="{{ $g->url }}"
                                          alt="{{ $g->judul }}"
                                          width="1200"
                                          height="800"
                                          loading="lazy"
                                          decoding="async"
-                                         class="w-full h-full object-cover">
+                                         class="block w-full h-auto">
 
                                     {{-- Gradien bawah untuk keterbacaan teks --}}
-                                    <div class="absolute inset-0 bg-gradient-to-t from-slate-900/75 via-slate-900/20 to-transparent pointer-events-none"></div>
+                                    <div class="absolute inset-0 bg-gradient-to-t from-slate-900/70 via-slate-900/15 to-transparent pointer-events-none"></div>
 
                                     {{-- Keterangan slide --}}
-                                    <div class="absolute bottom-0 left-0 right-0 p-5 md:p-7 text-white">
+                                    <div class="slide-caption absolute bottom-0 left-0 right-0 p-5 md:p-7 text-white">
                                         <h3 class="text-lg md:text-2xl font-bold leading-tight max-w-3xl">
                                             {{ $g->judul }}
                                         </h3>
@@ -99,46 +117,46 @@
                                         @endif
                                     </div>
 
-                                    <span class="absolute top-3 right-3 px-2 py-1 bg-slate-900/70 text-white text-[10px] font-semibold rounded-md border border-white/20">
+                                    <span class="slide-counter absolute top-3 right-3 px-2 py-1 bg-slate-900/70 text-white text-[10px] font-semibold rounded-md border border-white/20">
                                         {{ str_pad($loop->iteration, 2, '0', STR_PAD_LEFT) }} / {{ str_pad($total, 2, '0', STR_PAD_LEFT) }}
                                     </span>
-                                </div>
 
-                                {{-- Tombol admin per gambar --}}
-                                @if ($bisaKelola)
-                                    <div class="absolute top-3 left-3 flex items-center gap-1.5 z-10">
-                                        <button type="button"
-                                                onclick='bukaModalGaleri(@json($dataUbah))'
-                                                title="Ubah gambar ini"
-                                                aria-label="Ubah gambar ini"
-                                                class="icon-btn !bg-white/90 hover:!bg-white shadow-sm">
-                                            <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
-                                        </button>
-                                        <button type="button"
-                                                onclick="konfirmasiHapusGaleri({{ $g->id }}, @js($g->judul))"
-                                                title="Hapus gambar ini"
-                                                aria-label="Hapus gambar ini"
-                                                class="icon-btn icon-btn-danger !bg-white/90 hover:!bg-white shadow-sm">
-                                            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-                                        </button>
-                                    </div>
-                                @endif
-                            </div>
+                                    {{-- Tombol admin per gambar --}}
+                                    @if ($bisaKelola)
+                                        <div class="slide-admin absolute top-3 left-3 flex items-center gap-1.5 z-10">
+                                            <button type="button"
+                                                    onclick='bukaModalGaleri(@json($dataUbah))'
+                                                    title="Ubah gambar ini"
+                                                    aria-label="Ubah gambar ini"
+                                                    class="icon-btn !bg-white/90 hover:!bg-white shadow-sm">
+                                                <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
+                                            </button>
+                                            <button type="button"
+                                                    onclick="konfirmasiHapusGaleri({{ $g->id }}, @js($g->judul) )"
+                                                    title="Hapus gambar ini"
+                                                    aria-label="Hapus gambar ini"
+                                                    class="icon-btn icon-btn-danger !bg-white/90 hover:!bg-white shadow-sm">
+                                                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                                            </button>
+                                        </div>
+                                    @endif
+                                </div>
+                            </article>
                         @endforeach
                     </div>
 
-                    {{-- Tombol panah (semua pengguna) --}}
+                    {{-- Tombol panah --}}
                     @if ($total > 1)
                         <button type="button"
                                 onclick="geserGaleri(-1)"
                                 aria-label="Gambar sebelumnya"
-                                class="absolute left-3 top-1/2 -translate-y-1/2 z-10 inline-flex items-center justify-center w-10 h-10 rounded-full bg-white/90 hover:bg-white text-slate-700 shadow-sm border border-slate-200 transition">
+                                class="absolute left-3 top-1/2 -translate-y-1/2 z-20 inline-flex items-center justify-center w-10 h-10 rounded-full bg-white/90 hover:bg-white text-slate-700 shadow-sm border border-slate-200 transition">
                             <i data-lucide="chevron-left" class="w-5 h-5"></i>
                         </button>
                         <button type="button"
                                 onclick="geserGaleri(1)"
                                 aria-label="Gambar berikutnya"
-                                class="absolute right-3 top-1/2 -translate-y-1/2 z-10 inline-flex items-center justify-center w-10 h-10 rounded-full bg-white/90 hover:bg-white text-slate-700 shadow-sm border border-slate-200 transition">
+                                class="absolute right-3 top-1/2 -translate-y-1/2 z-20 inline-flex items-center justify-center w-10 h-10 rounded-full bg-white/90 hover:bg-white text-slate-700 shadow-sm border border-slate-200 transition">
                             <i data-lucide="chevron-right" class="w-5 h-5"></i>
                         </button>
                     @endif
@@ -181,13 +199,14 @@
 
 @push('scripts')
 <script>
-    // ===================== CAROUSEL SARANA DAN PRASARANA =====================
+    // ===================== CAROUSEL TUMPUKAN SARANA DAN PRASARANA =====================
     (function () {
         const root = document.getElementById('galeriGaleri');
         if (!root) return;
 
         const track = document.getElementById('galeriTrack');
         const titikWrap = document.getElementById('galeriTitik');
+        const slides = Array.from(track.querySelectorAll('.galeri-slide'));
         const total = parseInt(root.dataset.total || '1', 10);
         const interval = parseInt(root.dataset.interval || '6000', 10);
 
@@ -200,12 +219,46 @@
         let autoDiinginkan = !reducedMotion;
 
         function autoBerjalan() {
-            return total >= 2 && autoDiinginkan && !dijedaHover && !dijedaManual && !document.hidden;
+            return total >= 2 && autoDiinginkan && !dijedaHover && !document.hidden;
         }
 
-        window.tampilGaleri = function (i) {
-            index = ((i % total) + total) % total;
-            track.style.transform = 'translateX(' + (-index * 100) + '%)';
+        function tataTumpukan() {
+            slides.forEach(function (slide, idx) {
+                const pos = (idx - index + total) % total;
+                let transform = '';
+                let opacity = '0';
+                let zIndex = '0';
+                let pointer = 'none';
+
+                if (pos === 0) {
+                    transform = 'translate3d(0, 0, 0) scale(1)';
+                    opacity = '1';
+                    zIndex = String(total + 2);
+                    pointer = 'auto';
+                    slide.classList.add('is-active');
+                } else if (pos === 1) {
+                    transform = 'translate3d(16px, 12px, 0) scale(0.96)';
+                    opacity = '0.72';
+                    zIndex = String(total + 1);
+                    slide.classList.remove('is-active');
+                } else if (pos === 2) {
+                    transform = 'translate3d(32px, 24px, 0) scale(0.92)';
+                    opacity = '0.48';
+                    zIndex = String(total);
+                    slide.classList.remove('is-active');
+                } else {
+                    transform = 'translate3d(48px, 36px, 0) scale(0.88)';
+                    opacity = '0';
+                    zIndex = '1';
+                    slide.classList.remove('is-active');
+                }
+
+                slide.style.transform = transform;
+                slide.style.opacity = opacity;
+                slide.style.zIndex = zIndex;
+                slide.style.pointerEvents = pointer;
+            });
+
             if (titikWrap) {
                 titikWrap.querySelectorAll('[data-titik]').forEach(function (btn) {
                     const aktif = parseInt(btn.dataset.titik, 10) === index;
@@ -213,6 +266,33 @@
                         (aktif ? 'w-7 bg-blue-600' : 'w-2 bg-slate-300 hover:bg-slate-400');
                 });
             }
+        }
+
+        function aturTinggiCarousel() {
+            const slide = slides[index];
+            if (!slide) return;
+            const img = slide.querySelector('img');
+            if (!img) return;
+
+            const terapkan = function () {
+                if (!img.naturalWidth || !img.naturalHeight) return;
+                const lebar = track.clientWidth || track.getBoundingClientRect().width;
+                if (!lebar) return;
+                const tinggi = Math.round(lebar * img.naturalHeight / img.naturalWidth);
+                track.style.height = tinggi + 'px';
+            };
+
+            if (img.complete && img.naturalWidth) {
+                terapkan();
+            } else {
+                img.addEventListener('load', terapkan, { once: true });
+            }
+        }
+
+        window.tampilGaleri = function (i) {
+            index = ((i % total) + total) % total;
+            tataTumpukan();
+            aturTinggiCarousel();
         };
 
         window.geserGaleri = function (arah) {
@@ -279,6 +359,9 @@
             if (Math.abs(delta) > 45) window.geserGaleri(delta < 0 ? 1 : -1);
         }, { passive: true });
 
+        window.addEventListener('resize', aturTinggiCarousel);
+
+        tampilGaleri(0);
         perbaruiTombolPutar();
         mulai();
     })();
