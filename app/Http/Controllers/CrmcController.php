@@ -1174,9 +1174,14 @@ class CrmcController extends Controller
         // Tampilkan langsung di peramban supaya PDF, gambar, dan pratinjau
         // DOCX/XLSX tetap bekerja. Tipe MIME ditentukan dari isi berkas,
         // bukan dari nama yang dikirim pengguna.
+        // Cache-Control no-store supaya peramban tidak menyimpan respons
+        // lama (mis. dari sebelum pengaturan framing diperbaiki), yang
+        // bisa membuat pratinjau lama tidak tampil.
         return response()->file($penyimpanan->path($path), [
             'Content-Type' => $penyimpanan->mimeType($path) ?: 'application/octet-stream',
             'Content-Disposition' => 'inline; filename="' . addslashes($nama) . '"',
+            'Cache-Control' => 'no-store, no-cache, must-revalidate, max-age=0',
+            'Pragma' => 'no-cache',
         ]);
     }
 

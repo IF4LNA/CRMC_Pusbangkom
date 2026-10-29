@@ -38,6 +38,13 @@ class AuthController extends Controller
         if (Auth::attempt($credentials, $remember)) {
             $user = Auth::user();
 
+            if (!$user->is_active) {
+                Auth::logout();
+                return back()->withErrors([
+                    'email' => 'Akun Anda tidak aktif. Silakan hubungi administrator.',
+                ])->onlyInput('email');
+            }
+
             if ($request->expectsJson() || $request->is('api/*')) {
                 $token = $user->createToken('CRMC_Token')->plainTextToken;
                 return response()->json([

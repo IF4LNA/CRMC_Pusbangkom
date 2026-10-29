@@ -5,6 +5,9 @@ namespace App\Providers;
 use App\Models\Bidang;
 use App\Models\LampiranCrmc;
 use App\Support\AksesBidang;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 
@@ -23,6 +26,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        RateLimiter::for('login', function (Request $request) {
+            $email = (string) $request->input('email');
+            return Limit::perMinute(5)->by($email.'|'.$request->ip());
+        });
+
         // Navigasi utama dipakai bersama oleh halaman Beranda dan dashboard
         // CRMC, sehingga datanya disiapkan satu kali di sini lewat view
         // composer. Bentuknya sengaja dibuat datar (array), bukan Collection
