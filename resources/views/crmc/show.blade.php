@@ -974,38 +974,6 @@
 
             <div class="border-t border-slate-100"></div>
 
-            <!-- HAPUS DOKUMEN: SEMUA SUB-BIDANG -->
-            <form action="{{ route('crmc.hapus.tahun.semua') }}" method="POST" class="space-y-3">
-                @csrf
-                <div class="flex items-start space-x-3">
-                    <div class="w-8 h-8 bg-rose-50 text-rose-700 rounded-md flex items-center justify-center shrink-0">
-                        <i data-lucide="triangle-alert" class="w-4 h-4"></i>
-                    </div>
-                    <div class="flex-1">
-                        <h4 class="font-semibold text-rose-900">Hapus Seluruh Dokumen Satu Tahun (Semua Sub-Bidang)</h4>
-                        <p class="text-[11px] text-rose-700 mt-0.5">
-                            Menghapus semua dokumen tahun terpilih di seluruh {{ $rangkuman['totalSubMenu'] }} sub-bidang, beserta file fisiknya.
-                           Dokumen tahun tersebut juga akan hilang dari halaman sub-bidang lain.
-                        </p>
-                    </div>
-                </div>
-
-                <div class="flex flex-wrap items-end gap-3">
-                    <div>
-                        <label class="label">Tahun</label>
-                        <select name="tahun" required class="input !border-rose-300 focus:!border-rose-400 focus:!shadow-[0_0_0_3px_rgba(244,63,94,.2)]">
-                            @foreach(array_reverse($daftarTahun) as $tahun)
-                                <option value="{{ $tahun }}">{{ $tahun }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <button type="submit"
-                            data-konfirmasi="PERINGATAN: seluruh dokumen tahun {{ $selectedTahun }} di SEMUA sub-bidang akan dihapus permanen, termasuk file fisik di storage. Tindakan ini tidak bisa dibatalkan. Lanjutkan?"
-                            class="btn !bg-rose-600 !border-rose-600 !text-white hover:!bg-rose-700">
-                        <i data-lucide="trash-2" class="w-4 h-4"></i><span>Hapus Semua Dokumen Tahun Tersebut</span>
-                    </button>
-                </div>
-            </form>
         </div>
     </div>
     @endif
@@ -1034,8 +1002,9 @@
                 Kembali ke Dashboard
             </a>
             @if($isAdmin)
-                <a href="{{ route('admin.pegawai.index') }}" class="btn btn-dark">
-                    Kelola Akun Pegawai
+                <a href="{{ route('admin.index') }}" class="btn btn-dark">
+                    <i data-lucide="layout-dashboard" class="w-3.5 h-3.5"></i>
+                    <span>Panel Administrator</span>
                 </a>
             @endif
         </div>

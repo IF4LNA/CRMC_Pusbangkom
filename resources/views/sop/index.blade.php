@@ -5,19 +5,21 @@
 @section('content')
 <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-4 space-y-4">
 
-    {{-- ===================== KEPALA HALAMAN ===================== --}}
-    <div class="card p-4 sm:p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-        <div class="min-w-0">
-            <span class="eyebrow">Komponen 3 CRMC</span>
-            <h1 class="page-title mt-0.5">Kumpulan Standar Operasional Prosedur (SOP)</h1>
-            <p class="page-sub mt-1 leading-relaxed">
+    {{-- ===================== KEPALA HALAMAN (BANNER) ===================== --}}
+    <div class="relative overflow-hidden rounded-xl border border-blue-900 min-h-[8rem] p-4 sm:p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <img src="{{ asset('images/banner_bidang.png') }}" alt="Banner SOP" loading="lazy" decoding="async"
+             class="absolute inset-0 h-full w-full object-cover object-center">
+        <div class="relative min-w-0 drop-shadow-lg">
+            <span class="eyebrow text-blue-200">Komponen 3 CRMC</span>
+            <h1 class="page-title mt-0.5 text-white">Kumpulan Standar Operasional Prosedur (SOP)</h1>
+            <p class="page-sub mt-1 leading-relaxed text-blue-100">
                 Seluruh dokumen SOP yang sudah diunggah pada sub-bidang mana pun,
                 dihimpun di satu halaman. Total {{ number_format($totalSop, 0, ',', '.') }}
                 dokumen; sedang tampil {{ number_format($daftarSop->total(), 0, ',', '.') }} dokumen.
             </p>
         </div>
 
-        <div class="flex items-center gap-2 shrink-0">
+        <div class="relative z-10 flex items-center gap-2 shrink-0">
             {{-- Pemilih tampilan: grid atau daftar. Hanya mengubah kelas,
                  tidak memuat ulang halaman. --}}
             <div class="inline-flex rounded-lg border border-slate-300 overflow-hidden">

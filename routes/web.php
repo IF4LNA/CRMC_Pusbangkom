@@ -1,12 +1,13 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\AdminController;
+use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BidangController;
 use App\Http\Controllers\CrmcController;
-use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DokumenDasarHukumController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\SopController;
+use Illuminate\Support\Facades\Route;
 
 // Halaman yang dibuka pertama kali saat pengunjung mengetik alamat situs.
 // Beranda lebih tepat jadi pintu masuk daripada dashboard: isinya
@@ -28,6 +29,35 @@ Route::get('/sop', [SopController::class, 'index'])->name('sop.index');
 Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:login')->name('login.post');
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+
+// ========================
+// ADMIN: Panel Administrator (hanya admin)
+// Semua route di bawah ini dilindungi middleware 'auth' dan otorisasi admin
+// ditegak ulang di dalam AdminController.
+// ========================
+Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
+    // Halaman utama panel admin (menu Kelola Pegawai & Kelola Dokumen).
+    Route::get('/', [AdminController::class, 'index'])->name('index');
+
+    // --- Kelola Akun Pegawai (dipindahkan dari halaman 8 komponen / admin/pegawai lama) ---
+    Route::get('/pegawai', [AdminController::class, 'pegawai'])->name('pegawai.index');
+    Route::post('/pegawai', [AdminController::class, 'simpanAkun'])->name('pegawai.store');
+    Route::put('/pegawai/{id}', [AdminController::class, 'updateAkun'])->name('pegawai.update');
+    Route::patch('/pegawai/{id}/toggle-status', [AdminController::class, 'toggleStatusAkun'])->name('pegawai.toggle-status');
+    Route::delete('/pegawai/{id}', [AdminController::class, 'hapusAkun'])->name('pegawai.delete');
+
+    // --- Kelola Dokumen (dipindahkan dari halaman 8 komponen) ---
+    Route::get('/dokumen', [AdminController::class, 'dokumen'])->name('dokumen.index');
+
+    // Tambah tahun tambahan (dipindahkan dari crmc.tahun.store)
+    Route::post('/dokumen/tahun', [AdminController::class, 'simpanTahun'])->name('dokumen.tahun.store');
+
+    // Hapus tahun tambahan dari daftar (dipindahkan dari crmc.tahun.destroy)
+    Route::delete('/dokumen/tahun/{id}', [AdminController::class, 'hapusTahunDestroy'])->name('dokumen.tahun.destroy');
+
+    // Hapus seluruh dokumen satu tahun di semua sub-bidang (dipindahkan dari crmc.hapus.tahun.semua)
+    Route::post('/dokumen/hapus-semua', [AdminController::class, 'hapusDokumenTahunSemua'])->name('dokumen.hapus.semua');
+});
 
 // ============================================================
 // PENTING: route dengan path LITERAL harus didaftarkan SEBELUM route
@@ -96,16 +126,6 @@ Route::post('/crmc/{slug}/update-residu', [CrmcController::class, 'updateResidu'
 
 // Hapus dokumen satu sub-bidang pada satu tahun (opsional per kategori komponen)
 Route::post('/crmc/{slug}/hapus-dokumen-tahun', [CrmcController::class, 'hapusDokumenTahunSubBidang'])->name('crmc.hapus.tahun.subbidang');
-
-// ========================
-// ADMIN: Kelola Akun Pegawai
-// ========================
-Route::middleware('auth')->group(function () {
-    Route::get('/admin/pegawai', [CrmcController::class, 'kelolaAkun'])->name('admin.pegawai.index');
-    Route::post('/admin/pegawai', [CrmcController::class, 'simpanAkun'])->name('admin.pegawai.store');
-    Route::put('/admin/pegawai/{id}', [CrmcController::class, 'updateAkun'])->name('admin.pegawai.update');
-    Route::delete('/admin/pegawai/{id}', [CrmcController::class, 'hapusAkun'])->name('admin.pegawai.delete');
-});
 
 // ========================
 // ADMIN: Kelola Isi Halaman Beranda

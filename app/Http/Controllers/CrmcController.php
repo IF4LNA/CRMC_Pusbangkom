@@ -2,27 +2,24 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\SubMenu;
 use App\Models\Bidang;
 use App\Models\DokumenCrmc;
 use App\Models\LampiranCrmc;
 use App\Models\PenugasanCrmc;
+use App\Models\SubMenu;
 use App\Models\TahunAnggaran;
 use App\Models\TautanDriveCrmc;
 use App\Models\User;
 use App\Rules\BerkasDokumen;
 use App\Support\AksesBidang;
 use App\Support\KompresiBerkas;
-use App\Support\PenyimpananGambar;
 use App\Support\SkalaResiduRisiko;
-use App\Support\TautanBerkas;
 use App\Support\TautanGoogleDrive;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 class CrmcController extends Controller
@@ -32,12 +29,12 @@ class CrmcController extends Controller
      * Dipakai bersama oleh show(), uploadDokumen(), dan view.
      */
     private const KOMPONEN_UPLOAD = [
-        'risk_register'         => ['nomor' => 2, 'judul' => 'Risk Register Spesifik Acuan', 'ikon' => 'file-spreadsheet'],
-        'sop'                   => ['nomor' => 3, 'judul' => 'Standar Operasional Prosedur (SOP)', 'ikon' => 'book-open'],
+        'risk_register' => ['nomor' => 2, 'judul' => 'Risk Register Spesifik Acuan', 'ikon' => 'file-spreadsheet'],
+        'sop' => ['nomor' => 3, 'judul' => 'Standar Operasional Prosedur (SOP)', 'ikon' => 'book-open'],
         'formulir_pengendalian' => ['nomor' => 4, 'judul' => 'Formulir Pengendalian / Daftar Periksa', 'ikon' => 'clipboard-check'],
-        'jadwal_pelaksanaan'    => ['nomor' => 5, 'judul' => 'Jadwal Rencana Pelaksanaan', 'ikon' => 'calendar'],
-        'bukti_pelaksanaan'     => ['nomor' => 6, 'judul' => 'Bukti Pelaksanaan', 'ikon' => 'link-2'],
-        'evaluasi'              => ['nomor' => 8, 'judul' => 'Evaluasi & Rencana Perbaikan', 'ikon' => 'trending-up'],
+        'jadwal_pelaksanaan' => ['nomor' => 5, 'judul' => 'Jadwal Rencana Pelaksanaan', 'ikon' => 'calendar'],
+        'bukti_pelaksanaan' => ['nomor' => 6, 'judul' => 'Bukti Pelaksanaan', 'ikon' => 'link-2'],
+        'evaluasi' => ['nomor' => 8, 'judul' => 'Evaluasi & Rencana Perbaikan', 'ikon' => 'trending-up'],
     ];
 
     /**
@@ -212,7 +209,7 @@ class CrmcController extends Controller
             : ($daftarTahun[count($daftarTahun) - 1] ?? $tahunSekarang);
 
         $selectedTahun = (int) $request->input('tahun', $defaultTahun);
-        if (!in_array($selectedTahun, $daftarTahun, true)) {
+        if (! in_array($selectedTahun, $daftarTahun, true)) {
             $selectedTahun = $defaultTahun;
         }
 
@@ -252,7 +249,7 @@ class CrmcController extends Controller
 
         // Komponen 7 (residu) juga mengikuti tahun, sama seperti komponen dokumen.
         $tahunResidu = (int) $request->input('t.residu', $selectedTahun);
-        if (!in_array($tahunResidu, $daftarTahun, true)) {
+        if (! in_array($tahunResidu, $daftarTahun, true)) {
             $tahunResidu = $selectedTahun;
         }
 
@@ -410,12 +407,12 @@ class CrmcController extends Controller
         // Ringkasan evaluasi dan status residu termasuk data yang hanya
         // boleh diubah admin. Sebelumnya form ini terbuka untuk semua user
         // yang login, padahal tombolnya di UI berlabel admin.
-        if (!Auth::check() || !Auth::user()->isAdmin()) {
+        if (! Auth::check() || ! Auth::user()->isAdmin()) {
             abort(403, 'Akses Ditolak: Hanya Administrator yang dapat memperbarui ringkasan CRMC.');
         }
 
         $request->validate([
-            'residu' => ['nullable', 'string', 'in:' . implode(',', SkalaResiduRisiko::nilaiValid())],
+            'residu' => ['nullable', 'string', 'in:'.implode(',', SkalaResiduRisiko::nilaiValid())],
             'evaluasi' => 'nullable|string|max:5000',
             'tahun_pelaksanaan' => 'required|numeric|min:2000|max:2100',
         ]);
@@ -464,7 +461,7 @@ class CrmcController extends Controller
      */
     public function uploadDokumen(Request $request, $slug)
     {
-        if (!Auth::check()) {
+        if (! Auth::check()) {
             abort(403, 'Anda harus login untuk mengunggah dokumen.');
         }
 
@@ -485,8 +482,8 @@ class CrmcController extends Controller
             // sekali; komponen lain maksimal 50MB karena berkas di atas
             // batas 20MB dikompres otomatis (App\Support\KompresiBerkas).
             'files.*' => $tanpaBatasUkuran
-                ? ['file', new BerkasDokumen()]
-                : ['file', 'max:'.KompresiBerkas::MAKS_UNGGAH_KB, new BerkasDokumen()],
+                ? ['file', new BerkasDokumen]
+                : ['file', 'max:'.KompresiBerkas::MAKS_UNGGAH_KB, new BerkasDokumen],
             'keterangan' => 'nullable|array',
             'keterangan.*' => 'nullable|string|max:1000',
         ], [
@@ -499,7 +496,7 @@ class CrmcController extends Controller
         // request buatan tangan tidak bisa menulis kategori bebas ke tabel.
         $semuaKategoriDokumen = $this->daftarKategoriDokumen();
 
-        if (!array_key_exists($kategori, $semuaKategoriDokumen)) {
+        if (! array_key_exists($kategori, $semuaKategoriDokumen)) {
             abort(422, 'Komponen tidak dikenal.');
         }
 
@@ -538,6 +535,7 @@ class CrmcController extends Controller
             // dilewati sepenuhnya karena memang tanpa batas ukuran.
             if (! $tanpaBatasUkuran && ! KompresiBerkas::kompres($file)) {
                 $gagalKompresi[] = $originalName;
+
                 continue;
             }
 
@@ -545,7 +543,7 @@ class CrmcController extends Controller
 
             $path = $file->storeAs(
                 $folder,
-                time() . '_' . Str::slug(pathinfo($originalName, PATHINFO_FILENAME)) . '.' . $extension,
+                time().'_'.Str::slug(pathinfo($originalName, PATHINFO_FILENAME)).'.'.$extension,
                 'local'
             );
 
@@ -556,6 +554,7 @@ class CrmcController extends Controller
             // pernah muncul untuk proses penyimpanan yang sebenarnya gagal.
             if ($path === false) {
                 $gagalSimpan[] = $originalName;
+
                 continue;
             }
 
@@ -639,7 +638,7 @@ class CrmcController extends Controller
      */
     public function simpanTautanDrive(Request $request, $slug)
     {
-        if (!Auth::check()) {
+        if (! Auth::check()) {
             abort(403, 'Anda harus login untuk menyimpan tautan Google Drive.');
         }
 
@@ -707,13 +706,13 @@ class CrmcController extends Controller
      */
     public function hapusTautanDrive($id)
     {
-        if (!Auth::check()) {
+        if (! Auth::check()) {
             abort(403, 'Anda harus login untuk menghapus tautan Google Drive.');
         }
 
         $tautan = TautanDriveCrmc::with('subMenu')->findOrFail($id);
 
-        if (!Auth::user()->isAdmin()) {
+        if (! Auth::user()->isAdmin()) {
             // Pegawai harus punya akses ke bidangnya DAN hanya boleh
             // menghapus tautan yang ia isi sendiri.
             AksesBidang::wajibKelolaSubMenu($tautan->subMenu, 'Anda tidak memiliki akses untuk menghapus tautan pada bidang ini.');
@@ -772,7 +771,7 @@ class CrmcController extends Controller
      */
     public function updateKeterangan(Request $request, $id)
     {
-        if (!Auth::check() || !Auth::user()->isAdmin()) {
+        if (! Auth::check() || ! Auth::user()->isAdmin()) {
             abort(403, 'Akses Ditolak: Hanya Administrator yang dapat mengubah keterangan.');
         }
 
@@ -799,7 +798,7 @@ class CrmcController extends Controller
                 'tahun' => $tahun,
                 't' => $kategori ? [$kategori => $tahun] : null,
             ]))
-            ->with('success', 'Keterangan "' . $lampiran->nama_file . '" berhasil diperbarui.');
+            ->with('success', 'Keterangan "'.$lampiran->nama_file.'" berhasil diperbarui.');
     }
 
     // ========================
@@ -811,7 +810,7 @@ class CrmcController extends Controller
      */
     public function tambahTahun(Request $request)
     {
-        if (!Auth::check() || !Auth::user()->isAdmin()) {
+        if (! Auth::check() || ! Auth::user()->isAdmin()) {
             abort(403, 'Akses Ditolak: Hanya Administrator yang dapat menambah tahun.');
         }
 
@@ -850,7 +849,7 @@ class CrmcController extends Controller
      */
     public function hapusTahun($id)
     {
-        if (!Auth::check() || !Auth::user()->isAdmin()) {
+        if (! Auth::check() || ! Auth::user()->isAdmin()) {
             abort(403, 'Akses Ditolak: Hanya Administrator yang dapat menghapus tahun.');
         }
 
@@ -880,7 +879,7 @@ class CrmcController extends Controller
      */
     public function hapusDokumenTahunSubBidang(Request $request, $slug)
     {
-        if (!Auth::check() || !Auth::user()->isAdmin()) {
+        if (! Auth::check() || ! Auth::user()->isAdmin()) {
             abort(403, 'Akses Ditolak: Hanya Administrator yang dapat menghapus dokumen per tahun.');
         }
 
@@ -892,7 +891,7 @@ class CrmcController extends Controller
         ]);
 
         $kategori = $request->input('kategori');
-        if ($kategori !== null && $kategori !== '' && !array_key_exists($kategori, $this->daftarKategoriDokumen())) {
+        if ($kategori !== null && $kategori !== '' && ! array_key_exists($kategori, $this->daftarKategoriDokumen())) {
             abort(422, 'Komponen tidak dikenal.');
         }
 
@@ -914,7 +913,7 @@ class CrmcController extends Controller
         }
 
         $rujukan = $kategori
-            ? 'Komponen ' . $this->nomorKomponen($kategori) . ' (' . $this->judulKomponen($kategori) . ')'
+            ? 'Komponen '.$this->nomorKomponen($kategori).' ('.$this->judulKomponen($kategori).')'
             : 'seluruh komponen';
 
         return back()->with(
@@ -928,7 +927,7 @@ class CrmcController extends Controller
      */
     public function hapusDokumenTahunSemua(Request $request)
     {
-        if (!Auth::check() || !Auth::user()->isAdmin()) {
+        if (! Auth::check() || ! Auth::user()->isAdmin()) {
             abort(403, 'Akses Ditolak: Hanya Administrator yang dapat menghapus dokumen per tahun.');
         }
 
@@ -994,7 +993,7 @@ class CrmcController extends Controller
         // Dokumen induk hanya dihapus kalau tidak ada lampiran tersisa, supaya
         // status residu tetap utuh saat hanya satu komponen yang dihapus.
         foreach ($dokumenIds as $id) {
-            if (!LampiranCrmc::where('dokumen_crmc_id', $id)->exists()) {
+            if (! LampiranCrmc::where('dokumen_crmc_id', $id)->exists()) {
                 DokumenCrmc::where('id', $id)->delete();
             }
         }
@@ -1017,7 +1016,7 @@ class CrmcController extends Controller
         }
 
         // Path relatif yang tersimpan rapi sejak awal.
-        if (!Str::startsWith($url, ['http://', 'https://', '/'])) {
+        if (! Str::startsWith($url, ['http://', 'https://', '/'])) {
             return ltrim($url, '/');
         }
 
@@ -1048,7 +1047,7 @@ class CrmcController extends Controller
     {
         $subMenu = $this->cariSubMenuTersedia($slug);
 
-        if (!$subMenu) {
+        if (! $subMenu) {
             $defaultBidang = Bidang::first();
             $subMenu = SubMenu::create([
                 'bidang_id' => $defaultBidang?->id ?? 1,
@@ -1096,11 +1095,11 @@ class CrmcController extends Controller
      * dalam keadaan nonaktif (dan menyembunyikan seluruh grup bila bidang
      * hanya punya satu sub-bidang).
      *
-     * @return array{0: ?SubMenu, 1: ?SubMenu}  [sebelumnya, berikutnya]
+     * @return array{0: ?SubMenu, 1: ?SubMenu} [sebelumnya, berikutnya]
      */
     private function subBidangSebelah(?SubMenu $subMenu): array
     {
-        if (!$subMenu || !$subMenu->bidang_id) {
+        if (! $subMenu || ! $subMenu->bidang_id) {
             return [null, null];
         }
 
@@ -1179,7 +1178,7 @@ class CrmcController extends Controller
         // bisa membuat pratinjau lama tidak tampil.
         return response()->file($penyimpanan->path($path), [
             'Content-Type' => $penyimpanan->mimeType($path) ?: 'application/octet-stream',
-            'Content-Disposition' => 'inline; filename="' . addslashes($nama) . '"',
+            'Content-Disposition' => 'inline; filename="'.addslashes($nama).'"',
             'Cache-Control' => 'no-store, no-cache, must-revalidate, max-age=0',
             'Pragma' => 'no-cache',
         ]);
@@ -1190,7 +1189,7 @@ class CrmcController extends Controller
      */
     public function deleteLampiran($id)
     {
-        if (!Auth::check() || !Auth::user()->isAdmin()) {
+        if (! Auth::check() || ! Auth::user()->isAdmin()) {
             abort(403, 'Hanya Administrator yang dapat menghapus lampiran.');
         }
 
@@ -1205,7 +1204,7 @@ class CrmcController extends Controller
 
         $lampiran->delete();
 
-        return back()->with('success', 'Dokumen "' . $namaFile . '" tahun ' . $tahun . ' berhasil dihapus.');
+        return back()->with('success', 'Dokumen "'.$namaFile.'" tahun '.$tahun.' berhasil dihapus.');
     }
 
     /**
@@ -1217,7 +1216,7 @@ class CrmcController extends Controller
      */
     public function updateResidu(Request $request, $slug)
     {
-        if (!Auth::check() || !Auth::user()->isAdmin()) {
+        if (! Auth::check() || ! Auth::user()->isAdmin()) {
             abort(403, 'Hanya Administrator yang dapat mengubah Status Residu Risiko.');
         }
 
@@ -1225,7 +1224,7 @@ class CrmcController extends Controller
         // "Belum Diisi" supaya admin bisa membatalkan status yang pernah
         // ditetapkan, bukan hanya menggantinya.
         $request->validate([
-            'residu' => ['nullable', 'string', 'in:' . implode(',', SkalaResiduRisiko::nilaiValid())],
+            'residu' => ['nullable', 'string', 'in:'.implode(',', SkalaResiduRisiko::nilaiValid())],
             'tahun_pelaksanaan' => 'required|numeric|min:2000|max:2100',
         ]);
 
@@ -1244,9 +1243,9 @@ class CrmcController extends Controller
         );
 
         $pesan = $kunci === null
-            ? 'Status Residu Risiko tahun ' . $request->input('tahun_pelaksanaan') . ' dikosongkan kembali.'
+            ? 'Status Residu Risiko tahun '.$request->input('tahun_pelaksanaan').' dikosongkan kembali.'
             : 'Status Residu Risiko berhasil diperbarui menjadi "'
-                . SkalaResiduRisiko::TINGKAT[$kunci]['label'] . '".';
+                .SkalaResiduRisiko::TINGKAT[$kunci]['label'].'".';
 
         return redirect()->route('crmc.show', ['slug' => $slug, 'tahun' => $request->input('tahun_pelaksanaan')])
             ->with('success', $pesan);
@@ -1258,7 +1257,7 @@ class CrmcController extends Controller
     public function updatePenugasan(Request $request, $slug)
     {
         // Cek otorisasi: pengguna harus login dan ber-role admin
-        if (!Auth::check() || !Auth::user()->isAdmin()) {
+        if (! Auth::check() || ! Auth::user()->isAdmin()) {
             abort(403, 'Akses Ditolak: Hanya Administrator yang berwenang memberikan dan mengubah penugasan pegawai.');
         }
 
@@ -1280,7 +1279,7 @@ class CrmcController extends Controller
         $cleanSlug = str_replace('-', ' ', $slug);
         $subMenu = $this->cariSubMenuTersedia($slug);
 
-        if (!$subMenu) {
+        if (! $subMenu) {
             $defaultBidang = Bidang::first();
             $subMenu = SubMenu::create([
                 'bidang_id' => $defaultBidang?->id ?? 1,
@@ -1369,241 +1368,5 @@ class CrmcController extends Controller
         return redirect()
             ->route('crmc.show', ['slug' => $slug, 'tahun' => $tahun])
             ->with('success', $ringkasan);
-    }
-
-    // ========================
-    // ADMIN: Kelola Akun Pegawai
-    // ========================
-
-    /**
-     * Tampilkan daftar seluruh akun pegawai (Khusus Admin).
-     *
-     * Pencarian dilakukan di server (?q=) supaya tetap ringan pada daftar yang
-     * panjang dan tidak perlu memuat seluruh baris ke browser. Yang dicari
-     * adalah nama, NIP, jabatan, dan email, karena itulah kolom yang
-     * sering diingat admin saat mencari pegawai tertentu.
-     */
-    public function kelolaAkun(Request $request)
-    {
-        if (!Auth::check() || !Auth::user()->isAdmin()) {
-            abort(403, 'Akses Ditolak: Hanya Administrator.');
-        }
-
-        $kataKunci = trim((string) $request->input('q'));
-        $peran = (string) $request->input('peran');
-
-        $users = User::query()
-            // Relasi bidang dimuat sekaligus supaya tabel dan modal edit
-            // tidak menembak query per baris.
-            ->with('bidang')
-            // Escape wildcard LIKE supaya "%" atau "_" yang diketik user
-            // dicari apa adanya, bukan jadi pola bebas.
-            ->when($kataKunci !== '', function ($q) use ($kataKunci) {
-                $saya = '%' . str_replace(['\\', '%', '_'], ['\\\\', '\%', '\_'], $kataKunci) . '%';
-                $q->where(function ($dalam) use ($saya) {
-                    $dalam->where('name', 'like', $saya)
-                        ->orWhere('nip', 'like', $saya)
-                        ->orWhere('jabatan', 'like', $saya)
-                        ->orWhere('email', 'like', $saya);
-                });
-            })
-            ->when(in_array($peran, ['admin', 'pegawai'], true), fn ($q) => $q->where('role', $peran))
-            ->orderBy('name')
-            ->get();
-
-        // Angka pada kartu statistik selalu menggambarkan seluruh pegawai,
-        // bukan hasil pencarian. Kalau ikut terfilter, nilainya berubah
-        // setiap kali mengetik dan jadi tidak berguna sebagai pembanding.
-        return view('admin.pegawai', [
-            'users' => $users,
-            'daftarBidang' => Bidang::orderBy('id')->get(),
-            'kataKunci' => $kataKunci,
-            'peran' => $peran,
-            'totalPegawai' => User::count(),
-            'totalAdmin' => User::where('role', 'admin')->count(),
-            'totalPegawaiRole' => User::where('role', 'pegawai')->count(),
-        ]);
-    }
-
-    /**
-     * Simpan akun pegawai baru (Khusus Admin).
-     */
-    public function simpanAkun(Request $request)
-    {
-        if (!Auth::check() || !Auth::user()->isAdmin()) {
-            abort(403, 'Akses Ditolak: Hanya Administrator.');
-        }
-
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'nip' => 'required|string|max:30|unique:users,nip',
-            'jabatan' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email',
-            'password' => 'required|string|min:6',
-            'role' => 'required|in:admin,pegawai',
-            'bidang_ids' => 'nullable|array',
-            'bidang_ids.*' => 'integer|distinct|exists:bidang,id',
-            'foto_profil' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:4096',
-        ], self::pesanValidasiAkun());
-
-        $data = $request->only(['name', 'nip', 'jabatan', 'email', 'role']);
-        $data['password'] = Hash::make($request->input('password'));
-
-        if ($request->hasFile('foto_profil')) {
-            $data['foto_profil'] = PenyimpananGambar::simpan($request->file('foto_profil'), 'foto-pegawai');
-        }
-
-        $bidangIds = $request->input('bidang_ids', []);
-
-        DB::transaction(function () use ($data, $bidangIds) {
-            $user = User::create($data);
-            $user->bidang()->sync($bidangIds);
-        });
-
-        return redirect()->route('admin.pegawai.index')->with('success', 'Akun pegawai "' . $data['name'] . '" berhasil dibuat.');
-    }
-
-    /**
-     * Update data akun pegawai (Khusus Admin).
-     */
-    public function updateAkun(Request $request, $id)
-    {
-        if (!Auth::check() || !Auth::user()->isAdmin()) {
-            abort(403, 'Akses Ditolak: Hanya Administrator.');
-        }
-
-        $user = User::findOrFail($id);
-
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'nip' => 'required|string|max:30|unique:users,nip,' . $user->id,
-            'jabatan' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email,' . $user->id,
-            'password' => 'nullable|string|min:6',
-            'role' => 'required|in:admin,pegawai',
-            'bidang_ids' => 'nullable|array',
-            'bidang_ids.*' => 'integer|distinct|exists:bidang,id',
-            'foto_profil' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:4096',
-        ], self::pesanValidasiAkun());
-
-        $data = $request->only(['name', 'nip', 'jabatan', 'email', 'role']);
-        
-        if ($request->filled('password')) {
-            $data['password'] = Hash::make($request->input('password'));
-        }
-
-        $fotoLama = $user->getRawOriginal('foto_profil');
-
-        if ($request->hasFile('foto_profil')) {
-            // Simpan foto baru DULU, baru hapus foto lama.
-            // Kalau dibalik, kegagalan saat menyimpan membuat foto lama hilang.
-            $data['foto_profil'] = PenyimpananGambar::simpan($request->file('foto_profil'), 'foto-pegawai');
-        }
-
-        $user->update($data);
-
-        // Selalu sinkronkan pilihan bidang, termasuk saat admin mengosongkan
-        // semua centang (berarti pegawai tidak punya akses bidang).
-        $user->bidang()->sync($request->input('bidang_ids', []));
-        $user->segarkanBidang();
-
-        if ($request->hasFile('foto_profil') && !empty($fotoLama) && $fotoLama !== $data['foto_profil']) {
-            $this->hapusFotoPegawai($user, $fotoLama);
-        }
-
-        $pesan = 'Data pegawai "' . $data['name'] . '" berhasil diperbarui.';
-        if ($request->hasFile('foto_profil')) {
-            $pesan .= ' Foto profil baru telah disimpan.';
-        }
-
-        return redirect()->route('admin.pegawai.index')->with('success', $pesan);
-    }
-
-    /**
-     * Hapus akun pegawai (Khusus Admin).
-     */
-    public function hapusAkun($id)
-    {
-        if (!Auth::check() || !Auth::user()->isAdmin()) {
-            abort(403, 'Akses Ditolak: Hanya Administrator.');
-        }
-
-        $user = User::findOrFail($id);
-
-        // Jangan izinkan hapus diri sendiri
-        if ($user->id === Auth::id()) {
-            return back()->with('error', 'Anda tidak dapat menghapus akun Anda sendiri.');
-        }
-
-        $name = $user->name;
-
-        // Hapus foto jika ada
-        $this->hapusFotoPegawai($user);
-
-        $user->delete();
-
-        return redirect()->route('admin.pegawai.index')->with('success', 'Akun pegawai "' . $name . '" berhasil dihapus.');
-    }
-
-    /**
-     * Pesan validasi berbahasa Indonesia untuk form akun pegawai.
-     *
-     * Tanpa pesan ini, kegagalan validasi (mis. foto bukan gambar / NIP
-     * sudah dipakai) hanya diam-diam mengarahkan browser kembali ke
-     * halaman daftar tanpa penjelasan apa pun.
-     */
-    private static function pesanValidasiAkun(): array
-    {
-        return [
-            'name.required' => 'Nama lengkap wajib diisi.',
-            'nip.required' => 'NIP wajib diisi.',
-            'nip.unique' => 'NIP ini sudah dipakai pegawai lain.',
-            'nip.max' => 'NIP maksimal 30 karakter.',
-            'jabatan.required' => 'Jabatan wajib diisi.',
-            'email.required' => 'Email dinas wajib diisi.',
-            'email.email' => 'Format email tidak valid.',
-            'email.unique' => 'Email ini sudah dipakai pegawai lain.',
-            'password.required' => 'Password wajib diisi.',
-            'password.min' => 'Password minimal 6 karakter.',
-            'role.required' => 'Role wajib dipilih.',
-            'role.in' => 'Role harus Admin atau Pegawai.',
-            'bidang_ids.array' => 'Pilihan bidang tidak valid.',
-            'bidang_ids.*.integer' => 'Pilihan bidang tidak valid.',
-            'bidang_ids.*.distinct' => 'Bidang yang sama tidak boleh dipilih dua kali.',
-            'bidang_ids.*.exists' => 'Bidang yang dipilih tidak ditemukan.',
-            'foto_profil.image' => 'Foto profil harus berupa file gambar (JPG, PNG, atau WebP).',
-            'foto_profil.mimes' => 'Format foto harus JPG, PNG, atau WebP. File HEIC perlu dikonversi dulu.',
-            'foto_profil.max' => 'Ukuran foto maksimal 4 MB. Foto tidak tersimpan karena melebihi batas.',
-        ];
-    }
-
-    /**
-     * Hapus file foto pegawai dari disk "public".
-     * `foto_profil` disimpan sebagai path relatif, contoh: foto-pegawai/abc.jpg
-     *
-     * @param string|null $foto Path foto yang akan dihapus. Bila null,
-     *                         diambil dari nilai mentah `foto_profil`.
-     */
-    private function hapusFotoPegawai(User $user, ?string $foto = null): void
-    {
-        $foto ??= $user->getRawOriginal('foto_profil');
-
-        if (empty($foto) || str_starts_with($foto, 'http')) {
-            return;
-        }
-
-        // Data lama mungkin masih memakai prefix "public/"
-        $candidates = [$foto];
-        if (str_starts_with($foto, 'public/')) {
-            $candidates[] = substr($foto, strlen('public/'));
-        } else {
-            $candidates[] = 'public/' . $foto;
-        }
-
-        foreach ($candidates as $path) {
-            if (Storage::disk('public')->exists($path)) {
-                Storage::disk('public')->delete($path);
-            }
-        }
     }
 }

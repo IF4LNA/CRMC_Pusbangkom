@@ -1,85 +1,28 @@
-@extends('layouts.app')
+@extends('admin.layout')
 
 @section('title', 'Kelola Akun Pegawai - Admin CRMC')
 
-@section('content')
-<main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+@section('admin-content')
 
-    <!-- BREADCRUMB -->
-    <div class="flex flex-wrap items-center justify-between gap-3 text-xs">
-        <nav class="flex items-center space-x-2 text-slate-500">
-            <a href="{{ route('crmc.dashboard') }}" class="hover:text-blue-700 flex items-center gap-1 font-medium transition">
-                <i data-lucide="home" class="w-3.5 h-3.5"></i>
-                <span>Dashboard CRMC</span>
-            </a>
-            <i data-lucide="chevron-right" class="w-3.5 h-3.5 text-slate-400"></i>
-            <span class="text-blue-700 font-semibold">Kelola Akun Pegawai</span>
-        </nav>
-
-        <a href="{{ route('crmc.dashboard') }}" class="btn btn-outline">
-            <i data-lucide="arrow-left" class="w-3.5 h-3.5 text-slate-500"></i>
-            <span>Kembali ke Dashboard</span>
-        </a>
-    </div>
-
-    <!-- FLASH MESSAGE -->
-    @if(session('success'))
-    <div class="note !border-emerald-200 !bg-emerald-50 !text-emerald-900 flex items-start gap-2">
-        <div class="hidden">
-            <i data-lucide="check" class="w-4 h-4"></i>
-        </div>
-        <div class="flex-1">
-            <p class="font-semibold">Berhasil!</p>
-            <p class="text-emerald-700">{{ session('success') }}</p>
-        </div>
-    </div>
-    @endif
-
-    @if(session('error'))
-    <div class="note !border-rose-200 !bg-rose-50 !text-rose-900 flex items-start gap-2">
-        <div class="hidden">
-            <i data-lucide="alert-triangle" class="w-4 h-4"></i>
-        </div>
-        <div class="flex-1">
-            <p class="font-semibold">Gagal!</p>
-            <p class="text-rose-700">{{ session('error') }}</p>
-        </div>
-    </div>
-    @endif
-
-    @if($errors->any())
-    <div class="note !border-rose-200 !bg-rose-50 !text-rose-900">
-        <div class="flex items-center gap-2">
-            <div class="hidden">
-                <i data-lucide="alert-triangle" class="w-4 h-4"></i>
-            </div>
-            <p class="font-semibold">Perubahan tidak tersimpan!</p>
-        </div>
-        <ul class="mt-1.5 space-y-0.5 list-disc list-inside">
-            @foreach($errors->all() as $pesan)
-                <li>{{ $pesan }}</li>
-            @endforeach
-        </ul>
-    </div>
-    @endif
-
-    {{-- HERO: foto gedung PUSBANGKOM sebagai latar banner --}}
-    <div class="relative overflow-hidden rounded-xl bg-blue-950 text-white border border-blue-900">
-        <img src="{{ asset('images/gedung_pusbangkom.jpg') }}"
-             alt="Gedung PUSBANGKOM"
+    {{-- ===================== KEPALA HALAMAN (BANNER) ===================== --}}
+    <div class="relative overflow-hidden rounded-xl border border-blue-900 min-h-[8rem] p-4 sm:p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <img src="{{ asset('images/banner_bidang.png') }}" alt="Banner Admin" loading="lazy" decoding="async"
              class="absolute inset-0 h-full w-full object-cover object-center">
-        <div class="absolute inset-0 bg-gradient-to-r from-blue-950/95 via-blue-950/85 to-blue-900/50"></div>
+        <div class="relative min-w-0 drop-shadow-lg">
+            <span class="eyebrow text-blue-200">Panel Administrator</span>
+            <h1 class="page-title mt-0.5 text-white">Kelola Akun Pegawai</h1>
+            <p class="page-sub mt-1 leading-relaxed text-blue-100">
+                Buat, ubah, dan hapus akun pegawai untuk penugasan di seluruh
+                sub-bidang CRMC.
+            </p>
+        </div>
 
-        <div class="relative flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-5">
-            <div class="space-y-1.5">
-                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-900 text-blue-200 rounded-md text-[11px] font-bold border border-blue-800">
-                    <i data-lucide="users" class="w-3.5 h-3.5"></i>
-                    <span class="uppercase tracking-wider">Panel Administrator</span>
-                </span>
-                <h1 class="text-xl sm:text-2xl font-bold tracking-tight">Kelola Akun Pegawai</h1>
-                <p class="text-blue-200 text-xs sm:text-sm">Buat, edit, dan hapus akun pegawai untuk penugasan di seluruh sub-bidang CRMC.</p>
-            </div>
-            <button onclick="openTambahModal()" class="btn btn-primary shrink-0">
+        <div class="relative z-10 flex flex-wrap items-center gap-2 shrink-0">
+            <a href="{{ route('admin.index') }}" class="btn btn-outline">
+                <i data-lucide="arrow-left" class="w-3.5 h-3.5 text-slate-500"></i>
+                <span>Panel Admin</span>
+            </a>
+            <button type="button" onclick="openTambahModal()" class="btn btn-primary">
                 <i data-lucide="user-plus" class="w-4 h-4"></i>
                 <span>Tambah Pegawai Baru</span>
             </button>
@@ -165,6 +108,7 @@
                         <th>Jabatan</th>
                         <th>Email</th>
                         <th>Role</th>
+                        <th>Status</th>
                         <th>Bidang Akses</th>
                         <th class="text-center">Aksi</th>
                     </tr>
@@ -184,6 +128,13 @@
                                 <span class="badge badge-accent">Admin</span>
                             @else
                                 <span class="badge badge-info">Pegawai</span>
+                            @endif
+                        </td>
+                        <td>
+                            @if($u->is_active)
+                                <span class="badge badge-ok">Aktif</span>
+                            @else
+                                <span class="badge badge-bad">Nonaktif</span>
                             @endif
                         </td>
                         <td>
@@ -208,11 +159,20 @@
                                     'jabatan' => $u->jabatan,
                                     'email' => $u->email,
                                     'role' => $u->role,
+                                    'is_active' => (bool) $u->is_active,
                                     'bidang_ids' => $u->bidang->pluck('id')->values(),
                                 ]) }})" class="icon-btn" title="Edit">
                                     <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
                                 </button>
                                 @if($u->id !== Auth::id())
+                                <form action="{{ route('admin.pegawai.toggle-status', $u->id) }}" method="POST"
+                                      data-konfirmasi="Yakin ingin {{ $u->is_active ? 'menonaktifkan' : 'mengaktifkan' }} akun &quot;{{ $u->name }}&quot;?">
+                                    @csrf
+                                    @method('PATCH')
+                                    <button type="submit" class="icon-btn {{ $u->is_active ? 'icon-btn-danger' : '' }}" title="{{ $u->is_active ? 'Nonaktifkan' : 'Aktifkan' }}">
+                                        <i data-lucide="{{ $u->is_active ? 'power-off' : 'power' }}" class="w-3.5 h-3.5"></i>
+                                    </button>
+                                </form>
                                 <form action="{{ route('admin.pegawai.delete', $u->id) }}" method="POST"
                                       data-konfirmasi="Yakin ingin menghapus akun &quot;{{ $u->name }}&quot;? Akun ini tidak bisa dipulihkan lagi.">
                                     @csrf
@@ -231,10 +191,9 @@
         </div>
     </div>
 
-</main>
 @endsection
 
-@section('modals')
+@section('admin-modals')
 <!-- MODAL TAMBAH PEGAWAI -->
 <div id="tambahModal" class="modal hidden">
     <div class="modal-card !max-w-xl">
@@ -277,7 +236,13 @@
                     </div>
                     <div>
                         <label class="label">Password *</label>
-                        <input type="password" name="password" required minlength="6" class="input">
+                        <div class="relative">
+                            <input type="password" name="password" id="tambahPassword" required minlength="8" maxlength="12" pattern="(?=.*[0-9])(?=.*[^A-Za-z0-9]).{8,12}" class="input pr-10">
+                            <button type="button" onclick="togglePassword('tambahPassword', this)" class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600" title="Tampilkan/sembunyikan password">
+                                <i data-lucide="eye" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                        <p class="hint">8-12 karakter, wajib ada angka dan simbol.</p>
                     </div>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -287,6 +252,10 @@
                             <option value="pegawai">Pegawai</option>
                             <option value="admin">Administrator</option>
                         </select>
+                    </div>
+                    <div class="flex items-center gap-2 pt-6">
+                        <input type="checkbox" name="is_active" id="tambahIsActive" value="1" checked class="rounded border-slate-300 text-blue-600 focus:ring-blue-500">
+                        <label for="tambahIsActive" class="text-sm text-slate-700 cursor-pointer">Akun aktif (boleh login)</label>
                     </div>
                     <div>
                         <label class="label">Foto Profil (Opsional)</label>
@@ -367,7 +336,13 @@
                     </div>
                     <div>
                         <label class="label">Password Baru (kosongkan jika tidak diubah)</label>
-                        <input type="password" name="password" minlength="6" class="input" placeholder="&#8226;&#8226;&#8226;&#8226;">
+                        <div class="relative">
+                            <input type="password" name="password" id="editPassword" minlength="8" maxlength="12" pattern="(?=.*[0-9])(?=.*[^A-Za-z0-9]).{8,12}" class="input pr-10" placeholder="&#8226;&#8226;&#8226;&#8226;">
+                            <button type="button" onclick="togglePassword('editPassword', this)" class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600" title="Tampilkan/sembunyikan password">
+                                <i data-lucide="eye" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                        <p class="hint">Kosongkan jika tidak diubah. Jika diisi: 8-12 karakter, wajib ada angka dan simbol.</p>
                     </div>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -377,6 +352,10 @@
                             <option value="pegawai">Pegawai</option>
                             <option value="admin">Administrator</option>
                         </select>
+                    </div>
+                    <div class="flex items-center gap-2 pt-6">
+                        <input type="checkbox" name="is_active" id="editIsActive" value="1" class="rounded border-slate-300 text-blue-600 focus:ring-blue-500">
+                        <label for="editIsActive" class="text-sm text-slate-700 cursor-pointer">Akun aktif (boleh login)</label>
                     </div>
                     <div>
                         <label class="label">Foto Profil Baru (Opsional)</label>
@@ -414,7 +393,7 @@
 </div>
 @endsection
 
-@push('scripts')
+@push('admin-scripts')
 <script>
     // Konfirmasi hapus memakai atribut data-konfirmasi, bukan confirm('...')
     // yang disisipkan langsung ke HTML. Nama akun bisa mengandung tanda
@@ -442,6 +421,7 @@
         document.getElementById('editJabatan').value = user.jabatan || '';
         document.getElementById('editEmail').value = user.email;
         document.getElementById('editRole').value = user.role;
+        document.getElementById('editIsActive').checked = !!user.is_active;
 
         // Centang bidang yang memang sudah ditugaskan. Nilai dari server
         // berupa array id, jadi dibandingkan sebagai angka.
@@ -455,6 +435,21 @@
     function closeEditModal() {
         document.getElementById('editModal').classList.add('hidden');
     }
+    function togglePassword(inputId, btn) {
+        const input = document.getElementById(inputId);
+        const icon = btn.querySelector('i');
+        if (!input) return;
+        if (input.type === 'password') {
+            input.type = 'text';
+            if (icon) icon.setAttribute('data-lucide', 'eye-off');
+        } else {
+            input.type = 'password';
+            if (icon) icon.setAttribute('data-lucide', 'eye');
+        }
+        if (window.lucide && typeof window.lucide.createIcons === 'function') {
+            window.lucide.createIcons();
+        }
+    }
 
     // Kalau validasi gagal, buka kembali modal yang tadi dipakai beserta
     // isiannya supaya user tidak perlu mengetik ulang.
@@ -467,6 +462,7 @@
             document.getElementById('editJabatan').value = @json(old('jabatan'));
             document.getElementById('editEmail').value = @json(old('email'));
             document.getElementById('editRole').value = @json(old('role'));
+            document.getElementById('editIsActive').checked = {{ old('is_active') ? 'true' : 'false' }};
             var bidangLama = @json(array_map('intval', old('bidang_ids', [])));
             document.querySelectorAll('.checkbox-bidang-edit').forEach(function (checkbox) {
                 checkbox.checked = bidangLama.includes(Number(checkbox.value));

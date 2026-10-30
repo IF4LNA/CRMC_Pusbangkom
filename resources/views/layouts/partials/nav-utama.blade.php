@@ -61,5 +61,13 @@
             <span>SOP</span>
             <span class="count">{{ $navSopJumlah }}</span>
         </a>
+
+        @if(Auth::check() && Auth::user()->isAdmin())
+        <a href="{{ route('admin.index') }}"
+           class="nav-link {{ request()->routeIs('admin.*') ? 'is-active' : '' }}">
+            <i data-lucide="shield-check" class="w-4 h-4"></i>
+            <span>Panel Admin</span>
+        </a>
+        @endif
     @endauth
 </nav>
