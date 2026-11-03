@@ -6,6 +6,7 @@ use App\Http\Controllers\BidangController;
 use App\Http\Controllers\CrmcController;
 use App\Http\Controllers\DokumenDasarHukumController;
 use App\Http\Controllers\HomeController;
+use App\Http\Controllers\PemulihanDokumenController;
 use App\Http\Controllers\SopController;
 use Illuminate\Support\Facades\Route;
 
@@ -45,6 +46,10 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::put('/pegawai/{id}', [AdminController::class, 'updateAkun'])->name('pegawai.update');
     Route::patch('/pegawai/{id}/toggle-status', [AdminController::class, 'toggleStatusAkun'])->name('pegawai.toggle-status');
     Route::delete('/pegawai/{id}', [AdminController::class, 'hapusAkun'])->name('pegawai.delete');
+
+    // --- Pemulihan Dokumen dari Private Storage ---
+    Route::get('/pemulihan-dokumen', [PemulihanDokumenController::class, 'index'])->name('pemulihan.index');
+    Route::post('/pemulihan-dokumen/pulihkan', [PemulihanDokumenController::class, 'pulihkan'])->name('pemulihan.recover');
 
     // --- Kelola Dokumen (dipindahkan dari halaman 8 komponen) ---
     Route::get('/dokumen', [AdminController::class, 'dokumen'])->name('dokumen.index');

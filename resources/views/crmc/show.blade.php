@@ -1001,12 +1001,12 @@
             <a href="{{ route('crmc.dashboard') }}" class="btn btn-quiet">
                 Kembali ke Dashboard
             </a>
-            @if($isAdmin)
+            <!-- @if($isAdmin)
                 <a href="{{ route('admin.index') }}" class="btn btn-dark">
                     <i data-lucide="layout-dashboard" class="w-3.5 h-3.5"></i>
                     <span>Panel Administrator</span>
                 </a>
-            @endif
+            @endif -->
         </div>
     </div>
 

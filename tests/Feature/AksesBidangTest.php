@@ -373,7 +373,7 @@ class AksesBidangTest extends TestCase
             'nip' => '19900101202608888',
             'jabatan' => 'Staf',
             'email' => 'baru@pu.go.id',
-            'password' => 'rahasia123',
+            'password' => 'rahasia123!',
             'role' => 'pegawai',
         ])->assertRedirect();
 

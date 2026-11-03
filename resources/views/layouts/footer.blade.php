@@ -16,7 +16,7 @@
                     </div>
                 </div>
                 <p class="page-sub leading-relaxed max-w-md">
-                    Sistem Pemantauan Berkelanjutan Pengendalian Risiko (Continuous Risk Management and Control — CRMC) dalam mendukung Pengendalian Risiko di Lingkungan Pusat Pengembangan Kompetensi Sumber Daya Air, Cipta Karya, dan Prasarana Strategis.
+                    Sistem Pemantauan Berkelanjutan Pengendalian Risiko (Continuous Risk Management and Control — CRMC) dalam mendukung Pengendalian Risiko Pusat Pengembangan Kompetensi Sumber Daya Air, Cipta Karya, dan Prasarana Strategis.
 Badan Pengembangan Sumber Daya Manusia — Kementerian Pekerjaan Umum
                 </p>
             </div>
@@ -82,7 +82,7 @@ Badan Pengembangan Sumber Daya Manusia — Kementerian Pekerjaan Umum
 
         <div class="mt-6 pt-4 border-t border-blue-900 flex flex-col sm:flex-row items-center justify-between gap-2">
             <p class="text-[11px] text-blue-200/50">
-                &copy; {{ date('Y') }} Kementerian Pekerjaan Umum. Hak cipta dilindungi undang-undang.
+                &copy; {{ date('Y') }} Pusbangkom ACP. Hak cipta dilindungi undang-undang.
             </p>
             <p class="text-[11px] text-blue-200/50">
                 Continuous Monitoring on Risk Control

@@ -73,7 +73,7 @@
                             onclick="bukaModalSubBidang({ id: null, bidang_id: this.dataset.bidangSub })"
                             class="btn btn-sm btn-primary">
                         <i data-lucide="plus" class="w-3.5 h-3.5"></i>
-                        Tambah Sub-Bidang
+                        Tambah Pengendalian Resiko
                     </button>
                 @endif
             </div>
