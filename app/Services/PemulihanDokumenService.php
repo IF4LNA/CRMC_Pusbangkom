@@ -144,7 +144,12 @@ class PemulihanDokumenService
 
             return ['success' => true, 'path' => $jalur, 'message' => 'Berhasil dipulihkan.'];
         } catch (\Throwable $e) {
-            return ['success' => false, 'path' => $jalur, 'message' => 'Gagal memulihkan: '.$e->getMessage()];
+            Log::error('Gagal memulihkan dokumen CRMC', [
+                'path' => $jalur,
+                'error' => $e->getMessage(),
+            ]);
+
+            return ['success' => false, 'path' => $jalur, 'message' => 'Gagal memulihkan berkas. Silakan coba lagi atau hubungi administrator.'];
         }
     }
 

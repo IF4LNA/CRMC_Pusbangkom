@@ -3,10 +3,12 @@
 namespace App\Providers;
 
 use App\Models\Bidang;
+use App\Models\DokumenCrmc;
 use App\Models\LampiranCrmc;
 use App\Support\AksesBidang;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
@@ -28,7 +30,24 @@ class AppServiceProvider extends ServiceProvider
     {
         RateLimiter::for('login', function (Request $request) {
             $email = (string) $request->input('email');
-            return Limit::perMinute(5)->by($email.'|'.$request->ip());
+
+            // Batasi per email (mencegah brute force terdistribusi) dan per IP.
+            return [
+                Limit::perMinute(5)->by('login:email:'.strtolower($email)),
+                Limit::perMinute(10)->by('login:ip:'.$request->ip()),
+            ];
+        });
+
+        RateLimiter::for('uploads', function (Request $request) {
+            $key = Auth::check() ? 'user:'.Auth::id() : 'ip:'.$request->ip();
+
+            return Limit::perMinute(30)->by('uploads:'.$key);
+        });
+
+        RateLimiter::for('admin', function (Request $request) {
+            $key = Auth::check() ? 'user:'.Auth::id() : 'ip:'.$request->ip();
+
+            return Limit::perMinute(120)->by('admin:'.$key);
         });
 
         // Navigasi utama dipakai bersama oleh halaman Beranda dan dashboard
@@ -43,13 +62,13 @@ class AppServiceProvider extends ServiceProvider
             $batasBidang = AksesBidang::batasBidangIds();
 
             // Urutan sub-bidang sama dengan dashboard: ikut id (urutan database),
-                // bukan alfabetis, supaya daftar di navbar sejajar dengan
-                // urutan kartu pada tab bidang.
-                $bidang = Bidang::query()
+            // bukan alfabetis, supaya daftar di navbar sejajar dengan
+            // urutan kartu pada tab bidang.
+            $bidang = Bidang::query()
                 ->when($batasBidang !== null, fn ($q) => $q->whereIn('id', $batasBidang))
                 ->with(['subMenus' => fn ($q) => $q->orderBy('id')])
                 ->withCount(['subMenus', 'subMenus as jumlah_dokumen' => fn ($q) => $q->has('dokumen')])
-                // Sama seperti dashboard: urutan ikut id, bukan nama.
+            // Sama seperti dashboard: urutan ikut id, bukan nama.
                 ->orderBy('id')
                 ->get();
 
@@ -60,7 +79,7 @@ class AppServiceProvider extends ServiceProvider
                 ->when($batasSubMenu !== null, function ($q) use ($batasSubMenu) {
                     $q->whereIn(
                         'dokumen_crmc_id',
-                        \App\Models\DokumenCrmc::query()
+                        DokumenCrmc::query()
                             ->whereIn('sub_menu_id', $batasSubMenu)
                             ->select('id')
                     );
@@ -73,7 +92,7 @@ class AppServiceProvider extends ServiceProvider
                     'nama' => $b->nama_bidang,
                     // Tab pada dashboard memakai id, bukan nama, supaya
                     // nama bidang bebas diubah tanpa merusak tautan lama.
-                    'tab' => 'bidang-' . $b->id,
+                    'tab' => 'bidang-'.$b->id,
                     'ikon' => $b->ikon(),
                     'jumlah' => $b->sub_menus_count,
                     'jumlah_dokumen' => $b->jumlah_dokumen,
@@ -88,5 +107,4 @@ class AppServiceProvider extends ServiceProvider
             ]);
         });
     }
-
-    }
+}

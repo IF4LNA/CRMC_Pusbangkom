@@ -41,9 +41,8 @@ class CrmcController extends Controller
      * Kategori upload yang ukuran filenya tidak dibatasi sama sekali.
      *
      * Komponen 6 (Bukti Pelaksanaan) berisi foto/video bukti kegiatan yang
-     * bisa sangat besar, jadi unggahannya tidak divalidasi batas ukuran dan
-     * tidak dikompres otomatis. Batas praktis yang tersisa hanyalah
-     * upload_max_filesize di php.ini server.
+     * bisa sangat besar, jadi unggahannya tidak dikompres otomatis, tetapi
+     * tetap dibatasi 100MB per file untuk mencegah penghabisan storage.
      *
      * @var array<int, string>
      */
@@ -482,15 +481,17 @@ class CrmcController extends Controller
             // sekali; komponen lain maksimal 50MB karena berkas di atas
             // batas 20MB dikompres otomatis (App\Support\KompresiBerkas).
             'files.*' => $tanpaBatasUkuran
-                ? ['file', new BerkasDokumen]
+                ? ['file', 'max:102400', new BerkasDokumen]
                 : ['file', 'max:'.KompresiBerkas::MAKS_UNGGAH_KB, new BerkasDokumen],
             'keterangan' => 'nullable|array',
             'keterangan.*' => 'nullable|string|max:1000',
-        ], [
+        ], array_filter([
             'files.required' => 'Pilih minimal 1 file untuk diunggah.',
-            'files.*.max' => 'Ukuran file maksimal 50MB per file. File di atas 20MB akan dikompres otomatis; bila kompresi gagal, file ditolak.',
+            'files.*.max' => $tanpaBatasUkuran
+                ? 'Ukuran file maksimal 100MB per file.'
+                : 'Ukuran file maksimal 50MB per file. File di atas 20MB akan dikompres otomatis; bila kompresi gagal, file ditolak.',
             'keterangan.*.max' => 'Keterangan maksimal 1000 karakter.',
-        ]);
+        ]));
 
         // Batasi kategori ke komponen yang memang punya slot upload, supaya
         // request buatan tangan tidak bisa menulis kategori bebas ke tabel.
@@ -1161,10 +1162,25 @@ class CrmcController extends Controller
         $path = $lampiran->storage_path;
         $disk = $lampiran->diskBerkas();
 
-        abort_if($path === null || $disk === null, 404, 'Berkas tidak ditemukan di penyimpanan.');
+        // Cegah path traversal: berkas harus berada di dalam disk.
+        abort_if(
+            $path === null
+            || $disk === null
+            || str_contains($path, '..')
+            || str_contains($path, '\\')
+            || str_starts_with($path, '/')
+            || str_contains($path, "\0"),
+            404,
+            'Berkas tidak ditemukan di penyimpanan.'
+        );
 
         $penyimpanan = Storage::disk($disk);
         $nama = $lampiran->nama_file ?: basename($path);
+        // Bersihkan karakter kontrol/newline agar tidak menyusup ke header.
+        $nama = preg_replace('/[\\r\\n"\\x00]/', '', (string) $nama);
+        if ($nama === '') {
+            $nama = basename($path);
+        }
 
         if ($request->boolean('unduh')) {
             return $penyimpanan->download($path, $nama);

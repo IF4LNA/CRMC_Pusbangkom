@@ -36,7 +36,7 @@ Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 // Semua route di bawah ini dilindungi middleware 'auth' dan otorisasi admin
 // ditegak ulang di dalam AdminController.
 // ========================
-Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
+Route::middleware(['auth', 'admin', 'throttle:admin'])->prefix('admin')->name('admin.')->group(function () {
     // Halaman utama panel admin (menu Kelola Pegawai & Kelola Dokumen).
     Route::get('/', [AdminController::class, 'index'])->name('index');
 
@@ -75,62 +75,64 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
 // ========================
 // ADMIN: Kelola Sub-Bidang (kartu pada tab tiap bidang)
 // ========================
-Route::middleware('auth')->prefix('bidang/sub-bidang')->name('bidang.sub-bidang.')->group(function () {
+Route::middleware(['auth', 'admin', 'throttle:admin'])->prefix('bidang/sub-bidang')->name('bidang.sub-bidang.')->group(function () {
     Route::post('/', [BidangController::class, 'simpanSubBidang'])->name('simpan');
     Route::put('/{id}', [BidangController::class, 'ubahSubBidang'])->name('ubah');
     Route::delete('/{id}', [BidangController::class, 'hapusSubBidang'])->name('hapus');
 });
 
 // ADMIN: Banner navigasi bidang (panel di atas kartu sub-bidang).
-Route::middleware('auth')
+Route::middleware(['auth', 'admin', 'throttle:admin'])
     ->post('/bidang/{id}/banner', [BidangController::class, 'simpanBannerBidang'])
     ->name('bidang.banner.simpan');
 
 // ========================
 // ADMIN: Management Tahun Anggaran
 // Catatan urutan: lihat catatan di atas soal path literal vs {slug}.
-Route::post('/crmc/tahun', [CrmcController::class, 'tambahTahun'])->name('crmc.tahun.store');
-Route::delete('/crmc/tahun/{id}', [CrmcController::class, 'hapusTahun'])->name('crmc.tahun.destroy');
+Route::post('/crmc/tahun', [CrmcController::class, 'tambahTahun'])->middleware('throttle:admin')->name('crmc.tahun.store');
+Route::delete('/crmc/tahun/{id}', [CrmcController::class, 'hapusTahun'])->middleware('throttle:admin')->name('crmc.tahun.destroy');
 
 // ========================
 // ADMIN: Hapus Dokumen per Tahun
 // ========================
 
 // Hapus dokumen tahun tertentu di seluruh sub-bidang
-Route::post('/crmc/hapus-dokumen-tahun', [CrmcController::class, 'hapusDokumenTahunSemua'])->name('crmc.hapus.tahun.semua');
+Route::post('/crmc/hapus-dokumen-tahun', [CrmcController::class, 'hapusDokumenTahunSemua'])->middleware('throttle:admin')->name('crmc.hapus.tahun.semua');
 
 // Lampiran individual (path literal "lampiran" agar tidak jadi {slug})
 // Berkas hanya dikirim lewat route ini supaya akses bidang dapat diperiksa
 // walau berkasnya disimpan di disk privat.
 Route::get('/crmc/lampiran/{id}/berkas', [CrmcController::class, 'berkasLampiran'])->name('crmc.lampiran.berkas');
-Route::delete('/crmc/lampiran/{id}', [CrmcController::class, 'deleteLampiran'])->name('crmc.lampiran.delete');
-Route::patch('/crmc/lampiran/{id}/keterangan', [CrmcController::class, 'updateKeterangan'])->name('crmc.lampiran.keterangan');
+Route::delete('/crmc/lampiran/{id}', [CrmcController::class, 'deleteLampiran'])->middleware('throttle:admin')->name('crmc.lampiran.delete');
+Route::patch('/crmc/lampiran/{id}/keterangan', [CrmcController::class, 'updateKeterangan'])->middleware('throttle:admin')->name('crmc.lampiran.keterangan');
 
 // Tautan Google Drive per Komponen (Komponen 1,2,3,4,5,6,8)
 // Path literal "tautan-drive" didaftarkan di sini juga, sebelum
 // "/crmc/{slug}", supaya tidak tertangkap sebagai slug.
-Route::delete('/crmc/tautan-drive/{id}', [CrmcController::class, 'hapusTautanDrive'])->name('crmc.tautan-drive.destroy');
+Route::delete('/crmc/tautan-drive/{id}', [CrmcController::class, 'hapusTautanDrive'])->middleware('throttle:admin')->name('crmc.tautan-drive.destroy');
 
 // Halaman Detail 8 Komponen CRMC
 Route::get('/crmc/{slug}', [CrmcController::class, 'show'])->name('crmc.show');
 
 // Proses Simpan / Pembaruan Data CRMC
-Route::post('/crmc/{slug}', [CrmcController::class, 'update'])->name('crmc.update');
+Route::post('/crmc/{slug}', [CrmcController::class, 'update'])->middleware('throttle:admin')->name('crmc.update');
 
 // Penugasan Identitas Pegawai (Khusus Admin)
-Route::post('/crmc/{slug}/penugasan', [CrmcController::class, 'updatePenugasan'])->name('crmc.penugasan.update');
+Route::post('/crmc/{slug}/penugasan', [CrmcController::class, 'updatePenugasan'])->middleware('throttle:admin')->name('crmc.penugasan.update');
 
 // Upload Dokumen per Komponen (Pegawai & Admin)
-Route::post('/crmc/{slug}/upload-dokumen', [CrmcController::class, 'uploadDokumen'])->name('crmc.upload.dokumen');
+Route::post('/crmc/{slug}/upload-dokumen', [CrmcController::class, 'uploadDokumen'])
+    ->middleware('throttle:uploads')
+    ->name('crmc.upload.dokumen');
 
 // Tautan Google Drive per Komponen (Pegawai & Admin)
 Route::post('/crmc/{slug}/tautan-drive', [CrmcController::class, 'simpanTautanDrive'])->name('crmc.tautan-drive.store');
 
 // Admin: Update Status Residu Risiko (Komponen 7)
-Route::post('/crmc/{slug}/update-residu', [CrmcController::class, 'updateResidu'])->name('crmc.update.residu');
+Route::post('/crmc/{slug}/update-residu', [CrmcController::class, 'updateResidu'])->middleware('throttle:admin')->name('crmc.update.residu');
 
 // Hapus dokumen satu sub-bidang pada satu tahun (opsional per kategori komponen)
-Route::post('/crmc/{slug}/hapus-dokumen-tahun', [CrmcController::class, 'hapusDokumenTahunSubBidang'])->name('crmc.hapus.tahun.subbidang');
+Route::post('/crmc/{slug}/hapus-dokumen-tahun', [CrmcController::class, 'hapusDokumenTahunSubBidang'])->middleware('throttle:admin')->name('crmc.hapus.tahun.subbidang');
 
 // ========================
 // ADMIN: Kelola Isi Halaman Beranda
@@ -138,7 +140,7 @@ Route::post('/crmc/{slug}/hapus-dokumen-tahun', [CrmcController::class, 'hapusDo
 // Rute tetap memakai middleware 'auth' supaya pengguna tak dikenal tetap
 // diarahkan ke form login. Otorisasi admin ditegur ulang di dalam
 // HomeController::wajibAdmin() pada setiap aksi ubah/hapus.
-Route::middleware('auth')->prefix('admin/beranda')->name('admin.beranda.')->group(function () {
+Route::middleware(['auth', 'admin', 'throttle:admin'])->prefix('admin/beranda')->name('admin.beranda.')->group(function () {
     // Gambar bagan Struktur Organisasi (menggantikan input manual peran)
     Route::post('/struktur/gambar', [HomeController::class, 'simpanGambarStruktur'])->name('struktur.gambar.simpan');
     Route::delete('/struktur/gambar', [HomeController::class, 'hapusGambarStruktur'])->name('struktur.gambar.hapus');
@@ -158,7 +160,7 @@ Route::middleware('auth')->prefix('admin/beranda')->name('admin.beranda.')->grou
 // berkas scan-nya. Otorisasi admin ditegur ulang di dalam
 // DokumenDasarHukumController::wajibAdmin().
 // ========================================================
-Route::middleware('auth')->prefix('admin/dasar-hukum')->name('admin.dasar-hukum.')->group(function () {
+Route::middleware(['auth', 'admin', 'throttle:admin'])->prefix('admin/dasar-hukum')->name('admin.dasar-hukum.')->group(function () {
     Route::post('/{id}/berkas', [DokumenDasarHukumController::class, 'unggahBerkas'])->name('berkas.simpan');
     Route::delete('/{id}/berkas', [DokumenDasarHukumController::class, 'hapusBerkas'])->name('berkas.hapus');
 });

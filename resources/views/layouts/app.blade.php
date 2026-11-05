@@ -746,17 +746,17 @@
             );
             if (filtered.length > 0) {
                 resultsGrid.innerHTML = filtered.map(item => `
-                    <div onclick="navigateToCRMC('${item.slug}')" class="card click-card px-3 py-2.5 flex items-center justify-between gap-2">
+                    <div onclick="navigateToCRMC('${escapeHtml(item.slug)}')" class="card click-card px-3 py-2.5 flex items-center justify-between gap-2">
                         <div class="min-w-0">
-                            <span class="block text-[10px] font-bold uppercase tracking-wide text-slate-400">${item.parent}</span>
-                            <h5 class="text-xs font-semibold text-slate-800 truncate">${item.judul}</h5>
+                            <span class="block text-[10px] font-bold uppercase tracking-wide text-slate-400">${escapeHtml(item.parent)}</span>
+                            <h5 class="text-xs font-semibold text-slate-800 truncate">${escapeHtml(item.judul)}</h5>
                         </div>
                         <i data-lucide="arrow-right" class="w-4 h-4 text-slate-400 shrink-0"></i>
                     </div>
                 `).join('');
                 if (typeof lucide !== 'undefined') lucide.createIcons();
             } else {
-                resultsGrid.innerHTML = `<p class="text-xs text-slate-400 col-span-3">Tidak ditemukan sub-bidang sesuai kata kunci "${query}"</p>`;
+                resultsGrid.innerHTML = `<p class="text-xs text-slate-400 col-span-3">Tidak ditemukan sub-bidang sesuai kata kunci "${escapeHtml(query)}"</p>`;
             }
             if (resultsContainer) resultsContainer.classList.remove('hidden');
         }
