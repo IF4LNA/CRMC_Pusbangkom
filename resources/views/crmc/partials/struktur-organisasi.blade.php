@@ -198,23 +198,22 @@
             @php $pemilikRisiko = $strukturOrganisasi['pemilikRisiko']; @endphp
             @if ($pemilikRisiko)
                 <article class="org-card org-card--root" data-org-node="root">
-                    <img src="{{ $pemilikRisiko->foto_url }}" alt="{{ $pemilikRisiko->name }}"
-                         loading="lazy" decoding="async" class="org-photo org-photo--root">
                     <span class="org-tag org-tag--root">
                         <i data-lucide="crown" class="w-3 h-3"></i> Pemilik Risiko
                     </span>
+                    <img src="{{ $pemilikRisiko->foto_url }}" alt="{{ $pemilikRisiko->name }}"
+                         loading="lazy" decoding="async" class="org-photo org-photo--root">
                     <h4 class="org-name">{{ $pemilikRisiko->name }}</h4>
-                    <p class="org-meta">NIP. {{ $pemilikRisiko->nip ?? '-' }}</p>
                     <p class="org-jabatan">{{ $pemilikRisiko->jabatan ?? '-' }}</p>
                 </article>
             @else
                 <article class="org-card org-card--root org-card--kosong" data-org-node="root">
-                    <div class="org-photo org-photo--root org-photo--kosong">
-                        <i data-lucide="user-round-x" class="w-14 h-14 text-blue-200"></i>
-                    </div>
                     <span class="org-tag org-tag--root">
                         <i data-lucide="crown" class="w-3 h-3"></i> Pemilik Risiko
                     </span>
+                    <div class="org-photo org-photo--root org-photo--kosong">
+                        <i data-lucide="user-round-x" class="w-14 h-14 text-blue-200"></i>
+                    </div>
                     <h4 class="org-name">Belum Ditunjuk</h4>
                     <p class="org-meta">Atur lewat Komponen 1 halaman 8 Komponen.</p>
                 </article>
@@ -229,6 +228,10 @@
                     @endphp
                     <article class="org-card org-card--child {{ $mutu ? '' : 'org-card--kosong' }}"
                              data-org-node="child">
+                        <span class="org-tag org-tag--child">
+                            <i data-lucide="badge-check" class="w-3 h-3"></i> Pengendali Mutu
+                        </span>
+
                         @if ($mutu)
                             <img src="{{ $mutu->foto_url }}" alt="{{ $mutu->name }}"
                                  loading="lazy" decoding="async" class="org-photo">
@@ -238,12 +241,7 @@
                             </div>
                         @endif
 
-                        <span class="org-tag org-tag--child">
-                            <i data-lucide="badge-check" class="w-3 h-3"></i> Pengendali Mutu
-                        </span>
-
                         <h4 class="org-name">{{ $mutu->name ?? 'Belum Ditunjuk' }}</h4>
-                        <p class="org-meta">NIP. {{ $mutu->nip ?? '-' }}</p>
 
                         {{-- Keterangan bagian: pengendali mutu ini bertugas di bidang mana. --}}
                         <span class="org-bidang">
@@ -257,6 +255,40 @@
                 @endforelse
             </div>
         </div>
+    </div>
+
+    {{-- Penjelasan singkat tiap tingkat --}}
+    <div class="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-3">
+        @php
+            $ket = [
+                [
+                    'ikon' => 'crown',
+                    'judul' => 'Pemilik Risiko',
+                    'isi' => 'Memastikan pengendalian risiko berjalan di seluruh bidang dan menjadi rujukan utama',
+                ],
+                [
+                    'ikon' => 'badge-check',
+                    'judul' => 'Pengendali Mutu',
+                    'isi' => 'Memastikan kualitas dan kelengkapan instrumen pengendalian yang diisi',
+                ],
+                [
+                    'ikon' => 'shield-check',
+                    'judul' => 'Pengendali Risiko',
+                    'isi' => 'Melaksanakan aktivitas pengendalian dan mengisi formulir instrumen',
+                ],
+            ];
+        @endphp
+        @foreach ($ket as $k)
+            <div class="card p-4 flex items-start gap-3">
+                <div class="w-8 h-8 rounded-md bg-blue-50 text-blue-700 flex items-center justify-center shrink-0">
+                    <i data-lucide="{{ $k['ikon'] }}" class="w-4 h-4"></i>
+                </div>
+                <div>
+                    <h4 class="text-xs font-bold text-slate-800">{{ $k['judul'] }}</h4>
+                    <p class="page-sub leading-relaxed mt-0.5">{{ $k['isi'] }}</p>
+                </div>
+            </div>
+        @endforeach
     </div>
 </div>
 

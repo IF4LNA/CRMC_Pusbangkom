@@ -58,39 +58,6 @@
                 @endif
             </figure>
 
-            {{-- Penjelasan singkat tiap tingkat --}}
-            <div class="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-3">
-                @php
-                    $ket = [
-                        [
-                            'ikon' => 'crown',
-                            'judul' => 'Pemilik Risiko',
-                            'isi' => 'Memastikan pengendalian risiko berjalan di seluruh bidang dan menjadi rujukan utama',
-                        ],
-                        [
-                            'ikon' => 'badge-check',
-                            'judul' => 'Pengendali Mutu',
-                            'isi' => 'Memastikan kualitas dan kelengkapan instrumen pengendalian yang diisi',
-                        ],
-                        [
-                            'ikon' => 'shield-check',
-                            'judul' => 'Pengendali Risiko',
-                            'isi' => 'Melaksanakan aktivitas pengendalian dan mengisi formulir instrumen',
-                        ],
-                    ];
-                @endphp
-                @foreach ($ket as $k)
-                    <div class="card p-4 flex items-start gap-3">
-                        <div class="w-8 h-8 rounded-md bg-blue-50 text-blue-700 flex items-center justify-center shrink-0">
-                            <i data-lucide="{{ $k['ikon'] }}" class="w-4 h-4"></i>
-                        </div>
-                        <div>
-                            <h4 class="text-xs font-bold text-slate-800">{{ $k['judul'] }}</h4>
-                            <p class="page-sub leading-relaxed mt-0.5">{{ $k['isi'] }}</p>
-                        </div>
-                    </div>
-                @endforeach
-            </div>
         @else
             {{-- Empty state --}}
             <div class="empty">
