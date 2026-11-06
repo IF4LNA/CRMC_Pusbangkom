@@ -11,7 +11,7 @@
         <span class="eyebrow text-blue-200">Khusus Administrator</span>
         <h1 class="page-title mt-0.5 text-white">Kelola Dokumen</h1>
         <p class="page-sub mt-1 leading-relaxed text-blue-100">
-            Daftar sub-bidang yang dokumennya belum lengkap untuk tahun yang
+            Daftar pengendalian resiko yang dokumennya belum lengkap untuk tahun yang
             dipilih, beserta komponen mana saja yang masih kosong.
         </p>
     </div>
@@ -37,10 +37,10 @@
     </div>
 
     <div class="sm:col-span-1 lg:col-span-2">
-        <label class="label" for="filterCari">Cari Sub-Bidang</label>
+        <label class="label" for="filterCari">Cari Pengendalian Resiko</label>
         <div class="relative">
             <input type="search" name="q" id="filterCari" value="{{ $kataKunci }}"
-                   placeholder="Nama sub-bidang atau bidang"
+                   placeholder="Nama pengendalian resiko atau bidang"
                    class="input pl-8">
             <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-2.5 top-2.5"></i>
         </div>
@@ -75,24 +75,24 @@
     <div class="stat">
         <p class="stat-label">Belum Lengkap</p>
         <p class="stat-value text-rose-700">{{ $jumlahBelumLengkap }}</p>
-        <p class="stat-note">dari {{ $totalSubBidang }} sub-bidang</p>
+        <p class="stat-note">dari {{ $totalSubBidang }} pengendalian resiko</p>
     </div>
     <div class="stat">
         <p class="stat-label">Sudah Lengkap</p>
         <p class="stat-value text-emerald-700">{{ $jumlahLengkap }}</p>
-        <p class="stat-note">{{ $totalKomponen }} komponen dicek per sub-bidang</p>
+        <p class="stat-note">{{ $totalKomponen }} komponen dicek per pengendalian resiko</p>
     </div>
 </div>
 
-{{-- ===================== DAFTAR SUB-BIDANG ===================== --}}
+{{-- ===================== DAFTAR PENGENDALIAN RESIKO ===================== --}}
 <div class="card overflow-hidden">
     <div class="card-head flex flex-wrap items-center justify-between gap-2">
         <h2 class="card-title flex items-center gap-1.5">
             <i data-lucide="file-stack" class="w-4 h-4 text-slate-400"></i>
-            Sub-Bidang Belum Lengkap — Tahun {{ $selectedTahun }}
+            Pengendalian Resiko Belum Lengkap — Tahun {{ $selectedTahun }}
         </h2>
         <span class="badge {{ $subBidang->isEmpty() ? 'badge-ok' : 'badge-bad' }}">
-            {{ $subBidang->count() }} sub-bidang ditampilkan
+            {{ $subBidang->count() }} pengendalian resiko ditampilkan
         </span>
     </div>
 
@@ -100,20 +100,20 @@
         <div class="empty m-4">
             @if ($kataKunci !== '')
                 <i data-lucide="search-x" class="w-7 h-7 text-slate-300 mx-auto mb-2"></i>
-                <p class="font-semibold text-slate-600">Tidak ada sub-bidang yang cocok</p>
+                <p class="font-semibold text-slate-600">Tidak ada pengendalian resiko yang cocok</p>
                 <p class="text-[11px] text-slate-400 mt-1 max-w-md mx-auto leading-relaxed">
-                    Coba kata kunci lain, atau tekan Reset untuk melihat seluruh sub-bidang.
+                    Coba kata kunci lain, atau tekan Reset untuk melihat seluruh pengendalian resiko.
                 </p>
             @elseif ($jumlahBelumLengkap === 0)
                 <i data-lucide="check-circle-2" class="w-7 h-7 text-emerald-500 mx-auto mb-2"></i>
-                <p class="font-semibold text-slate-600">Semua sub-bidang sudah lengkap</p>
+                <p class="font-semibold text-slate-600">Semua pengendalian resiko sudah lengkap</p>
                 <p class="text-[11px] text-slate-400 mt-1 max-w-md mx-auto leading-relaxed">
-                    Seluruh {{ $totalSubBidang }} sub-bidang sudah memiliki dokumen untuk
+                    Seluruh {{ $totalSubBidang }} pengendalian resiko sudah memiliki dokumen untuk
                     tahun {{ $selectedTahun }}.
                 </p>
             @else
                 <i data-lucide="inbox" class="w-7 h-7 text-slate-300 mx-auto mb-2"></i>
-                <p class="font-semibold text-slate-600">Tidak ada sub-bidang untuk ditampilkan</p>
+                <p class="font-semibold text-slate-600">Tidak ada pengendalian resiko untuk ditampilkan</p>
             @endif
         </div>
     @else
@@ -238,7 +238,7 @@
         <div class="min-w-0">
             <h3 class="text-sm font-semibold text-rose-900">Hapus Seluruh Dokumen Satu Tahun</h3>
             <p class="text-[11px] text-rose-700/80">
-                Berlaku untuk semua sub-bidang, termasuk file fisik di storage.
+                Berlaku untuk semua pengendalian resiko, termasuk file fisik di storage.
             </p>
         </div>
     </div>
@@ -257,7 +257,7 @@
             </select>
         </div>
         <button type="submit"
-                data-konfirmasi="PERINGATAN: seluruh dokumen tahun yang dipilih di SEMUA sub-bidang akan dihapus permanen, termasuk file fisik di storage. Tindakan ini tidak bisa dibatalkan. Lanjutkan?"
+                data-konfirmasi="PERINGATAN: seluruh dokumen tahun yang dipilih di SEMUA pengendalian resiko akan dihapus permanen, termasuk file fisik di storage. Tindakan ini tidak bisa dibatalkan. Lanjutkan?"
                 class="btn !bg-rose-600 !border-rose-600 !text-white hover:!bg-rose-700">
             <i data-lucide="trash-2" class="w-4 h-4"></i>
             <span>Hapus Semua Dokumen Tahun Tersebut</span>

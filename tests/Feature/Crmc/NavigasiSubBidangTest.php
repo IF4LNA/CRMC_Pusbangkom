@@ -4,6 +4,7 @@ namespace Tests\Feature\Crmc;
 
 use App\Models\Bidang;
 use App\Models\SubMenu;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -26,7 +27,7 @@ class NavigasiSubBidangTest extends TestCase
 
     private Bidang $bidangSda;
 
-    private \App\Models\User $admin;
+    private User $admin;
 
     protected function setUp(): void
     {
@@ -35,7 +36,7 @@ class NavigasiSubBidangTest extends TestCase
         $this->bidangUmum = Bidang::create(['nama_bidang' => 'Bagian Umum Program & Tata Usaha']);
         $this->bidangSda = Bidang::create(['nama_bidang' => 'Bidang SDA']);
 
-        $this->admin = \App\Models\User::create([
+        $this->admin = User::create([
             'name' => 'Admin Uji',
             'nip' => '199001012026011234',
             'jabatan' => 'Administrator',
@@ -67,8 +68,8 @@ class NavigasiSubBidangTest extends TestCase
         // Sebelumnya -> Perencanaan, Berikutnya -> Evaluasi.
         $response->assertSee(route('crmc.show', ['slug' => 'perencanaan']), false);
         $response->assertSee(route('crmc.show', ['slug' => 'evaluasi']), false);
-        $response->assertSee('Sub-bidang sebelumnya: Perencanaan', false);
-        $response->assertSee('Sub-bidang berikutnya: Evaluasi', false);
+        $response->assertSee('Pengendalian resiko sebelumnya: Perencanaan', false);
+        $response->assertSee('Pengendalian resiko berikutnya: Evaluasi', false);
     }
 
     public function test_sub_bidang_pertama_punya_berikutnya_tapi_sebelumnya_nonaktif(): void
@@ -82,7 +83,7 @@ class NavigasiSubBidangTest extends TestCase
         $response->assertSee(route('crmc.show', ['slug' => 'manajemen-risiko']), false);
 
         // Tidak ada tautan ke sub-bidang sebelum Perencanaan.
-        $response->assertSee('Sudah di sub-bidang pertama', false);
+        $response->assertSee('Sudah di pengendalian resiko pertama', false);
     }
 
     public function test_sub_bidang_terakhir_punya_sebelumnya_tapi_berikutnya_nonaktif(): void
@@ -94,7 +95,7 @@ class NavigasiSubBidangTest extends TestCase
 
         $response->assertOk();
         $response->assertSee(route('crmc.show', ['slug' => 'perencanaan']), false);
-        $response->assertSee('Sudah di sub-bidang terakhir', false);
+        $response->assertSee('Sudah di pengendalian resiko terakhir', false);
     }
 
     public function test_navigasi_tidak_menyeberang_ke_bidang_lain(): void
@@ -111,7 +112,7 @@ class NavigasiSubBidangTest extends TestCase
         $response->assertOk();
         $response->assertSee(route('crmc.show', ['slug' => 'perencanaan']), false);
         $response->assertDontSee(route('crmc.show', ['slug' => 'pengelolaan-sda']), false);
-        $response->assertSee('Sudah di sub-bidang terakhir', false);
+        $response->assertSee('Sudah di pengendalian resiko terakhir', false);
     }
 
     public function test_bidang_dengan_satu_sub_bidang_tidak_menampilkan_navigasi(): void

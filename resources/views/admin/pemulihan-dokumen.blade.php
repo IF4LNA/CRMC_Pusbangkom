@@ -132,7 +132,7 @@
                         </th>
                         <th>Nama File</th>
                         <th>Tahun</th>
-                        <th>Sub-Bidang</th>
+                        <th>Pengendalian Resiko</th>
                         <th>Kategori</th>
                         <th>Tipe</th>
                         <th>Status</th>

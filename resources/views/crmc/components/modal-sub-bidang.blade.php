@@ -13,9 +13,9 @@
     <div class="modal-card !max-w-lg">
         <div class="modal-head">
             <div>
-                <h3 class="modal-title" id="judulModalSubBidang">Tambah Sub-Bidang</h3>
+                <h3 class="modal-title" id="judulModalSubBidang">Tambah Pengendalian Resiko</h3>
                 <p class="page-sub mt-0.5" id="subjudulModalSubBidang">
-                    Sub-bidang baru di bawah bidang yang dipilih
+                    Pengendalian resiko baru di bawah bidang yang dipilih
                 </p>
             </div>
             <button onclick="tutupModalSubBidang()" title="Tutup" class="icon-btn shrink-0">
@@ -53,7 +53,7 @@
                 </div>
 
                 <div>
-                    <label class="label" for="inputSubBidangNama">Nama Sub-Bidang <span class="text-rose-500">*</span></label>
+                    <label class="label" for="inputSubBidangNama">Nama Pengendalian Resiko <span class="text-rose-500">*</span></label>
                     <input type="text" name="nama_sub_menu" id="inputSubBidangNama" required maxlength="150"
                            placeholder="mis. Pengelolaan Aset dan Inventaris"
                            class="input">
@@ -73,13 +73,13 @@
                 <div id="pratinjauLatarSubBidang" class="hidden">
                     <p class="label !mb-1.5">Pratinjau Kartu</p>
                     <div class="sub-bidang-banner relative overflow-hidden rounded-lg h-24 p-3 flex flex-col justify-between">
-                        <img id="gambarPratinjauLatar" src="" alt="Latar sub-bidang saat ini"
+                        <img id="gambarPratinjauLatar" src="" alt="Latar pengendalian resiko saat ini"
                              class="absolute inset-0 h-full w-full object-cover object-center">
                         <div id="overlayPratinjauLatar" class="absolute inset-0 bg-gradient-to-b from-blue-900/20 via-blue-950/45 to-blue-950/95"></div>
                         <span class="relative sub-bidang-chip w-fit">SUB #1</span>
                         <div class="relative">
                             <p id="teksPratinjauLatar" class="text-sm font-bold text-white truncate">
-                                Nama Sub-Bidang
+                                Nama Pengendalian Resiko
                             </p>
                             <p class="text-[11px] text-blue-200 mt-0.5">Tampilan di dashboard</p>
                         </div>
@@ -173,7 +173,7 @@
             : FORM_SUBBIDANG_SIMPAN;
         document.getElementById('metodeSubBidang').value = menyunting ? 'PUT' : '';
         document.getElementById('judulModalSubBidang').textContent =
-            menyunting ? 'Ubah Sub-Bidang' : 'Tambah Sub-Bidang';
+            menyunting ? 'Ubah Pengendalian Resiko' : 'Tambah Pengendalian Resiko';
         document.getElementById('labelTombolSubBidang').textContent =
             menyunting ? 'Simpan Perubahan' : 'Simpan';
 
@@ -200,7 +200,7 @@
         const overlayPratinjau = document.getElementById('overlayPratinjauLatar');
 
         document.getElementById('teksPratinjauLatar').textContent =
-            data?.nama_sub_menu || 'Nama Sub-Bidang';
+            data?.nama_sub_menu || 'Nama Pengendalian Resiko';
 
         if (data?.punya_gambar && data?.gambar_latar_url) {
             imgPratinjau.src = data.gambar_latar_url;
@@ -279,8 +279,8 @@
 
     function konfirmasiHapusSubBidang(id, nama) {
         const pesan =
-            'Hapus sub-bidang "' + nama + '"?\n\n' +
-            'Seluruh dokumen, lampiran, dan gambar latar milik sub-bidang ini ' +
+            'Hapus pengendalian resiko "' + nama + '"?\n\n' +
+            'Seluruh dokumen, lampiran, dan gambar latar milik pengendalian resiko ini ' +
             'akan ikut terhapus dari server. Tindakan ini tidak dapat dibatalkan.';
         if (!confirm(pesan)) return;
 

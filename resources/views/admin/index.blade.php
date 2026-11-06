@@ -59,7 +59,7 @@
             </div>
             <h2 class="text-base font-bold text-slate-900">Kelola Dokumen</h2>
             <p class="page-sub mt-1 leading-relaxed">
-                Lihat sub-bidang yang dokumennya belum lengkap per tahun, lalu
+                Lihat pengendalian resiko yang dokumennya belum lengkap per tahun, lalu
                 kelola daftar tahun dan hapus dokumen satu tahun sekaligus.
             </p>
         </div>

@@ -587,7 +587,7 @@
         @php
             $deskripsiKomponen = [
                 'risk_register'         => 'Dokumen identifikasi peristiwa risiko, analisis dampak, dan register risiko.',
-                'sop'                   => 'Standar prosedur kerja yang menjadi acuan pelaksanaan di sub-bidang ini.',
+                'sop'                   => 'Standar prosedur kerja yang menjadi acuan pelaksanaan di pengendalian resiko ini.',
                 'formulir_pengendalian' => 'Formulir pengendalian dan daftar periksa kepatuhan.',
                 'jadwal_pelaksanaan'    => 'Jadwal rencana pelaksanaan kegiatan pada tahun berjalan.',
                 'bukti_pelaksanaan'     => 'Bukti realisasi kegiatan berupa foto, notula, dan laporan.',
@@ -936,9 +936,9 @@
                         <i data-lucide="folder-minus" class="w-4 h-4"></i>
                     </div>
                     <div class="flex-1">
-                        <h4 class="font-semibold text-slate-800">Hapus Dokumen Sub-Bidang Ini per Tahun</h4>
+                        <h4 class="font-semibold text-slate-800">Hapus Dokumen Pengendalian Resiko Ini per Tahun</h4>
                         <p class="page-sub mt-0.5">
-                            Menghapus dokumen tahun tertentu pada sub-bidang <strong>{{ $subBidangName }}</strong> saja.
+                            Menghapus dokumen tahun tertentu pada pengendalian resiko <strong>{{ $subBidangName }}</strong> saja.
                             Record database dan file fisik di storage ikut terhapus. Residu tahun tersebut juga ikut hilang.
                         </p>
                     </div>
@@ -965,9 +965,9 @@
                             @endforeach
                         </select>
                     </div>
-                    <button type="submit" data-konfirmasi="Hapus dokumen tahun {{ $selectedTahun }} pada sub-bidang &quot;{{ $subBidangName }}&quot;? Record database dan file fisik di storage ikut terhapus. Tindakan ini tidak bisa dibatalkan."
+                    <button type="submit" data-konfirmasi="Hapus dokumen tahun {{ $selectedTahun }} pada pengendalian resiko &quot;{{ $subBidangName }}&quot;? Record database dan file fisik di storage ikut terhapus. Tindakan ini tidak bisa dibatalkan."
                             class="btn btn-primary">
-                        <i data-lucide="trash-2" class="w-4 h-4"></i><span>Hapus di Sub-Bidang Ini</span>
+                        <i data-lucide="trash-2" class="w-4 h-4"></i><span>Hapus di Pengendalian Resiko Ini</span>
                     </button>
                 </div>
             </form>
@@ -1512,7 +1512,7 @@
                         </select>
                         <div class="hint flex items-start gap-1.5">
                             <i data-lucide="globe-2" class="w-3 h-3 shrink-0 mt-0.5"></i>
-                            <span><strong>Berlaku untuk semua sub-bidang.</strong> Hanya ada 1 Pemilik Risiko untuk seluruh CRMC.</span>
+                            <span><strong>Berlaku untuk semua pengendalian resiko.</strong> Hanya ada 1 Pemilik Risiko untuk seluruh CRMC.</span>
                         </div>
                     </div>
 

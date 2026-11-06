@@ -12,6 +12,7 @@ use App\Models\User;
 use App\Support\AksesBidang;
 use App\Support\PenyimpananGambar;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 
@@ -42,7 +43,7 @@ class BidangController extends Controller
             'tidakPunyaBidang' => $tidakPunyaBidang,
             // Tab pertama yang boleh dibuka, dipakai tombol "Mulai Kelola".
             'tabAwal' => $daftarBidang->isNotEmpty()
-                ? 'bidang-' . $daftarBidang->first()->id
+                ? 'bidang-'.$daftarBidang->first()->id
                 : null,
             'ringkasanPersonel' => $this->ringkasanPersonel((int) date('Y')),
             // Bagan struktur organisasi (Pemilik Risiko -> Pengendali Mutu
@@ -68,7 +69,7 @@ class BidangController extends Controller
      * begitu bagan ikut berubah begitu admin memperbarui penugasan di
      * Komponen 1, tanpa perlu input ganda.
      *
-     * @return array{tahun:int, pemilikRisiko:?User, pengendaliMutu:\Illuminate\Support\Collection<int, array{bidang:Bidang, user:?User}>}
+     * @return array{tahun:int, pemilikRisiko:?User, pengendaliMutu:Collection<int, array{bidang:Bidang, user:?User}>}
      */
     private function strukturOrganisasi(int $tahun): array
     {
@@ -221,7 +222,7 @@ class BidangController extends Controller
 
         SubMenu::create($data);
 
-        return back()->with('success', 'Sub-bidang "' . $data['nama_sub_menu'] . '" berhasil ditambahkan.');
+        return back()->with('success', 'Pengendalian resiko "'.$data['nama_sub_menu'].'" berhasil ditambahkan.');
     }
 
     public function ubahSubBidang(Request $request, $id)
@@ -248,7 +249,7 @@ class BidangController extends Controller
                 Storage::disk('public')->delete($pathLama);
             }
 
-            $pesan = 'Sub-bidang "' . $data['nama_sub_menu'] . '" berhasil diperbarui.';
+            $pesan = 'Pengendalian resiko "'.$data['nama_sub_menu'].'" berhasil diperbarui.';
             if ($pathLama) {
                 $pesan .= ' Gambar latarnya diganti.';
             }
@@ -267,7 +268,7 @@ class BidangController extends Controller
 
             return back()->with(
                 'success',
-                'Gambar latar sub-bidang "' . $data['nama_sub_menu'] . '" telah dihapus.'
+                'Gambar latar pengendalian resiko "'.$data['nama_sub_menu'].'" telah dihapus.'
             );
         }
 
@@ -275,7 +276,7 @@ class BidangController extends Controller
         // dipertahankan.
         $subMenu->update($data);
 
-        return back()->with('success', 'Sub-bidang "' . $data['nama_sub_menu'] . '" berhasil diperbarui.');
+        return back()->with('success', 'Pengendalian resiko "'.$data['nama_sub_menu'].'" berhasil diperbarui.');
     }
 
     public function hapusSubBidang($id)
@@ -303,7 +304,7 @@ class BidangController extends Controller
 
         return back()->with(
             'success',
-            'Sub-bidang "' . $nama . '" beserta seluruh dokumen dan lampirannya berhasil dihapus.'
+            'Pengendalian resiko "'.$nama.'" beserta seluruh dokumen dan lampirannya berhasil dihapus.'
         );
     }
 
@@ -346,7 +347,7 @@ class BidangController extends Controller
                 Storage::disk('public')->delete($pathLama);
             }
 
-            return back()->with('success', 'Banner navigasi bidang "' . $bidang->nama_bidang . '" berhasil diperbarui.');
+            return back()->with('success', 'Banner navigasi bidang "'.$bidang->nama_bidang.'" berhasil diperbarui.');
         }
 
         if ($request->boolean('hapus_gambar')) {
@@ -356,7 +357,7 @@ class BidangController extends Controller
                 Storage::disk('public')->delete($pathLama);
             }
 
-            return back()->with('success', 'Banner navigasi bidang "' . $bidang->nama_bidang . '" telah dikembalikan ke gambar bawaan.');
+            return back()->with('success', 'Banner navigasi bidang "'.$bidang->nama_bidang.'" telah dikembalikan ke gambar bawaan.');
         }
 
         return back()->withErrors([
@@ -387,8 +388,8 @@ class BidangController extends Controller
         return [
             'bidang_id.required' => 'Bidang wajib dipilih.',
             'bidang_id.exists' => 'Bidang yang dipilih tidak ditemukan.',
-            'nama_sub_menu.required' => 'Nama sub-bidang wajib diisi.',
-            'nama_sub_menu.max' => 'Nama sub-bidang maksimal 150 karakter.',
+            'nama_sub_menu.required' => 'Nama pengendalian resiko wajib diisi.',
+            'nama_sub_menu.max' => 'Nama pengendalian resiko maksimal 150 karakter.',
             'gambar_latar.image' => 'Berkas yang dipilih bukan gambar.',
             'gambar_latar.mimes' => 'Format gambar harus JPG, PNG, atau WebP.',
             'gambar_latar.max' => 'Ukuran gambar maksimal 4 MB.',
@@ -413,8 +414,8 @@ class BidangController extends Controller
 
     private function wajibAdmin(): void
     {
-        if (!$this->bolehKelola()) {
-            abort(403, 'Akses Ditolak: Hanya Administrator yang dapat mengelola bidang dan sub-bidang.');
+        if (! $this->bolehKelola()) {
+            abort(403, 'Akses Ditolak: Hanya Administrator yang dapat mengelola bidang dan pengendalian resiko.');
         }
     }
 }

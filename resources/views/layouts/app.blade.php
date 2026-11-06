@@ -756,7 +756,7 @@
                 `).join('');
                 if (typeof lucide !== 'undefined') lucide.createIcons();
             } else {
-                resultsGrid.innerHTML = `<p class="text-xs text-slate-400 col-span-3">Tidak ditemukan sub-bidang sesuai kata kunci "${escapeHtml(query)}"</p>`;
+                resultsGrid.innerHTML = `<p class="text-xs text-slate-400 col-span-3">Tidak ditemukan pengendalian resiko sesuai kata kunci "${escapeHtml(query)}"</p>`;
             }
             if (resultsContainer) resultsContainer.classList.remove('hidden');
         }

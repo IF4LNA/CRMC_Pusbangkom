@@ -58,14 +58,14 @@ class BannerBidangTest extends TestCase
             ->assertSee('Navigasi Bidang')
             ->assertSee('images/crmc_hero.jpg')
             ->assertSee('Ganti Banner')
-            ->assertSee('Tambah Sub-Bidang');
+            ->assertSee('Tambah Pengendalian Resiko');
     }
 
     public function test_admin_bisa_mengunggah_banner_bidang(): void
     {
         $this->actingAs($this->admin)
             ->from('/dashboard')
-            ->post('/bidang/' . $this->bidang->id . '/banner', [
+            ->post('/bidang/'.$this->bidang->id.'/banner', [
                 'gambar' => UploadedFile::fake()->image('banner.jpg', 1600, 600),
             ])
             ->assertRedirect('/dashboard')
@@ -82,14 +82,14 @@ class BannerBidangTest extends TestCase
 
     public function test_mengganti_banner_menghapus_file_lama(): void
     {
-        $this->actingAs($this->admin)->post('/bidang/' . $this->bidang->id . '/banner', [
+        $this->actingAs($this->admin)->post('/bidang/'.$this->bidang->id.'/banner', [
             'gambar' => UploadedFile::fake()->image('lama.jpg', 1200, 500),
         ]);
 
         $pathLama = $this->bidang->fresh()->gambar_latar;
         $this->assertNotNull($pathLama);
 
-        $this->actingAs($this->admin)->post('/bidang/' . $this->bidang->id . '/banner', [
+        $this->actingAs($this->admin)->post('/bidang/'.$this->bidang->id.'/banner', [
             'gambar' => UploadedFile::fake()->image('baru.jpg', 1200, 500),
         ])->assertRedirect();
 
@@ -101,7 +101,7 @@ class BannerBidangTest extends TestCase
 
     public function test_admin_bisa_menghapus_banner_kustom(): void
     {
-        $this->actingAs($this->admin)->post('/bidang/' . $this->bidang->id . '/banner', [
+        $this->actingAs($this->admin)->post('/bidang/'.$this->bidang->id.'/banner', [
             'gambar' => UploadedFile::fake()->image('banner.jpg', 1200, 500),
         ]);
 
@@ -110,7 +110,7 @@ class BannerBidangTest extends TestCase
 
         $this->actingAs($this->admin)
             ->from('/dashboard')
-            ->post('/bidang/' . $this->bidang->id . '/banner', ['hapus_gambar' => '1'])
+            ->post('/bidang/'.$this->bidang->id.'/banner', ['hapus_gambar' => '1'])
             ->assertRedirect('/dashboard')
             ->assertSessionHasNoErrors();
 
@@ -122,7 +122,7 @@ class BannerBidangTest extends TestCase
     public function test_berkas_bukan_gambar_ditolak(): void
     {
         $this->actingAs($this->admin)
-            ->post('/bidang/' . $this->bidang->id . '/banner', [
+            ->post('/bidang/'.$this->bidang->id.'/banner', [
                 'gambar' => UploadedFile::fake()->create('dokumen.pdf', 10, 'application/pdf'),
             ])
             ->assertSessionHasErrors('gambar', null, 'bannerBidang');
@@ -133,7 +133,7 @@ class BannerBidangTest extends TestCase
     public function test_tanpa_gambar_dan_tanpa_hapus_ditolak(): void
     {
         $this->actingAs($this->admin)
-            ->post('/bidang/' . $this->bidang->id . '/banner', [])
+            ->post('/bidang/'.$this->bidang->id.'/banner', [])
             ->assertSessionHasErrors(
                 ['gambar' => 'Pilih gambar banner terlebih dahulu, atau centang opsi hapus banner.'],
                 null,
@@ -144,7 +144,7 @@ class BannerBidangTest extends TestCase
     public function test_pegawai_tidak_boleh_mengganti_banner(): void
     {
         $this->actingAs($this->pegawai)
-            ->post('/bidang/' . $this->bidang->id . '/banner', [
+            ->post('/bidang/'.$this->bidang->id.'/banner', [
                 'gambar' => UploadedFile::fake()->image('banner.jpg', 800, 400),
             ])
             ->assertForbidden();
@@ -162,7 +162,7 @@ class BannerBidangTest extends TestCase
 
     public function test_tamu_diarahkan_ke_login(): void
     {
-        $this->post('/bidang/' . $this->bidang->id . '/banner', [])
+        $this->post('/bidang/'.$this->bidang->id.'/banner', [])
             ->assertRedirect('/login');
     }
 

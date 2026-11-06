@@ -13,7 +13,7 @@
             <span class="eyebrow text-blue-200">Komponen 3 CRMC</span>
             <h1 class="page-title mt-0.5 text-white">Kumpulan Standar Operasional Prosedur (SOP)</h1>
             <p class="page-sub mt-1 leading-relaxed text-blue-100">
-                Seluruh dokumen SOP yang sudah diunggah pada sub-bidang mana pun,
+                Seluruh dokumen SOP yang sudah diunggah pada pengendalian resiko mana pun,
                 dihimpun di satu halaman. Total {{ number_format($totalSop, 0, ',', '.') }}
                 dokumen; sedang tampil {{ number_format($daftarSop->total(), 0, ',', '.') }} dokumen.
             </p>
@@ -44,7 +44,7 @@
             <label class="label" for="filterSopCari">Kata Kunci</label>
             <div class="relative">
                 <input type="search" name="q" id="filterSopCari" value="{{ $filter['q'] }}"
-                       placeholder="Nama berkas, keterangan, atau nama sub-bidang"
+                       placeholder="Nama berkas, keterangan, atau nama pengendalian resiko"
                        class="input pl-8">
                 <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-2.5 top-2.5"></i>
             </div>
@@ -108,7 +108,7 @@
                     Akun Anda belum mendapat akses ke bidang mana pun, sehingga belum ada SOP
                     yang dapat ditampilkan. Hubungi Administrator untuk menetapkan bidang.
                 @elseif ($totalSop === 0)
-                    SOP diunggah dari halaman 8 Komponen tiap sub-bidang,
+                    SOP diunggah dari halaman 8 Komponen tiap pengendalian resiko,
                     pada Komponen 3 "Standar Operasional Prosedur (SOP)".
                 @else
                     Ubah kata kunci atau filter bidang/tahun di atas.
@@ -134,7 +134,7 @@
                                 {{ $sop->nama_file }}
                             </h3>
                             <p class="page-sub mt-0.5 truncate">
-                                {{ $sub?->nama_sub_menu ?? 'Sub-bidang tidak dikenal' }}
+                                {{ $sub?->nama_sub_menu ?? 'Pengendalian resiko tidak dikenal' }}
                             </p>
                         </div>
                     </div>

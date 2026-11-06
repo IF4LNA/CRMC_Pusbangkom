@@ -49,7 +49,7 @@ class DashboardBidangSopTest extends TestCase
         return User::factory()->create([
             'role' => $role,
             'name' => $nama,
-            'nip' => 'NIP' . str_pad((string) $urut, 8, '0', STR_PAD_LEFT),
+            'nip' => 'NIP'.str_pad((string) $urut, 8, '0', STR_PAD_LEFT),
             'jabatan' => 'Jabatan Uji',
         ]);
     }
@@ -66,8 +66,8 @@ class DashboardBidangSopTest extends TestCase
         $res = $this->actingAs($this->admin)->get('/dashboard');
 
         $res->assertOk();
-        $res->assertSee('id="tab-bidang-' . $this->bidangUmum->id . '"', false);
-        $res->assertSee('id="tab-bidang-' . $this->bidangSda->id . '"', false);
+        $res->assertSee('id="tab-bidang-'.$this->bidangUmum->id.'"', false);
+        $res->assertSee('id="tab-bidang-'.$this->bidangSda->id.'"', false);
         $res->assertSee('Manajemen Risiko');
         $res->assertSee('Bangkom SDA');
     }
@@ -80,8 +80,8 @@ class DashboardBidangSopTest extends TestCase
         $res = $this->actingAs($this->admin)->get('/dashboard');
 
         $res->assertOk();
-        $res->assertSee('switchTab(\'bidang-' . $this->bidangSda->id . '\')', false);
-        $res->assertSee('id="nav-bidang-' . $this->bidangSda->id . '"', false);
+        $res->assertSee('switchTab(\'bidang-'.$this->bidangSda->id.'\')', false);
+        $res->assertSee('id="nav-bidang-'.$this->bidangSda->id.'"', false);
     }
 
     public function test_sub_bidang_tanpa_gambar_latar_tetap_ditampilkan(): void
@@ -173,7 +173,7 @@ class DashboardBidangSopTest extends TestCase
         $sub = SubMenu::first();
         $pathLama = $sub->gambar_latar;
 
-        $this->actingAs($this->admin)->from('/dashboard')->put('/bidang/sub-bidang/' . $sub->id, [
+        $this->actingAs($this->admin)->from('/dashboard')->put('/bidang/sub-bidang/'.$sub->id, [
             'bidang_id' => $this->bidangSda->id,
             'nama_sub_menu' => 'Diubah',
         ])->assertRedirect('/dashboard');
@@ -195,7 +195,7 @@ class DashboardBidangSopTest extends TestCase
         $sub = SubMenu::first();
         $pathLama = $sub->gambar_latar;
 
-        $this->actingAs($this->admin)->from('/dashboard')->put('/bidang/sub-bidang/' . $sub->id, [
+        $this->actingAs($this->admin)->from('/dashboard')->put('/bidang/sub-bidang/'.$sub->id, [
             'bidang_id' => $this->bidangSda->id,
             'nama_sub_menu' => 'Awal',
             'gambar_latar' => UploadedFile::fake()->image('baru.jpg', 800, 600),
@@ -217,7 +217,7 @@ class DashboardBidangSopTest extends TestCase
             'tahun_pelaksanaan' => 2026,
         ]);
 
-        $path = 'crmc/2026/' . $sub->id . '/sop/uji.pdf';
+        $path = 'crmc/2026/'.$sub->id.'/sop/uji.pdf';
         Storage::disk('public')->put($path, 'isi');
 
         $lampiran = LampiranCrmc::create([
@@ -229,7 +229,7 @@ class DashboardBidangSopTest extends TestCase
         ]);
 
         $this->actingAs($this->admin)
-            ->from('/dashboard')->delete('/bidang/sub-bidang/' . $sub->id)
+            ->from('/dashboard')->delete('/bidang/sub-bidang/'.$sub->id)
             ->assertRedirect('/dashboard');
 
         $this->assertDatabaseMissing('sub_menu', ['id' => $sub->id]);
@@ -251,11 +251,11 @@ class DashboardBidangSopTest extends TestCase
             ->assertForbidden();
 
         $this->actingAs($this->pegawai)
-            ->put('/bidang/sub-bidang/' . $sub->id, ['bidang_id' => $this->bidangSda->id, 'nama_sub_menu' => 'X'])
+            ->put('/bidang/sub-bidang/'.$sub->id, ['bidang_id' => $this->bidangSda->id, 'nama_sub_menu' => 'X'])
             ->assertForbidden();
 
         $this->actingAs($this->pegawai)
-            ->delete('/bidang/sub-bidang/' . $sub->id)
+            ->delete('/bidang/sub-bidang/'.$sub->id)
             ->assertForbidden();
 
         $this->assertDatabaseHas('sub_menu', ['id' => $sub->id, 'nama_sub_menu' => 'Tidak Boleh']);
@@ -273,11 +273,11 @@ class DashboardBidangSopTest extends TestCase
 
         $this->actingAs($this->admin)->get('/dashboard')
             ->assertOk()
-            ->assertSee('Tambah Sub-Bidang');
+            ->assertSee('Tambah Pengendalian Resiko');
 
         $this->actingAs($this->pegawai)->get('/dashboard')
             ->assertOk()
-            ->assertDontSee('Tambah Sub-Bidang');
+            ->assertDontSee('Tambah Pengendalian Resiko');
     }
 
     // ====================
@@ -355,7 +355,7 @@ class DashboardBidangSopTest extends TestCase
         $this->buatSop($subA, 2026, 'SOP Umum.pdf');
         $this->buatSop($subB, 2026, 'SOP SDA.pdf');
 
-        $res = $this->actingAs($this->admin)->get('/sop?bidang=' . $this->bidangSda->id);
+        $res = $this->actingAs($this->admin)->get('/sop?bidang='.$this->bidangSda->id);
 
         $res->assertOk();
         $res->assertSee('SOP SDA.pdf');
@@ -422,7 +422,7 @@ class DashboardBidangSopTest extends TestCase
 
         $res->assertOk();
         // Badge jumlah SOP berada tepat setelah label "SOP" di navigasi.
-        $res->assertSee('SOP</span>' . "\n            <span class=\"count\">2</span>", false);
+        $res->assertSee('SOP</span>'."\n            <span class=\"count\">2</span>", false);
     }
 
     private function buatSop(SubMenu $sub, int $tahun, string $namaFile): LampiranCrmc
@@ -435,7 +435,7 @@ class DashboardBidangSopTest extends TestCase
             'dokumen_crmc_id' => $dokumen->id,
             'kategori_komponen' => 'sop',
             'nama_file' => $namaFile,
-            'file_path' => 'crmc/' . $tahun . '/' . $sub->id . '/sop/' . $namaFile,
+            'file_path' => 'crmc/'.$tahun.'/'.$sub->id.'/sop/'.$namaFile,
             'tipe_file' => 'pdf',
         ]);
     }

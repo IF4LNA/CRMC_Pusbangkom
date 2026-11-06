@@ -83,13 +83,13 @@
     @if ($bidang->subMenus->isEmpty())
         <div class="empty">
             <i data-lucide="folder-plus" class="w-7 h-7 text-slate-300 mx-auto mb-2"></i>
-            <p class="font-semibold text-slate-600">Belum Ada Sub-Bidang</p>
+            <p class="font-semibold text-slate-600">Belum Ada Pengendalian Resiko</p>
             <p class="text-[11px] text-slate-400 mt-1 max-w-md mx-auto leading-relaxed">
                 @if ($isAdmin)
-                    Tambahkan sub-bidang pertama pada bidang ini lewat tombol
-                    "Tambah Sub-Bidang" di atas.
+                    Tambahkan pengendalian resiko pertama pada bidang ini lewat tombol
+                    "Tambah Pengendalian Resiko" di atas.
                 @else
-                    Data sub-bidang pada bidang ini belum diisi oleh administrator.
+                    Data pengendalian resiko pada bidang ini belum diisi oleh administrator.
                 @endif
             </p>
         </div>
@@ -150,14 +150,14 @@
                                         data-sub-punya-gambar="{{ $punyaLatar ? '1' : '0' }}"
                                         data-sub-gambar="{{ $sub->gambar_latar_url ?? '' }}"
                                         onclick="event.stopPropagation(); bukaModalSubBidangSub(this)"
-                                        title="Ubah Sub-Bidang / Ganti Latar" class="icon-btn-gelap">
+                                        title="Ubah Pengendalian Resiko / Ganti Latar" class="icon-btn-gelap">
                                     <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
                                 </button>
                                 <button type="button"
                                         data-sub-id="{{ $sub->id }}"
                                         data-sub-nama="{{ $sub->nama_sub_menu }}"
                                         onclick="event.stopPropagation(); konfirmasiHapusSubBidang(this.dataset.subId, this.dataset.subNama)"
-                                        title="Hapus Sub-Bidang" class="icon-btn-gelap icon-btn-gelap-bahaya">
+                                        title="Hapus Pengendalian Resiko" class="icon-btn-gelap icon-btn-gelap-bahaya">
                                     <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
                                 </button>
                             </div>

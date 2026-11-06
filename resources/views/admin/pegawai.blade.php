@@ -13,7 +13,7 @@
             <h1 class="page-title mt-0.5 text-white">Kelola Akun Pegawai</h1>
             <p class="page-sub mt-1 leading-relaxed text-blue-100">
                 Buat, ubah, dan hapus akun pegawai untuk penugasan di seluruh
-                sub-bidang CRMC.
+                pengendalian resiko CRMC.
             </p>
         </div>
 
@@ -276,7 +276,7 @@
                         @endforeach
                     </div>
                     <p class="hint">
-                        Pegawai hanya dapat membuka bidang yang dicentang beserta sub-bidangnya.
+                        Pegawai hanya dapat membuka bidang yang dicentang beserta pengendalian resikonya.
                         Kosongkan semua centang bila pegawai belum boleh mengakses bidang apa pun.
                         Admin selalu memiliki akses penuh.
                     </p>
@@ -376,7 +376,7 @@
                         @endforeach
                     </div>
                     <p class="hint">
-                        Pegawai hanya dapat membuka bidang yang dicentang beserta sub-bidangnya.
+                        Pegawai hanya dapat membuka bidang yang dicentang beserta pengendalian resikonya.
                         Kosongkan semua centang bila pegawai belum boleh mengakses bidang apa pun.
                         Admin selalu memiliki akses penuh.
                     </p>

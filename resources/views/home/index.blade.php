@@ -99,7 +99,7 @@
             <div>
                 <h2 class="text-xl md:text-2xl font-extrabold tracking-tight">Siap mengisi instrumen pengendalian?</h2>
                 <p class="text-sm text-slate-400 mt-1.5">
-                    Buka dashboard CRMC untuk melihat seluruh sub-bidang dan
+                    Buka dashboard CRMC untuk melihat seluruh pengendalian resiko dan
                     kelengkapan komponen yang menjadi tanggung jawab Anda.
                 </p>
             </div>

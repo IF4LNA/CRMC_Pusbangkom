@@ -24,15 +24,15 @@
     @if($sebelumnya)
         <a href="{{ route('crmc.show', array_filter(['slug' => $sebelumnya->slug, 'tahun' => $tahunNav])) }}"
            class="btn btn-outline btn-sm"
-           title="Sub-bidang sebelumnya: {{ $sebelumnya->nama_sub_menu }}"
-           aria-label="Sub-bidang sebelumnya: {{ $sebelumnya->nama_sub_menu }}"
+           title="Pengendalian resiko sebelumnya: {{ $sebelumnya->nama_sub_menu }}"
+           aria-label="Pengendalian resiko sebelumnya: {{ $sebelumnya->nama_sub_menu }}"
            data-arah="sebelumnya">
             <i data-lucide="chevron-left" class="w-3.5 h-3.5"></i>
             <span>Sebelumnya</span>
         </a>
     @else
         <span class="btn btn-outline btn-sm opacity-40 cursor-not-allowed"
-              aria-disabled="true" title="Sudah di sub-bidang pertama"
+              aria-disabled="true" title="Sudah di pengendalian resiko pertama"
               data-arah="sebelumnya">
             <i data-lucide="chevron-left" class="w-3.5 h-3.5"></i>
             <span class="hidden sm:inline">Sebelumnya</span>
@@ -42,15 +42,15 @@
     @if($berikutnya)
         <a href="{{ route('crmc.show', array_filter(['slug' => $berikutnya->slug, 'tahun' => $tahunNav])) }}"
            class="btn btn-outline btn-sm"
-           title="Sub-bidang berikutnya: {{ $berikutnya->nama_sub_menu }}"
-           aria-label="Sub-bidang berikutnya: {{ $berikutnya->nama_sub_menu }}"
+           title="Pengendalian resiko berikutnya: {{ $berikutnya->nama_sub_menu }}"
+           aria-label="Pengendalian resiko berikutnya: {{ $berikutnya->nama_sub_menu }}"
            data-arah="berikutnya">
             <span>Berikutnya</span>
             <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
         </a>
     @else
         <span class="btn btn-outline btn-sm opacity-40 cursor-not-allowed"
-              aria-disabled="true" title="Sudah di sub-bidang terakhir"
+              aria-disabled="true" title="Sudah di pengendalian resiko terakhir"
               data-arah="berikutnya">
             <span class="hidden sm:inline">Berikutnya</span>
             <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>

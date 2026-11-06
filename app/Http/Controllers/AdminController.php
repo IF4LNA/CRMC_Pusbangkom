@@ -443,12 +443,12 @@ class AdminController extends Controller
         $hasil = $this->hapusDokumen(['tahun_pelaksanaan' => $tahun]);
 
         if ($hasil['file'] === 0) {
-            return back()->with('error', "Tidak ada dokumen tahun {$tahun} di seluruh sub-bidang, jadi tidak ada yang dihapus.");
+            return back()->with('error', "Tidak ada dokumen tahun {$tahun} di seluruh pengendalian resiko, jadi tidak ada yang dihapus.");
         }
 
         return back()->with(
             'success',
-            "{$hasil['file']} berkas tahun {$tahun} dari {$hasil['sub_bidang']} sub-bidang berhasil dihapus (termasuk file fisik di storage)."
+            "{$hasil['file']} berkas tahun {$tahun} dari {$hasil['sub_bidang']} pengendalian resiko berhasil dihapus (termasuk file fisik di storage)."
         );
     }
 

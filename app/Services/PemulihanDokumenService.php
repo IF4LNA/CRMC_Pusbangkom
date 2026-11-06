@@ -222,7 +222,7 @@ class PemulihanDokumenService
             $alasan = 'Tahun tidak valid.';
         } elseif ($subMenu === null) {
             $status = 'needs_review';
-            $alasan = 'Sub-bidang tidak ditemukan.';
+            $alasan = 'Pengendalian resiko tidak ditemukan.';
         } elseif (! $kategoriDikenal) {
             $status = 'needs_review';
             $alasan = 'Kategori komponen tidak dikenali.';

@@ -161,7 +161,7 @@ class CrmcController extends Controller
         if ($subMenu) {
             AksesBidang::wajibLihatSubMenu($subMenu);
         } elseif (Auth::check() && ! Auth::user()->isAdmin()) {
-            abort(403, 'Anda tidak memiliki akses ke sub-bidang ini.');
+            abort(403, 'Anda tidak memiliki akses ke pengendalian resiko ini.');
         }
 
         // Dipakai view untuk menampilkan tombol unggah/ubah. Tamu tidak
@@ -428,7 +428,7 @@ class CrmcController extends Controller
 
         // Slug yang tidak dikenal harus ditolak, bukan diam-diam diabaikan:
         // kalau tidak, admin mengira ringkasan tersimpan padahal tidak ada.
-        abort_if($subMenu === null, 404, 'Sub-bidang tidak ditemukan.');
+        abort_if($subMenu === null, 404, 'Pengendalian resiko tidak ditemukan.');
 
         try {
             DokumenCrmc::updateOrCreate(
@@ -502,7 +502,7 @@ class CrmcController extends Controller
         }
 
         $subMenu = $this->cariSubMenuTersedia($slug);
-        abort_if($subMenu === null, 404, 'Sub-bidang tidak ditemukan.');
+        abort_if($subMenu === null, 404, 'Pengendalian resiko tidak ditemukan.');
         AksesBidang::wajibKelolaSubMenu($subMenu);
 
         $tahun = (int) $request->input('tahun_pelaksanaan');
@@ -647,7 +647,7 @@ class CrmcController extends Controller
         // slug tidak dikenal, sehingga satu ketikalan URL menyisakan baris
         // sampah di database.
         $subMenu = $this->cariSubMenuTersedia($slug);
-        abort_if($subMenu === null, 404, 'Sub-bidang tidak ditemukan.');
+        abort_if($subMenu === null, 404, 'Pengendalian resiko tidak ditemukan.');
         AksesBidang::wajibKelolaSubMenu($subMenu);
 
         $request->validate([
@@ -900,7 +900,7 @@ class CrmcController extends Controller
         // baru kalau slug tidak dikenal, sehingga satu ketikalan URL akan
         // menyisakan baris sampah di database.
         $subMenu = $this->cariSubMenuTersedia($slug);
-        abort_if($subMenu === null, 404, 'Sub-bidang tidak ditemukan.');
+        abort_if($subMenu === null, 404, 'Pengendalian resiko tidak ditemukan.');
 
         $tahun = (int) $request->input('tahun');
 
@@ -910,7 +910,7 @@ class CrmcController extends Controller
         ], $kategori ?: null);
 
         if ($hasil['file'] === 0) {
-            return back()->with('error', "Tidak ada dokumen tahun {$tahun} yang bisa dihapus pada sub-bidang ini.");
+            return back()->with('error', "Tidak ada dokumen tahun {$tahun} yang bisa dihapus pada pengendalian resiko ini.");
         }
 
         $rujukan = $kategori
@@ -919,7 +919,7 @@ class CrmcController extends Controller
 
         return back()->with(
             'success',
-            "{$hasil['file']} berkas tahun {$tahun} pada sub-bidang \"{$subMenu->nama_sub_menu}\" — {$rujukan} — berhasil dihapus."
+            "{$hasil['file']} berkas tahun {$tahun} pada pengendalian resiko \"{$subMenu->nama_sub_menu}\" — {$rujukan} — berhasil dihapus."
         );
     }
 
@@ -942,12 +942,12 @@ class CrmcController extends Controller
         $hasil = $this->hapusDokumen(['tahun_pelaksanaan' => $tahun]);
 
         if ($hasil['file'] === 0) {
-            return back()->with('error', "Tidak ada dokumen tahun {$tahun} di seluruh sub-bidang, jadi tidak ada yang dihapus.");
+            return back()->with('error', "Tidak ada dokumen tahun {$tahun} di seluruh pengendalian resiko, jadi tidak ada yang dihapus.");
         }
 
         return back()->with(
             'success',
-            "{$hasil['file']} berkas tahun {$tahun} dari {$hasil['sub_bidang']} sub-bidang berhasil dihapus (termasuk file fisik di storage)."
+            "{$hasil['file']} berkas tahun {$tahun} dari {$hasil['sub_bidang']} pengendalian resiko berhasil dihapus (termasuk file fisik di storage)."
         );
     }
 
@@ -1246,7 +1246,7 @@ class CrmcController extends Controller
 
         // Sama seperti hapus: jangan sampai slug ngawur membuat sub-bidang baru.
         $subMenu = $this->cariSubMenuTersedia($slug);
-        abort_if($subMenu === null, 404, 'Sub-bidang tidak ditemukan.');
+        abort_if($subMenu === null, 404, 'Pengendalian resiko tidak ditemukan.');
 
         $kunci = SkalaResiduRisiko::normalisasi($request->input('residu'));
 
@@ -1369,7 +1369,7 @@ class CrmcController extends Controller
         });
 
         $ringkasan = sprintf(
-            'Penanggung jawab identitas pegawai Komponen 1 tahun %d diperbarui. Pemilik Risiko (%s) berlaku untuk seluruh %d sub-bidang; Pengendali Mutu (%s) berlaku untuk %d sub-bidang bidang "%s"; Tim Pengendali Risiko (%d orang) khusus sub-bidang ini.',
+            'Penanggung jawab identitas pegawai Komponen 1 tahun %d diperbarui. Pemilik Risiko (%s) berlaku untuk seluruh %d pengendalian resiko; Pengendali Mutu (%s) berlaku untuk %d pengendalian resiko bidang "%s"; Tim Pengendali Risiko (%d orang) khusus pengendalian resiko ini.',
             $tahun,
             User::find($request->input('pemilik_risiko_id'))?->name ?? '-',
             SubMenu::count(),

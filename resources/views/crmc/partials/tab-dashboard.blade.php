@@ -121,11 +121,11 @@
                             <div class="w-9 h-9 bg-blue-50 text-blue-700 rounded-md flex items-center justify-center">
                                 <i data-lucide="{{ $bidang->ikon() }}" class="w-4 h-4"></i>
                             </div>
-                            <span class="badge">{{ $bidang->sub_menus_count }} Sub-Bidang</span>
+                            <span class="badge">{{ $bidang->sub_menus_count }} Pengendalian Resiko</span>
                         </div>
                         <h4 class="section-title text-base">{{ $bidang->nama_bidang }}</h4>
                         <p class="page-sub mt-1 leading-relaxed">
-                            {{ $bidang->jumlah_dokumen }} sub-bidang sudah punya dokumen CRMC
+                            {{ $bidang->jumlah_dokumen }} pengendalian resiko sudah punya dokumen CRMC
                             pada satu atau lebih tahun pelaksanaan.
                         </p>
                     </div>

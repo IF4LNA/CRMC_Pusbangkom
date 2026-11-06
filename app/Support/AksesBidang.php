@@ -168,7 +168,7 @@ final class AksesBidang
     }
 
     /** Tolak dengan 403 bila sub-bidang tidak boleh dibaca. */
-    public static function wajibLihatSubMenu(?SubMenu $subMenu, string $pesan = 'Anda tidak memiliki akses ke sub-bidang ini.'): void
+    public static function wajibLihatSubMenu(?SubMenu $subMenu, string $pesan = 'Anda tidak memiliki akses ke pengendalian resiko ini.'): void
     {
         abort_unless(self::bolehLihatSubMenu($subMenu), 403, $pesan);
     }
