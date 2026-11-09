@@ -47,6 +47,12 @@ Route::middleware(['auth', 'admin', 'throttle:admin'])->prefix('admin')->name('a
     Route::patch('/pegawai/{id}/toggle-status', [AdminController::class, 'toggleStatusAkun'])->name('pegawai.toggle-status');
     Route::delete('/pegawai/{id}', [AdminController::class, 'hapusAkun'])->name('pegawai.delete');
 
+    // --- Penugasan Pegawai (per tahun) ---
+    Route::get('/penugasan', [AdminController::class, 'penugasan'])->name('penugasan.index');
+    Route::post('/penugasan', [AdminController::class, 'simpanPenugasan'])->name('penugasan.store');
+    Route::get('/pegawai/penugasan', [AdminController::class, 'penugasan'])->name('pegawai.penugasan.index');
+    Route::post('/pegawai/penugasan', [AdminController::class, 'simpanPenugasan'])->name('pegawai.penugasan.store');
+
     // --- Pemulihan Dokumen dari Private Storage ---
     Route::get('/pemulihan-dokumen', [PemulihanDokumenController::class, 'index'])->name('pemulihan.index');
     Route::post('/pemulihan-dokumen/pulihkan', [PemulihanDokumenController::class, 'pulihkan'])->name('pemulihan.recover');

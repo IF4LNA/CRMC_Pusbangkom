@@ -486,4 +486,127 @@ class AdminController extends Controller
             'lampiran' => $jumlahLampiran,
         ];
     }
+
+    // ============================================================
+    // ADMIN: Penugasan Pegawai (per tahun)
+    // ============================================================
+
+    public function penugasan(Request $request)
+    {
+        if (! Auth::check() || ! Auth::user()->isAdmin()) {
+            abort(403, 'Akses Ditolak: Hanya Administrator.');
+        }
+
+        $kataKunci = trim((string) $request->input('q'));
+        $tahunDipilih = (int) $request->input('tahun', date('Y'));
+
+        $daftarTahun = TahunAnggaran::orderBy('tahun')->pluck('tahun');
+        if ($daftarTahun->isEmpty()) {
+            $daftarTahun = collect([(int) date('Y')]);
+        }
+        if (! $daftarTahun->contains($tahunDipilih)) {
+            $tahunDipilih = (int) $daftarTahun->first();
+        }
+
+        $userIdTerassign = PenugasanCrmc::tahun($tahunDipilih)
+            ->distinct()
+            ->pluck('user_id');
+
+        $pegawaiBelum = User::query()
+            ->where('role', 'pegawai')
+            ->whereNotIn('id', $userIdTerassign)
+            ->when($kataKunci !== '', function ($q) use ($kataKunci) {
+                $saya = '%'.str_replace(['\\', '%', '_'], ['\\\\', '\%', '\_'], $kataKunci).'%';
+                $q->where(function ($dalam) use ($saya) {
+                    $dalam->where('name', 'like', $saya)
+                        ->orWhere('nip', 'like', $saya)
+                        ->orWhere('jabatan', 'like', $saya)
+                        ->orWhere('email', 'like', $saya);
+                });
+            })
+            ->orderBy('name')
+            ->get();
+
+        return view('admin.penugasan', [
+            'tahunDipilih' => $tahunDipilih,
+            'daftarTahun' => $daftarTahun,
+            'pegawaiBelum' => $pegawaiBelum,
+            'daftarSubMenu' => SubMenu::with('bidang')->orderBy('id')->get(),
+            'kataKunci' => $kataKunci,
+        ]);
+    }
+
+    public function simpanPenugasan(Request $request)
+    {
+        if (! Auth::check() || ! Auth::user()->isAdmin()) {
+            abort(403, 'Akses Ditolak: Hanya Administrator.');
+        }
+
+        $request->validate([
+            'tahun_pelaksanaan' => 'required|numeric|min:2000|max:2100',
+            'user_id' => 'required|exists:users,id',
+            'sub_menu_id' => 'required|exists:sub_menu,id',
+            'peran' => 'required|in:pemilik_risiko,pengendali_mutu,pengendali_risiko',
+        ], [
+            'tahun_pelaksanaan.required' => 'Tahun pelaksanaan wajib diisi.',
+            'user_id.required' => 'Pegawai wajib dipilih.',
+            'sub_menu_id.required' => 'Pengendalian resiko wajib dipilih.',
+            'peran.required' => 'Peran wajib dipilih.',
+        ]);
+
+        $tahun = (int) $request->input('tahun_pelaksanaan');
+        $userId = (int) $request->input('user_id');
+        $subMenuId = (int) $request->input('sub_menu_id');
+        $peran = (string) $request->input('peran');
+
+        $subMenu = SubMenu::findOrFail($subMenuId);
+
+        DB::transaction(function () use ($tahun, $userId, $subMenu, $peran) {
+            $semuaSubMenu = SubMenu::pluck('id');
+            $subMenuBidangIni = SubMenu::where('bidang_id', $subMenu->bidang_id)->pluck('id');
+
+            if ($peran === 'pemilik_risiko') {
+                PenugasanCrmc::tahun($tahun)->where('peran', 'pemilik_risiko')->delete();
+                foreach ($semuaSubMenu as $id) {
+                    PenugasanCrmc::create([
+                        'sub_menu_id' => $id,
+                        'user_id' => $userId,
+                        'peran' => 'pemilik_risiko',
+                        'tahun_pelaksanaan' => $tahun,
+                    ]);
+                }
+            } elseif ($peran === 'pengendali_mutu') {
+                PenugasanCrmc::tahun($tahun)
+                    ->whereIn('sub_menu_id', $subMenuBidangIni)
+                    ->where('peran', 'pengendali_mutu')
+                    ->delete();
+                foreach ($subMenuBidangIni as $id) {
+                    PenugasanCrmc::create([
+                        'sub_menu_id' => $id,
+                        'user_id' => $userId,
+                        'peran' => 'pengendali_mutu',
+                        'tahun_pelaksanaan' => $tahun,
+                    ]);
+                }
+            } else {
+                $sudahAda = PenugasanCrmc::where('sub_menu_id', $subMenu->id)
+                    ->where('user_id', $userId)
+                    ->where('peran', 'pengendali_risiko')
+                    ->where('tahun_pelaksanaan', $tahun)
+                    ->exists();
+                if (! $sudahAda) {
+                    PenugasanCrmc::create([
+                        'sub_menu_id' => $subMenu->id,
+                        'user_id' => $userId,
+                        'peran' => 'pengendali_risiko',
+                        'tahun_pelaksanaan' => $tahun,
+                    ]);
+                }
+            }
+        });
+
+        return redirect()
+            ->route('admin.penugasan.index', ['tahun' => $tahun])
+            ->with('success', 'Penugasan pegawai berhasil ditambahkan.');
+    }
 }

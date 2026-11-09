@@ -84,6 +84,21 @@
             <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
             Buka Pemulihan Dokumen
         </span>
+    <a href="{{ route('admin.penugasan.index') }}" class="card click-card p-4 sm:p-5 flex flex-col justify-between">
+        <div>
+            <div class="w-9 h-9 bg-blue-50 text-blue-700 rounded-lg flex items-center justify-center shrink-0 mb-3">
+                <i data-lucide="user-check" class="w-4 h-4"></i>
+            </div>
+            <h2 class="text-base font-bold text-slate-900">Penugasan Pegawai</h2>
+            <p class="page-sub mt-1 leading-relaxed">
+                Tampilkan pegawai yang belum memiliki penugasan per tahun, lalu
+                tambahkan penugasannya langsung dari halaman ini.
+            </p>
+        </div>
+        <span class="mt-4 inline-flex items-center gap-1.5 text-[11px] font-bold text-blue-700">
+            <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+            Buka Penugasan Pegawai
+        </span>
     </a>
 </div>
 @endsection
