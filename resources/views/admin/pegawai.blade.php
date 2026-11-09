@@ -237,12 +237,12 @@
                     <div>
                         <label class="label">Password *</label>
                         <div class="relative">
-                            <input type="password" name="password" id="tambahPassword" required minlength="8" maxlength="12" pattern="(?=.*[0-9])(?=.*[^A-Za-z0-9]).{8,12}" class="input pr-10">
+                            <input type="password" name="password" id="tambahPassword" required minlength="8"  pattern="(?=.*[0-9])(?=.*[^A-Za-z0-9]).{8,}" class="input pr-10">
                             <button type="button" onclick="togglePassword('tambahPassword', this)" class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600" title="Tampilkan/sembunyikan password">
                                 <i data-lucide="eye" class="w-4 h-4"></i>
                             </button>
                         </div>
-                        <p class="hint">8-12 karakter, wajib ada angka dan simbol.</p>
+                        <p class="hint">minimal 8 karakter, wajib ada angka dan simbol.</p>
                     </div>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -337,12 +337,12 @@
                     <div>
                         <label class="label">Password Baru (kosongkan jika tidak diubah)</label>
                         <div class="relative">
-                            <input type="password" name="password" id="editPassword" minlength="8" maxlength="12" pattern="(?=.*[0-9])(?=.*[^A-Za-z0-9]).{8,12}" class="input pr-10" placeholder="&#8226;&#8226;&#8226;&#8226;">
+                            <input type="password" name="password" id="editPassword" minlength="8"  pattern="(?=.*[0-9])(?=.*[^A-Za-z0-9]).{8,}" class="input pr-10" placeholder="&#8226;&#8226;&#8226;&#8226;">
                             <button type="button" onclick="togglePassword('editPassword', this)" class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600" title="Tampilkan/sembunyikan password">
                                 <i data-lucide="eye" class="w-4 h-4"></i>
                             </button>
                         </div>
-                        <p class="hint">Kosongkan jika tidak diubah. Jika diisi: 8-12 karakter, wajib ada angka dan simbol.</p>
+                        <p class="hint">Kosongkan jika tidak diubah. Jika diisi: minimal 8 karakter, wajib ada angka dan simbol.</p>
                     </div>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3">

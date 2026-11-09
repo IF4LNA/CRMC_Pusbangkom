@@ -3,13 +3,13 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Notifications\ResetPasswordNotification;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\HasApiTokens; // 1. Import trait HasApiTokens di sini
-
 
 class User extends Authenticatable
 {
@@ -48,11 +48,19 @@ class User extends Authenticatable
         ];
     }
 
+    /**
+     * Kirim notifikasi atur ulang kata sandi dalam bahasa Indonesia.
+     */
+    public function sendPasswordResetNotification(#[\SensitiveParameter] $token): void
+    {
+        $this->notify(new ResetPasswordNotification($token));
+    }
+
     public function getFotoUrlAttribute(): string
     {
         $foto = $this->getRawOriginal('foto_profil');
 
-        if (!empty($foto)) {
+        if (! empty($foto)) {
             // Foto eksternal (URL langsung)
             if (str_starts_with($foto, 'http://') || str_starts_with($foto, 'https://')) {
                 return $foto;
@@ -63,7 +71,7 @@ class User extends Authenticatable
             if (str_starts_with($foto, 'public/')) {
                 $candidates[] = substr($foto, strlen('public/'));
             } else {
-                $candidates[] = 'public/' . $foto;
+                $candidates[] = 'public/'.$foto;
             }
 
             foreach ($candidates as $path) {
@@ -71,7 +79,7 @@ class User extends Authenticatable
                     // Pakai asset() (path relatif terhadap host aktif) supaya foto tetap
                     // tampil di domain Laragon, localhost, IP, maupun port lain,
                     // tanpa bergantung pada nilai APP_URL.
-                    return asset('storage/' . ltrim(str_replace('\\', '/', $path), '/'));
+                    return asset('storage/'.ltrim(str_replace('\\', '/', $path), '/'));
                 }
             }
         }
@@ -103,16 +111,16 @@ class User extends Authenticatable
         $inisial = $this->initials();
 
         $svg = implode('', [
-            '<svg xmlns="http://www.w3.org/2000/svg" width="' . $size . '" height="' . $size . '" viewBox="0 0 ' . $size . ' ' . $size . '">',
-            '<rect width="100%" height="100%" fill="' . $warna['bg'] . '"/>',
+            '<svg xmlns="http://www.w3.org/2000/svg" width="'.$size.'" height="'.$size.'" viewBox="0 0 '.$size.' '.$size.'">',
+            '<rect width="100%" height="100%" fill="'.$warna['bg'].'"/>',
             '<text x="50%" y="50%" dy="0.35em" text-anchor="middle" ',
             'font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" ',
-            'font-size="' . (int) round($size * 0.38) . '" font-weight="700" fill="' . $warna['fg'] . '">',
+            'font-size="'.(int) round($size * 0.38).'" font-weight="700" fill="'.$warna['fg'].'">',
             htmlspecialchars($inisial, ENT_XML1, 'UTF-8'),
             '</text></svg>',
         ]);
 
-        return 'data:image/svg+xml;base64,' . base64_encode($svg);
+        return 'data:image/svg+xml;base64,'.base64_encode($svg);
     }
 
     /**
@@ -141,7 +149,7 @@ class User extends Authenticatable
         $awal = mb_strtoupper(mb_substr($kata[0], 0, 1));
         $akhir = count($kata) > 1 ? mb_strtoupper(mb_substr($kata[count($kata) - 1], 0, 1)) : '';
 
-        return $awal . $akhir;
+        return $awal.$akhir;
     }
 
     public function isAdmin(): bool

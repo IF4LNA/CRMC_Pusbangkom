@@ -6,6 +6,7 @@ use App\Http\Controllers\BidangController;
 use App\Http\Controllers\CrmcController;
 use App\Http\Controllers\DokumenDasarHukumController;
 use App\Http\Controllers\HomeController;
+use App\Http\Controllers\PasswordResetController;
 use App\Http\Controllers\PemulihanDokumenController;
 use App\Http\Controllers\SopController;
 use Illuminate\Support\Facades\Route;
@@ -30,6 +31,18 @@ Route::get('/sop', [SopController::class, 'index'])->name('sop.index');
 Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:login')->name('login.post');
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+
+// Pemulihan kata sandi (lupa kata sandi) memakai tabel password_reset_tokens.
+Route::middleware('guest')->group(function () {
+    Route::get('/forgot-password', [PasswordResetController::class, 'showLinkRequestForm'])->name('password.request');
+    Route::post('/forgot-password', [PasswordResetController::class, 'sendResetLinkEmail'])
+        ->middleware('throttle:password-reset')
+        ->name('password.email');
+    Route::get('/reset-password/{token}', [PasswordResetController::class, 'showResetForm'])->name('password.reset');
+    Route::post('/reset-password', [PasswordResetController::class, 'reset'])
+        ->middleware('throttle:password-reset')
+        ->name('password.update');
+});
 
 // ========================
 // ADMIN: Panel Administrator (hanya admin)

@@ -38,6 +38,17 @@ class AppServiceProvider extends ServiceProvider
             ];
         });
 
+        RateLimiter::for('password-reset', function (Request $request) {
+            $email = (string) $request->input('email');
+
+            // Batasi per email dan per IP supaya tautan atur ulang tidak
+            // bisa diminta berulang kali untuk menebak atau membanjiri inbox.
+            return [
+                Limit::perMinute(3)->by('password-reset:email:'.strtolower($email)),
+                Limit::perMinute(10)->by('password-reset:ip:'.$request->ip()),
+            ];
+        });
+
         RateLimiter::for('uploads', function (Request $request) {
             $key = Auth::check() ? 'user:'.Auth::id() : 'ip:'.$request->ip();
 
