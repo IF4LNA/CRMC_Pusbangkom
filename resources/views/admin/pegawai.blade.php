@@ -259,8 +259,9 @@
                     </div>
                     <div>
                         <label class="label">Foto Profil (Opsional)</label>
-                        <input type="file" name="foto_profil" accept="image/jpeg,image/png,image/webp" class="input !py-1.5">
-                        <p class="hint">JPG, PNG, atau WebP. Maksimal 4 MB.</p>
+                        <input type="file" name="foto_profil" accept="image/jpeg,image/png,image/webp" class="input !py-1.5" onchange="siapkanFotoCrop(this)">
+                        <input type="hidden" name="foto_crop" value="">
+                        <p class="hint">JPG, PNG, atau WebP. Maksimal 4 MB. Klik berkas untuk menyesuaikan potongan foto sebelum disimpan.</p>
                     </div>
                 </div>
 
@@ -359,8 +360,9 @@
                     </div>
                     <div>
                         <label class="label">Foto Profil Baru (Opsional)</label>
-                        <input type="file" name="foto_profil" accept="image/jpeg,image/png,image/webp" class="input !py-1.5">
-                        <p class="hint">JPG, PNG, atau WebP. Maksimal 4 MB. Kosongkan bila tidak ingin mengganti foto.</p>
+                        <input type="file" name="foto_profil" accept="image/jpeg,image/png,image/webp" class="input !py-1.5" onchange="siapkanFotoCrop(this)">
+                        <input type="hidden" name="foto_crop" value="">
+                        <p class="hint">JPG, PNG, atau WebP. Maksimal 4 MB. Klik berkas untuk menyesuaikan potongan foto sebelum disimpan. Kosongkan bila tidak ingin mengganti foto.</p>
                     </div>
                 </div>
 
@@ -389,6 +391,66 @@
                 <button type="submit" class="btn btn-dark">Perbarui Data</button>
             </div>
         </form>
+    </div>
+</div>
+
+<!-- MODAL PENYESUAIAN FOTO (CROP & ZOOM) -->
+<div id="fotoCropModal" class="modal hidden">
+    <div class="modal-card !max-w-2xl">
+        <div class="modal-head">
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 bg-blue-50 text-blue-700 rounded-md flex items-center justify-center shrink-0">
+                    <i data-lucide="crop" class="w-4 h-4"></i>
+                </div>
+                <div>
+                    <span class="eyebrow">Foto Profil</span>
+                    <h3 class="modal-title mt-0.5">Atur Potongan Foto</h3>
+                </div>
+            </div>
+            <button onclick="batalFotoCrop()" class="icon-btn" title="Tutup">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+        </div>
+
+        <div class="modal-body space-y-4">
+            <!-- Petaas (crop frame) dengan rasio 3:4, foto ID standar -->
+            <div class="flex flex-col items-center gap-3">
+                <div class="relative w-full max-w-xs aspect-[3/4] border border-slate-300 rounded-lg overflow-hidden shadow-sm bg-slate-200">
+                    <img id="fotoCropGambar" src="" alt="Pratinjau crop"
+                         class="absolute top-0 left-0 cursor-grab active:cursor-grabbing select-none"
+                         draggable="false">
+                    <!-- Overlay frame untuk menandai area yang akan diambil -->
+                    <div class="absolute inset-0 pointer-events-none">
+                        <div class="absolute inset-0 border-2 border-white/70"></div>
+                    </div>
+                </div>
+                <div class="text-xs text-slate-500 text-center">
+                    Tarik foto untuk mengatur posisi, geser slider untuk zoom.
+                    Area di dalam bingkai akan diambil.
+                </div>
+
+                <!-- Kontrol zoom -->
+                <div class="w-full flex items-center gap-2">
+                    <span class="text-xs text-slate-600">1×</span>
+                    <input type="range" id="fotoCropZoom" min="100" max="300" value="100"
+                           class="w-full accent-blue-600 h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer">
+                    <span id="fotoCropZoomLabel" class="text-xs font-semibold text-slate-800">100%</span>
+                    <span class="text-xs text-slate-600">3×</span>
+                </div>
+
+                <!-- Tombol reset posisi -->
+                <button type="button" onclick="resetPosisiFotoCrop()" class="btn btn-quiet btn-sm text-slate-600">
+                    <i data-lucide="rotate-ccw" class="w-3 h-3"></i> Reset Posisi
+                </button>
+            </div>
+        </div>
+
+        <div class="modal-foot">
+            <button type="button" onclick="batalFotoCrop()" class="btn btn-quiet">Batal</button>
+            <button type="button" onclick="terapkanFotoCrop()" class="btn btn-primary">
+                <i data-lucide="check" class="w-3.5 h-3.5"></i> Terapkan Potongan
+            </button>
+        </div>
     </div>
 </div>
 @endsection
@@ -473,5 +535,284 @@
     @elseif($errors->any())
         openTambahModal();
     @endif
+
+    // ========================================================
+    // MODAL PENYESUAIAN FOTO (CROP & ZOOM)
+    // Digunakan saat admin memilih berkas foto profil, baik saat
+    // tambah maupun edit akun pegawai. Hasil crop dikirim sebagai
+    // data URL (base64) lewat input tersembunyi `foto_crop`, lalu
+    // diproses oleh AdminController::simpanFotoCrop().
+    // ========================================================
+    let fotoCropFile = null;      // File asli dari input <input type=file>
+    let fotoCropInput = null;     // Referensi elemen input file yang dipicu
+    let fotoCropScale = 1;        // Skala zoom (1 = 100%)
+    let fotoCropX = 0;            // Posisi X foto dalam frame (px)
+    let fotoCropY = 0;            // Posisi Y foto dalam frame (px)
+    let fotoCropDragStart = { x: 0, y: 0, imgX: 0, imgY: 0 };
+    let fotoCropIsDragging = false;
+    let fotoCropFitScale = 1;     // Skala agar gambar pas di frame (contain)
+
+    /**
+     * Buka modal crop setelah pengguna memilih berkas foto.
+     * Memuat berkas lewat URL.createObjectURL dan menampilkan modal.
+     */
+    function siapkanFotoCrop(inputEl) {
+        try {
+            const file = inputEl.files[0];
+            if (! file) return;
+
+            const tipeIzinkan = ['image/jpeg', 'image/png', 'image/webp'];
+            if (! tipeIzinkan.includes(file.type)) {
+                if (typeof showToast === 'function') showToast('Format foto harus JPG, PNG, atau WebP.', 'error');
+                inputEl.value = '';
+                return;
+            }
+            if (file.size > 4 * 1024 * 1024) {
+                if (typeof showToast === 'function') showToast('Ukuran foto maksimal 4 MB.', 'error');
+                inputEl.value = '';
+                return;
+            }
+
+            const modal = document.getElementById('fotoCropModal');
+            const img = document.getElementById('fotoCropGambar');
+            if (! modal || ! img) {
+                if (typeof showToast === 'function') showToast('Terjadi kesalahan sistem. Muat ulang halaman.', 'error');
+                return;
+            }
+
+            if (window.__fotoCropObjectUrl) {
+                URL.revokeObjectURL(window.__fotoCropObjectUrl);
+                window.__fotoCropObjectUrl = null;
+            }
+
+            fotoCropFile = file;
+            fotoCropInput = inputEl;
+            fotoCropScale = 1;
+
+            const slider = document.getElementById('fotoCropZoom');
+            const label = document.getElementById('fotoCropZoomLabel');
+            if (slider) slider.value = 100;
+            if (label) label.textContent = '100%';
+
+            img.style.display = 'block';
+            img.style.visibility = 'visible';
+            img.style.opacity = '1';
+            img.style.maxWidth = 'none';
+            img.style.maxHeight = 'none';
+            img.onload = () => {
+                img.onerror = null;
+                posisikanFotoCropKeTengah(img);
+                gayaPosisiFotoCrop(img);
+            };
+            img.onerror = () => {
+                if (! img.src) return;
+                if (typeof showToast === 'function') showToast('Gagal memuat berkas foto. Silakan pilih berkas lain.', 'error');
+                batalFotoCrop();
+            };
+
+            const url = URL.createObjectURL(file);
+            window.__fotoCropObjectUrl = url;
+            img.src = url;
+
+            modal.classList.remove('hidden');
+        } catch (e) {
+            if (typeof showToast === 'function') showToast('Terjadi kesalahan: ' + e.message, 'error');
+        }
+    }
+
+    /**
+     * Hitung skala "contain" agar gambar pas di dalam frame, lalu posisikan ke tengah.
+     */
+    function posisikanFotoCropKeTengah(img) {
+        if (! img.complete || ! img.naturalWidth) return;
+
+        const frame = img.parentElement;
+        if (! frame) return;
+
+        const frW = frame.clientWidth;
+        const frH = frame.clientHeight;
+        const natW = img.naturalWidth;
+        const natH = img.naturalHeight;
+
+        fotoCropFitScale = Math.min(frW / natW, frH / natH);
+
+        const renderW = natW * fotoCropFitScale;
+        const renderH = natH * fotoCropFitScale;
+
+        fotoCropX = (frW - renderW) / 2;
+        fotoCropY = (frH - renderH) / 2;
+    }
+
+    /**
+     * Terapkan ukuran, posisi, dan zoom foto ke elemen img.
+     */
+    function gayaPosisiFotoCrop(img) {
+        if (! img || ! img.src || ! img.naturalWidth) return;
+
+        const renderW = img.naturalWidth * fotoCropFitScale * fotoCropScale;
+        const renderH = img.naturalHeight * fotoCropFitScale * fotoCropScale;
+
+        img.style.width = renderW + 'px';
+        img.style.height = renderH + 'px';
+        img.style.left = fotoCropX + 'px';
+        img.style.top = fotoCropY + 'px';
+        img.style.maxWidth = 'none';
+        img.style.maxHeight = 'none';
+    }
+
+    // --- Kontrol zoom ---
+    document.getElementById('fotoCropZoom')?.addEventListener('input', function () {
+        const nilai = parseInt(this.value, 10);
+        const lbl = document.getElementById('fotoCropZoomLabel');
+        if (lbl) lbl.textContent = nilai + '%';
+
+        const img = document.getElementById('fotoCropGambar');
+        const frame = img?.parentElement;
+        if (! img || ! frame || ! img.naturalWidth) return;
+
+        const oldScale = fotoCropScale;
+        fotoCropScale = nilai / 100;
+
+        // Zoom ke pusat frame agar terasa natural.
+        const cx = frame.clientWidth / 2;
+        const cy = frame.clientHeight / 2;
+        const ratio = fotoCropScale / oldScale;
+        fotoCropX = cx - (cx - fotoCropX) * ratio;
+        fotoCropY = cy - (cy - fotoCropY) * ratio;
+
+        gayaPosisiFotoCrop(img);
+    });
+
+    // --- Drag foto untuk mengatur posisi ---
+    document.getElementById('fotoCropGambar').addEventListener('mousedown', function (e) {
+        if (! fotoCropIsDragging && e.button === 0) {
+            fotoCropIsDragging = true;
+            fotoCropDragStart.x = e.clientX;
+            fotoCropDragStart.y = e.clientY;
+            fotoCropDragStart.imgX = fotoCropX;
+            fotoCropDragStart.imgY = fotoCropY;
+            e.target.style.cursor = 'grabbing';
+            e.preventDefault();
+        }
+    });
+
+    window.addEventListener('mousemove', function (e) {
+        if (! fotoCropIsDragging) return;
+        const dx = e.clientX - fotoCropDragStart.x;
+        const dy = e.clientY - fotoCropDragStart.y;
+        fotoCropX = fotoCropDragStart.imgX + dx;
+        fotoCropY = fotoCropDragStart.imgY + dy;
+        const img = document.getElementById('fotoCropGambar');
+        gayaPosisiFotoCrop(img);
+    });
+
+    window.addEventListener('mouseup', function () {
+        if (fotoCropIsDragging) {
+            fotoCropIsDragging = false;
+            const img = document.getElementById('fotoCropGambar');
+            if (img) img.style.cursor = 'grab';
+        }
+    });
+
+    function resetPosisiFotoCrop() {
+        fotoCropScale = 1;
+        const slider = document.getElementById('fotoCropZoom');
+        const label = document.getElementById('fotoCropZoomLabel');
+        if (slider) slider.value = 100;
+        if (label) label.textContent = '100%';
+        const img = document.getElementById('fotoCropGambar');
+        if (img && img.complete && img.naturalWidth) {
+            posisikanFotoCropKeTengah(img);
+            gayaPosisiFotoCrop(img);
+        }
+    }
+
+    /**
+     * Tutup modal tanpa menyimpan, bersihkan state.
+     */
+    function batalFotoCrop() {
+        if (window.__fotoCropObjectUrl) {
+            URL.revokeObjectURL(window.__fotoCropObjectUrl);
+            window.__fotoCropObjectUrl = null;
+        }
+
+        const modal = document.getElementById('fotoCropModal');
+        if (modal) modal.classList.add('hidden');
+        if (fotoCropInput) fotoCropInput.value = '';
+        fotoCropFile = null;
+        fotoCropInput = null;
+        const img = document.getElementById('fotoCropGambar');
+        if (img) {
+            img.src = '';
+            img.style.width = '';
+            img.style.height = '';
+            img.style.left = '';
+            img.style.top = '';
+        }
+        fotoCropScale = 1;
+        fotoCropFitScale = 1;
+        fotoCropX = 0;
+        fotoCropY = 0;
+        const slider = document.getElementById('fotoCropZoom');
+        const label = document.getElementById('fotoCropZoomLabel');
+        if (slider) slider.value = 100;
+        if (label) label.textContent = '100%';
+    }
+
+    /**
+     * Potong foto sesuai area frame dan simpan hasilnya sebagai data URL
+     * ke input tersembunyi `foto_crop` yang ada dalam form yang sama
+     * dengan input file yang dipicu. Tutup modal setelah selesai.
+     */
+    function terapkanFotoCrop() {
+        const img = document.getElementById('fotoCropGambar');
+        if (! fotoCropFile || ! img || ! img.src || ! img.naturalWidth) {
+            batalFotoCrop();
+            return;
+        }
+
+        const frame = img.parentElement;
+        if (! frame) return;
+
+        const frW = frame.clientWidth;
+        const frH = frame.clientHeight;
+        const totalScale = fotoCropFitScale * fotoCropScale;
+
+        // Peta area frame (0,0,frW,frH) ke koordinat gambar asli.
+        const sx = -fotoCropX / totalScale;
+        const sy = -fotoCropY / totalScale;
+        const sWidth = frW / totalScale;
+        const sHeight = frH / totalScale;
+
+        // Output tetap 600x800 (rasio 3:4).
+        const outputW = 600;
+        const outputH = 800;
+
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = outputW;
+        canvas.height = outputH;
+
+        // Latar putih agar area di luar gambar tidak transparan.
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, outputW, outputH);
+
+        ctx.drawImage(img, sx, sy, sWidth, sHeight, 0, 0, outputW, outputH);
+
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+
+        if (fotoCropInput) {
+            const form = fotoCropInput.closest('form');
+            if (form) {
+                const cropInput = form.querySelector('input[name="foto_crop"]');
+                if (cropInput) cropInput.value = dataUrl;
+            }
+        }
+
+        if (fotoCropInput) fotoCropInput.value = '';
+
+        batalFotoCrop();
+        showToast('Foto telah dipotong sesuai area bingkai.', 'info');
+    }
 </script>
 @endpush

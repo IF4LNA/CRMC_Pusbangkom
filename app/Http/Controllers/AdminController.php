@@ -95,13 +95,24 @@ class AdminController extends Controller
             'bidang_ids' => 'nullable|array',
             'bidang_ids.*' => 'integer|distinct|exists:bidang,id',
             'foto_profil' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:4096',
+            'foto_crop' => 'nullable|string',
         ], self::pesanValidasiAkun());
 
         $data = $request->only(['name', 'nip', 'jabatan', 'email', 'role']);
         $data['password'] = Hash::make($request->input('password'));
         $data['is_active'] = $request->boolean('is_active', true);
 
-        if ($request->hasFile('foto_profil')) {
+        // Foto hasil crop dikirim sebagai data URL (base64) dari modal
+        // penyesuaian foto di frontend. Jika ada, gunakan hasil crop;
+        // jika tidak, gunakan file asli yang diunggah.
+        if ($request->filled('foto_crop')) {
+            $fotoPath = $this->simpanFotoCrop($request->input('foto_crop'), 'foto-pegawai');
+            if (! $fotoPath) {
+                return back()->withInput()
+                    ->withErrors(['foto_crop' => 'Gagal menyimpan foto hasil crop. Silakan coba lagi.']);
+            }
+            $data['foto_profil'] = $fotoPath;
+        } elseif ($request->hasFile('foto_profil')) {
             $data['foto_profil'] = PenyimpananGambar::simpan($request->file('foto_profil'), 'foto-pegawai');
         }
 
@@ -134,6 +145,7 @@ class AdminController extends Controller
             'bidang_ids' => 'nullable|array',
             'bidang_ids.*' => 'integer|distinct|exists:bidang,id',
             'foto_profil' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:4096',
+            'foto_crop' => 'nullable|string',
         ], self::pesanValidasiAkun());
 
         $data = $request->only(['name', 'nip', 'jabatan', 'email', 'role']);
@@ -145,7 +157,17 @@ class AdminController extends Controller
 
         $fotoLama = $user->getRawOriginal('foto_profil');
 
-        if ($request->hasFile('foto_profil')) {
+        // Foto hasil crop (data URL/base64) prioritas lebih tinggi dari
+        // file asli. Hasil crop sudah diformat ulang di frontend, jadi
+        // langsung disimpan tanpa perlu file upload konvensional.
+        if ($request->filled('foto_crop')) {
+            $fotoPath = $this->simpanFotoCrop($request->input('foto_crop'), 'foto-pegawai');
+            if (! $fotoPath) {
+                return back()->withInput()
+                    ->withErrors(['foto_crop' => 'Gagal menyimpan foto hasil crop. Silakan coba lagi.']);
+            }
+            $data['foto_profil'] = $fotoPath;
+        } elseif ($request->hasFile('foto_profil')) {
             $data['foto_profil'] = PenyimpananGambar::simpan($request->file('foto_profil'), 'foto-pegawai');
         }
 
@@ -154,7 +176,8 @@ class AdminController extends Controller
         $user->bidang()->sync($request->input('bidang_ids', []));
         $user->segarkanBidang();
 
-        if ($request->hasFile('foto_profil') && ! empty($fotoLama) && $fotoLama !== $data['foto_profil']) {
+        $fotoBaru = $data['foto_profil'] ?? null;
+        if ($fotoBaru && ! empty($fotoLama) && $fotoBaru !== $fotoLama) {
             $this->hapusFotoPegawai($user, $fotoLama);
         }
 
@@ -229,6 +252,7 @@ class AdminController extends Controller
             'foto_profil.image' => 'Foto profil harus berupa file gambar (JPG, PNG, atau WebP).',
             'foto_profil.mimes' => 'Format foto harus JPG, PNG, atau WebP. File HEIC perlu dikonversi dulu.',
             'foto_profil.max' => 'Ukuran foto maksimal 4 MB. Foto tidak tersimpan karena melebihi batas.',
+            'foto_crop.string' => 'Data foto hasil crop tidak valid.',
         ];
     }
 
@@ -252,6 +276,78 @@ class AdminController extends Controller
                 Storage::disk('public')->delete($path);
             }
         }
+    }
+
+    /**
+     * Simpan foto hasil crop dari frontend (data URL / base64).
+     *
+     * Frontend sudah melakukan crop + zoom lewat Canvas, lalu mengirim
+     * hasilnya sebagai data URL (mis. "data:image/jpeg;base64,...").
+     * Metode ini mendekode base64 dan menyimpannya langsung ke disk
+     * "public", lalu menjalankan optimasi standar melalui
+     * PenyimpananGambar::optimalkan().
+     *
+     * @return string|null Path relatif hasil penyimpanan, atau null jika gagal
+     */
+    private function simpanFotoCrop(?string $dataUrl, string $folder): ?string
+    {
+        if (empty($dataUrl) || ! str_starts_with($dataUrl, 'data:')) {
+            return null;
+        }
+
+        // Pisahkan header "data:image/jpeg;base64," dari isi base64.
+        $pos = strpos($dataUrl, ',');
+        if ($pos === false) {
+            return null;
+        }
+
+        $header = substr($dataUrl, 0, $pos);
+        $base64 = substr($dataUrl, $pos + 1);
+
+        // Deteksi tipe MIME dari header data URL.
+        $mime = null;
+        if (preg_match('/^data:image\/([^;]+)/i', $header, $m)) {
+            $mime = strtolower($m[1]);
+        }
+
+        $tipeMap = [
+            'jpeg' => IMAGETYPE_JPEG,
+            'jpg' => IMAGETYPE_JPEG,
+            'png' => IMAGETYPE_PNG,
+            'webp' => IMAGETYPE_WEBP,
+        ];
+        $tipe = $mime !== null ? ($tipeMap[$mime] ?? null) : null;
+        if ($tipe === null) {
+            return null;
+        }
+
+        $gambar = base64_decode($base64, true);
+        if ($gambar === false) {
+            return null;
+        }
+
+        // Simpan langsung ke disk public, lalu optimalkan di tempat.
+        $extension = match ($tipe) {
+            IMAGETYPE_JPEG => 'jpg',
+            IMAGETYPE_PNG => 'png',
+            IMAGETYPE_WEBP => 'webp',
+            default => 'jpg',
+        };
+        $filename = $folder.'/'.Str::random(32).'.'.$extension;
+
+        $tersimpan = Storage::disk('public')->put($filename, $gambar);
+        if ($tersimpan === false) {
+            return null;
+        }
+
+        try {
+            PenyimpananGambar::optimalkan(Storage::disk('public')->path($filename));
+        } catch (\Throwable $e) {
+            // Optimasi bersifat opsional: bila gagal, file tetap tersimpan.
+            report($e);
+        }
+
+        return $filename;
     }
 
     // ============================================================
