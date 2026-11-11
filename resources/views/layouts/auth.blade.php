@@ -7,25 +7,15 @@
     {{-- Favicon memakai logo Kementerian Pekerjaan Umum, bukan ikon
          bawaan Laravel. --}}
     <link rel="icon" type="image/svg+xml" href="{{ asset('images/Logo_PU.svg') }}">
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Lucide Icons -->
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <!-- Google Fonts Inter -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        pupr: { navy: '#0f172a', blue: '#1e3a8a', yellow: '#f59e0b', accent: '#2563eb' }
-                    },
-                    fontFamily: { sans: ['Inter', 'sans-serif'] }
-                }
-            }
-        }
-    </script>
+    {{-- CSS & JS dibangun lewat Vite (Tailwind + Lucide), bukan CDN,
+         supaya halaman autentikasi tetap utuh tanpa akses internet. --}}
+    @fonts
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
     <style>
+        /* Komponen kustom masuk layer `components` agar utilitas Tailwind
+           (mis. `pl-8` pada input berikon) tidak kalah oleh aturan `.input`.
+           Tanpa layer, CSS tanpa layer selalu menang dan ikon menimpa teks. */
+        @layer components {
         {{-- Halaman autentikasi berdiri sendiri (tidak memakai layout utama),
              jadi token dan komponen dasarnya didefinisikan di sini.
              Aksen tunggal: biru. --}}
@@ -118,6 +108,7 @@
         /* Varian tombol di atas latar gelap */
         .btn-on-dark { background: rgba(255, 255, 255, .12); border-color: rgba(255, 255, 255, .3); color: #fff; }
         .btn-on-dark:hover { background: rgba(255, 255, 255, .22); }
+        }
     </style>
 </head>
 <body class="h-full font-sans antialiased text-slate-700 bg-blue-950 flex flex-col justify-between">

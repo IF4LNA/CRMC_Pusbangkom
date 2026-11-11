@@ -65,7 +65,7 @@ return [
     |
     */
 
-    'timezone' => 'UTC',
+    'timezone' => env('APP_TIMEZONE', 'Asia/Jakarta'),
 
     /*
     |--------------------------------------------------------------------------
@@ -78,11 +78,11 @@ return [
     |
     */
 
-    'locale' => env('APP_LOCALE', 'en'),
+    'locale' => env('APP_LOCALE', 'id'),
 
     'fallback_locale' => env('APP_FALLBACK_LOCALE', 'en'),
 
-    'faker_locale' => env('APP_FAKER_LOCALE', 'en_US'),
+    'faker_locale' => env('APP_FAKER_LOCALE', 'id_ID'),
 
     /*
     |--------------------------------------------------------------------------
@@ -121,6 +121,39 @@ return [
     'maintenance' => [
         'driver' => env('APP_MAINTENANCE_DRIVER', 'file'),
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Trusted Proxies
+    |--------------------------------------------------------------------------
+    |
+    | Diisi bila aplikasi berada di belakang reverse proxy yang mengakhiri
+    | TLS. Nilai berupa satu IP, daftar dipisah koma, atau "*". Dibaca lewat
+    | config supaya tetap tersedia saat konfigurasi di-cache.
+    |
+    */
+
+    'trusted_proxies' => env('TRUSTED_PROXIES'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Akun Administrator Awal
+    |--------------------------------------------------------------------------
+    |
+    | Dipakai UserSeeder. Kata sandi kosong berarti seeder membuat kata
+    | sandi acak saat akun pertama kali dibuat.
+    |
+    */
+
+    'admin' => [
+        // Memakai `?:` bukan default argumen env(), karena .env.example
+        // menulis ADMIN_EMAIL= (string kosong) dan env() akan
+        // mengembalikan string kosong, bukan nilai default.
+        'email' => env('ADMIN_EMAIL') ?: 'admin@pu.go.id',
+        'password' => env('ADMIN_PASSWORD'),
+        'name' => env('ADMIN_NAME') ?: 'Administrator CRMC',
+        'nip' => env('ADMIN_NIP') ?: '199001012026011001',
     ],
 
 ];

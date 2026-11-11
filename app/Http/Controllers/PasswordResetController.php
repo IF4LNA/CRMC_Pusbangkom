@@ -38,7 +38,7 @@ class PasswordResetController extends Controller
         ]);
 
         try {
-            $status = Password::sendResetLink($request->only('email'));
+            Password::sendResetLink($request->only('email'));
         } catch (Throwable $e) {
             report($e);
 
@@ -49,20 +49,9 @@ class PasswordResetController extends Controller
                 ]);
         }
 
-        if ($status === Password::RESET_LINK_SENT) {
-            return back()->with(
-                'status',
-                'Tautan atur ulang kata sandi telah dikirim. Periksa kotak masuk atau folder spam email dinas Anda.'
-            );
-        }
-
-        if ($status === Password::RESET_THROTTLED) {
-            return back()->with(
-                'status',
-                'Permintaan tautan baru saja dibuat. Silakan tunggu satu menit sebelum meminta tautan baru.'
-            );
-        }
-
+        // Pesan yang sama untuk semua status (terkirim, dibatasi, atau
+        // email tidak terdaftar) supaya halaman ini tidak bisa dipakai
+        // menebak email mana yang terdaftar di sistem.
         return back()->with(
             'status',
             'Jika alamat email tersebut terdaftar, tautan atur ulang kata sandi akan dikirim ke email dinas Anda.'

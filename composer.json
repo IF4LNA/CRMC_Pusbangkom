@@ -7,6 +7,10 @@
     "license": "MIT",
     "require": {
         "php": "^8.3",
+        "ext-exif": "*",
+        "ext-fileinfo": "*",
+        "ext-gd": "*",
+        "ext-zip": "*",
         "laravel/framework": "^13.17",
         "laravel/sanctum": "^4.0",
         "laravel/tinker": "^3.0"
@@ -40,7 +44,7 @@
             "@php artisan key:generate",
             "@php -r \"file_exists('public/storage') || exec('php artisan storage:link --ansi');\"",
             "@php artisan migrate --force",
-            "npm install --ignore-scripts",
+            "npm ci",
             "npm run build"
         ],
         "dev": [

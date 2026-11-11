@@ -53,6 +53,24 @@ class PasswordResetTest extends TestCase
         Notification::assertNothingSent();
     }
 
+    /**
+     * Pesan untuk email terdaftar dan tidak terdaftar harus identik.
+     * Perbedaan sekecil apa pun bisa dipakai menebak akun yang ada.
+     */
+    public function test_email_terdaftar_dan_tidak_terdaftar_mendapat_pesan_yang_sama(): void
+    {
+        $this->pegawai();
+        Notification::fake();
+
+        $pesan = 'Jika alamat email tersebut terdaftar, tautan atur ulang kata sandi akan dikirim ke email dinas Anda.';
+
+        $this->post('/forgot-password', ['email' => 'pegawai@pu.go.id'])
+            ->assertSessionHas('status', $pesan);
+
+        $this->post('/forgot-password', ['email' => 'tidak.ada@pu.go.id'])
+            ->assertSessionHas('status', $pesan);
+    }
+
     public function test_kegagalan_kirim_email_menampilkan_pesan_yang_ramah(): void
     {
         Exceptions::fake();

@@ -3,6 +3,8 @@
 .env
 .env.backup
 .env.production
+cookies.txt
+add_rl_manual.php
 .phpactor.json
 .phpunit.result.cache
 /.codex

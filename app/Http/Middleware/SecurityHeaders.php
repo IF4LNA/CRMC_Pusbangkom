@@ -42,23 +42,32 @@ class SecurityHeaders
             $response->headers->set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
         }
 
-        // Content Security Policy - compatible with current setup
-        // (Tailwind CDN, Lucide, Leaflet/OpenStreetMap, document preview iframe,
-        //  dan widget Cloudflare Turnstile di halaman login).
+        // Content Security Policy.
+        // Aset aplikasi (Tailwind, Lucide, font) disajikan sendiri lewat
+        // build Vite. Domain eksternal yang masih diizinkan hanya untuk
+        // fitur opsional: peta Leaflet (unpkg), pratinjau dokumen
+        // (jsdelivr/SheetJS), dan widget Cloudflare Turnstile.
         // Turnstile wajib diizinkan di script-src, frame-src, style-src,
         // dan connect-src dari https://challenges.cloudflare.com — tanpa
         // itu widget tidak mau render dan pengguna tidak bisa login.
         if (! $response->headers->has('Content-Security-Policy')) {
             $isBerkas = (bool) preg_match('#^crmc/lampiran/.+/berkas#', $request->path());
 
+            // Server pengembangan Vite memuat skrip/gaya dari origin-nya
+            // sendiri dan memakai WebSocket untuk hot reload.
+            $viteDev = app()->environment('local')
+                ? ' http://localhost:* http://127.0.0.1:* http://[::1]:* ws://localhost:* ws://127.0.0.1:* ws://[::1]:*'
+                : '';
+
             $csp = [
                 "default-src 'self'",
-                "script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://unpkg.com https://cdn.jsdelivr.net https://cdn.sheetjs.com https://challenges.cloudflare.com",
-                "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com https://challenges.cloudflare.com",
-                "font-src 'self' https://fonts.gstatic.com data:",
+                "script-src 'self' 'unsafe-inline' https://unpkg.com https://cdn.jsdelivr.net https://cdn.sheetjs.com https://challenges.cloudflare.com".$viteDev,
+                "style-src 'self' 'unsafe-inline' https://unpkg.com https://challenges.cloudflare.com".$viteDev,
+                "font-src 'self' data:".$viteDev,
                 "img-src 'self' data: blob: https:",
-                "connect-src 'self' https://*.tile.openstreetmap.org https://*.openstreetmap.org https://cdn.jsdelivr.net https://cdn.sheetjs.com https://challenges.cloudflare.com",
+                "connect-src 'self' https://*.tile.openstreetmap.org https://*.openstreetmap.org https://cdn.jsdelivr.net https://cdn.sheetjs.com https://challenges.cloudflare.com".$viteDev,
                 "worker-src 'self' blob:",
+                "manifest-src 'self'",
                 "frame-src 'self' https://www.google.com https://maps.google.com https://maps.googleapis.com https://challenges.cloudflare.com",
                 'frame-ancestors '.($isBerkas ? "'self'" : "'none'"),
                 "object-src 'self'",

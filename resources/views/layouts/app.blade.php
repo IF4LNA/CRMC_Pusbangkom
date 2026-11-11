@@ -7,25 +7,18 @@
     {{-- Favicon memakai logo Kementerian Pekerjaan Umum, bukan ikon
          bawaan Laravel. --}}
     <link rel="icon" type="image/svg+xml" href="{{ asset('images/Logo_PU.svg') }}">
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Lucide Icons -->
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <!-- Google Fonts Inter -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        pupr: { navy: '#0f172a', blue: '#1e3a8a', yellow: '#f59e0b', accent: '#2563eb' }
-                    },
-                    fontFamily: { sans: ['Inter', 'sans-serif'] }
-                }
-            }
-        }
-    </script>
+    {{-- CSS & JS dibangun lewat Vite (Tailwind + Lucide), bukan CDN,
+         supaya tampilan tetap utuh walau jaringan instansi memblokir CDN
+         dan versi aset terkunci pada hasil build. --}}
+    @fonts
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
     <style>
+        /* Komponen kustom dimasukkan ke layer `components` supaya utilitas
+           Tailwind (layer `utilities`) tetap bisa menimpanya. Tanpa layer,
+           CSS tanpa layer selalu menang atas utilitas, sehingga mis.
+           `text-white` pada banner kalah oleh `.page-title { color: ... }`
+           dan teks menjadi tidak terbaca. */
+        @layer components {
         .bento-card { transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); }
         .bento-card:hover { transform: translateY(-3px); }
         ::-webkit-scrollbar { width: 6px; height: 6px; }
@@ -520,6 +513,7 @@
         /* Layar sempit (mobile): lebar toast melebar mengikuti viewport. */
         @media (max-width: 480px) {
             #toastWrap { top: .5rem; right: .5rem; width: calc(100vw - 1rem); }
+        }
         }
     </style>
     @stack('styles')
