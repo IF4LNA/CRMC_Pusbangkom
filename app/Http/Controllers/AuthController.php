@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Rules\TurnstileCaptcha;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -13,7 +14,7 @@ class AuthController extends Controller
     public function showLoginForm()
     {
         if (Auth::check()) {
-            return redirect()->route('crmc.dashboard')->with('info', 'Anda sudah masuk sebagai ' . Auth::user()->name);
+            return redirect()->route('crmc.dashboard')->with('info', 'Anda sudah masuk sebagai '.Auth::user()->name);
         }
 
         return view('auth.login');
@@ -24,22 +25,40 @@ class AuthController extends Controller
      */
     public function login(Request $request)
     {
-        $credentials = $request->validate([
+        $aturan = [
             'email' => 'required|email',
             'password' => 'required',
-        ], [
+        ];
+
+        $pesan = [
             'email.required' => 'Alamat email dinas wajib diisi.',
             'email.email' => 'Format email tidak valid.',
             'password.required' => 'Kata sandi wajib diisi.',
-        ]);
+            'cf-turnstile-response.required' => 'Verifikasi keamanan belum selesai. Silakan selesaikan verifikasi lalu coba lagi.',
+        ];
+
+        // Captcha dipakai bila secret key Turnstile terpasang. Lingkungan
+        // tanpa kunci (mis. pengembangan lokal) tetap bisa login biasa.
+        if (config('services.turnstile.secret')) {
+            $aturan['cf-turnstile-response'] = ['required', new TurnstileCaptcha];
+        }
+
+        $request->validate($aturan, $pesan);
+
+        // Hanya email dan password yang boleh masuk ke Auth::attempt().
+        // Field captcha sudah tugasnya selesai di validasi; kalau ikut
+        // terbawa, Eloquent mencari kolom "cf-turnstile-response" dan
+        // login selalu gagal.
+        $credentials = $request->only(['email', 'password']);
 
         $remember = $request->boolean('remember');
 
         if (Auth::attempt($credentials, $remember)) {
             $user = Auth::user();
 
-            if (!$user->is_active) {
+            if (! $user->is_active) {
                 Auth::logout();
+
                 return back()->withErrors([
                     'email' => 'Akun Anda tidak aktif. Silakan hubungi administrator.',
                 ])->onlyInput('email');
@@ -47,16 +66,18 @@ class AuthController extends Controller
 
             if ($request->expectsJson() || $request->is('api/*')) {
                 $token = $user->createToken('CRMC_Token')->plainTextToken;
+
                 return response()->json([
                     'message' => 'Login berhasil',
                     'user' => $user,
-                    'token' => $token
+                    'token' => $token,
                 ]);
             }
 
             $request->session()->regenerate();
 
             $roleText = $user->isAdmin() ? 'Administrator' : 'Pegawai';
+
             // Tuju dashboard CRMC: setelah masuk, pegawainya langsung
             // bekerja di halaman instrumen, bukan membaca halaman depan.
             return redirect()->intended(route('crmc.dashboard'))->with('success', "Selamat datang, {$user->name}! Anda berhasil masuk dalam Mode {$roleText}.");
@@ -64,7 +85,7 @@ class AuthController extends Controller
 
         if ($request->expectsJson() || $request->is('api/*')) {
             return response()->json([
-                'message' => 'Email atau kata sandi tidak cocok.'
+                'message' => 'Email atau kata sandi tidak cocok.',
             ], 401);
         }
 
@@ -82,8 +103,9 @@ class AuthController extends Controller
             if ($request->user() && method_exists($request->user(), 'currentAccessToken') && $request->user()->currentAccessToken()) {
                 $request->user()->currentAccessToken()->delete();
             }
+
             return response()->json([
-                'message' => 'Logout berhasil.'
+                'message' => 'Logout berhasil.',
             ]);
         }
 

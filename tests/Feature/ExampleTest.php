@@ -2,12 +2,12 @@
 
 namespace Tests\Feature;
 
-use App\Models\User;
 use App\Models\Bidang;
 use App\Models\SubMenu;
-use App\Models\PenugasanCrmc;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class ExampleTest extends TestCase
@@ -22,7 +22,7 @@ class ExampleTest extends TestCase
         $bidang = Bidang::create(['nama_bidang' => 'Bagian Umum Program & Tata Usaha']);
         SubMenu::create([
             'bidang_id' => $bidang->id,
-            'nama_sub_menu' => 'Manajemen Risiko'
+            'nama_sub_menu' => 'Manajemen Risiko',
         ]);
     }
 
@@ -43,6 +43,12 @@ class ExampleTest extends TestCase
 
     public function test_user_can_login_with_valid_credentials(): void
     {
+        // Verifikasi Turnstile dipalsukan supaya tes tidak menghubungi
+        // server Cloudflare sungguhan.
+        Http::fake([
+            'challenges.cloudflare.com/turnstile/v0/siteverify' => Http::response(['success' => true]),
+        ]);
+
         $user = User::create([
             'name' => 'Test Admin',
             'nip' => '199001012026011999',
@@ -55,6 +61,7 @@ class ExampleTest extends TestCase
         $response = $this->post('/login', [
             'email' => 'admin@pu.go.id',
             'password' => 'password123',
+            'cf-turnstile-response' => 'token-uji',
         ]);
 
         // Setelah masuk, pengguna langsung diarahkan ke dashboard CRMC.
@@ -64,7 +71,7 @@ class ExampleTest extends TestCase
 
     public function test_crmc_show_page_returns_successful_response(): void
     {
-        $admin = \App\Models\User::create([
+        $admin = User::create([
             'name' => 'Admin Uji',
             'nip' => '199001012026011234',
             'jabatan' => 'Administrator',

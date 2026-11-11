@@ -18,6 +18,14 @@ return [
         'key' => env('POSTMARK_API_KEY'),
     ],
 
+    // Verifikasi "bukan robot" (Cloudflare Turnstile) pada halaman login.
+    // Kedua kunci harus terisi bersamaan agar captcha aktif; kosongkan
+    // keduanya untuk menonaktifkan (mis. saat pengembangan lokal).
+    'turnstile' => [
+        'site_key' => env('TURNSTILE_SITE_KEY'),
+        'secret' => env('TURNSTILE_SECRET_KEY'),
+    ],
+
     'resend' => [
         'key' => env('RESEND_API_KEY'),
     ],

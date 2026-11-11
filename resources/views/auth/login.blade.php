@@ -81,6 +81,22 @@
                 </a>
             </div>
 
+            {{-- Tantangan Cloudflare Turnstile muncul hanya bila site key
+                 terpasang, sehingga halaman tetap tampil normal di
+                 lingkungan tanpa kunci. --}}
+            @if(config('services.turnstile.site_key'))
+            <div>
+                <div class="cf-turnstile"
+                     data-sitekey="{{ config('services.turnstile.site_key') }}"
+                     data-theme="light"
+                     data-appearance="always"
+                     data-size="flexible"></div>
+                @if($errors->has('cf-turnstile-response'))
+                <p class="mt-1.5 text-[11px] text-rose-600">{{ $errors->first('cf-turnstile-response') }}</p>
+                @endif
+            </div>
+            @endif
+
             <button type="submit" class="btn btn-primary">
                 <span>Masuk ke Akun Saya</span>
                 <i data-lucide="arrow-right" class="w-4 h-4"></i>
@@ -99,3 +115,9 @@
         <span class="flex items-center gap-1"><i data-lucide="lock" class="w-3 h-3 text-emerald-600"></i> Terenkripsi Aman</span>
     </div>
 @endsection
+
+@push('scripts')
+    @if(config('services.turnstile.site_key'))
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" defer></script>
+    @endif
+@endpush

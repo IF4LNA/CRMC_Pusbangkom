@@ -43,20 +43,24 @@ class SecurityHeaders
         }
 
         // Content Security Policy - compatible with current setup
-        // (Tailwind CDN, Lucide, Leaflet/OpenStreetMap, document preview iframe)
-        if (!$response->headers->has('Content-Security-Policy')) {
+        // (Tailwind CDN, Lucide, Leaflet/OpenStreetMap, document preview iframe,
+        //  dan widget Cloudflare Turnstile di halaman login).
+        // Turnstile wajib diizinkan di script-src, frame-src, style-src,
+        // dan connect-src dari https://challenges.cloudflare.com — tanpa
+        // itu widget tidak mau render dan pengguna tidak bisa login.
+        if (! $response->headers->has('Content-Security-Policy')) {
             $isBerkas = (bool) preg_match('#^crmc/lampiran/.+/berkas#', $request->path());
 
             $csp = [
                 "default-src 'self'",
-                "script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://unpkg.com https://cdn.jsdelivr.net https://cdn.sheetjs.com",
-                "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com",
+                "script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://unpkg.com https://cdn.jsdelivr.net https://cdn.sheetjs.com https://challenges.cloudflare.com",
+                "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com https://challenges.cloudflare.com",
                 "font-src 'self' https://fonts.gstatic.com data:",
                 "img-src 'self' data: blob: https:",
-                "connect-src 'self' https://*.tile.openstreetmap.org https://*.openstreetmap.org https://cdn.jsdelivr.net https://cdn.sheetjs.com",
+                "connect-src 'self' https://*.tile.openstreetmap.org https://*.openstreetmap.org https://cdn.jsdelivr.net https://cdn.sheetjs.com https://challenges.cloudflare.com",
                 "worker-src 'self' blob:",
-                "frame-src 'self' https://www.google.com https://maps.google.com https://maps.googleapis.com",
-                "frame-ancestors " . ($isBerkas ? "'self'" : "'none'"),
+                "frame-src 'self' https://www.google.com https://maps.google.com https://maps.googleapis.com https://challenges.cloudflare.com",
+                'frame-ancestors '.($isBerkas ? "'self'" : "'none'"),
                 "object-src 'self'",
                 "media-src 'self'",
                 "base-uri 'self'",

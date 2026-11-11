@@ -6,6 +6,7 @@ use App\Models\Bidang;
 use App\Models\SubMenu;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -90,6 +91,12 @@ class HalamanAwalTest extends TestCase
      */
     public function test_setelah_login_diarahkan_ke_dashboard(): void
     {
+        // Verifikasi Turnstile dipalsukan supaya tes tidak menghubungi
+        // server Cloudflare sungguhan.
+        Http::fake([
+            'challenges.cloudflare.com/turnstile/v0/siteverify' => Http::response(['success' => true]),
+        ]);
+
         $user = User::create([
             'name' => 'Pegawai Uji',
             'nip' => '199001012026011234',
@@ -102,6 +109,7 @@ class HalamanAwalTest extends TestCase
         $this->post('/login', [
             'email' => 'pegawai.uji@pu.go.id',
             'password' => 'password123',
+            'cf-turnstile-response' => 'token-uji',
         ])->assertRedirect(route('crmc.dashboard'));
 
         $this->assertAuthenticatedAs($user);
