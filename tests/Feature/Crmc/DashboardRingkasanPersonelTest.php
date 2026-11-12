@@ -146,6 +146,24 @@ class DashboardRingkasanPersonelTest extends TestCase
         $this->assertAngkaKartu('Jumlah Pegawai', 4);
     }
 
+    /**
+     * Akun tamu tetap tersimpan di tabel `users` dan bisa login, tetapi
+     * tidak boleh menambah angka "Jumlah Pegawai" di dashboard.
+     */
+    public function test_akun_tamu_tidak_dihitung_di_jumlah_pegawai(): void
+    {
+        User::factory()->create([
+            'role' => 'pegawai',
+            'name' => 'Tamu Undangan',
+            'nip' => 'TAMU00000001',
+            'jabatan' => 'Tamu',
+            'dihitung_pegawai' => false,
+        ]);
+
+        $this->assertSame(5, User::count(), 'Akun tamu tetap tersimpan di tabel users.');
+        $this->assertAngkaKartu('Jumlah Pegawai', 4);
+    }
+
     public function test_tanpa_penugasan_seluruh_angka_peran_nol(): void
     {
         $this->assertAngkaKartu('Pemilik Risiko', 0);

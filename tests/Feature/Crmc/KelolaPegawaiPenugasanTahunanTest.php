@@ -9,6 +9,7 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
 
 /**
@@ -78,11 +79,11 @@ class KelolaPegawaiPenugasanTahunanTest extends TestCase
         $res = $this->actingAs($this->admin)->get('/admin/pegawai?q=19850101');
         $res->assertStatus(200)->assertSee('Budi Santoso')->assertSee('1 dari 2');
 
-        $res = $this->actingAs($this->admin)->get('/admin/pegawai?q=' . urlencode('Staf Pelaksana'));
+        $res = $this->actingAs($this->admin)->get('/admin/pegawai?q='.urlencode('Staf Pelaksana'));
         $res->assertStatus(200)->assertSee('Budi Santoso')->assertSee('1 dari 2');
 
         $email = substr((string) $this->pegawai->email, 0, 6);
-        $res = $this->actingAs($this->admin)->get('/admin/pegawai?q=' . urlencode($email));
+        $res = $this->actingAs($this->admin)->get('/admin/pegawai?q='.urlencode($email));
         $res->assertStatus(200)->assertSee('Budi Santoso')->assertSee('1 dari 2');
     }
 
@@ -126,11 +127,70 @@ class KelolaPegawaiPenugasanTahunanTest extends TestCase
         );
     }
 
+    public function test_akun_tanpa_hitungan_tidak_menambah_ringkasan_pegawai(): void
+    {
+        $res = $this->actingAs($this->admin)->post('/admin/pegawai', [
+            'name' => 'Tamu Dinas',
+            'nip' => '199901012026011099',
+            'jabatan' => 'Tamu',
+            'email' => 'tamu@pu.go.id',
+            'password' => 'Rahasia#123',
+            'role' => 'pegawai',
+            // `dihitung_pegawai` sengaja tidak dikirim, meniru checkbox
+            // yang tidak dicentang saat akun tamu dibuat.
+        ]);
+
+        $res->assertRedirect(route('admin.pegawai.index'));
+
+        $tamu = User::where('email', 'tamu@pu.go.id')->firstOrFail();
+        $this->assertFalse($tamu->dihitung_pegawai);
+
+        // Ringkasan panel admin tetap 2 (admin + pegawai), bukan 3.
+        $html = $this->actingAs($this->admin)->get('/admin')->assertOk()->getContent();
+        $this->assertMatchesRegularExpression(
+            '/Total Pegawai<\/p>\s*<p class="stat-value[^"]*">\s*2\s*</',
+            $html,
+            'Akun tamu tidak boleh menambah angka Total Pegawai di panel admin.'
+        );
+
+        $this->actingAs($this->admin)->get('/admin/pegawai')
+            ->assertSee('title="Akun tamu: tidak dihitung dalam ringkasan pegawai"', false);
+    }
+
+    public function test_hitungan_pegawai_bisa_diubah_saat_edit_akun(): void
+    {
+        $data = [
+            'name' => $this->pegawai->name,
+            'nip' => $this->pegawai->nip,
+            'jabatan' => $this->pegawai->jabatan,
+            'email' => $this->pegawai->email,
+            'role' => 'pegawai',
+        ];
+
+        $this->actingAs($this->admin)
+            ->put('/admin/pegawai/'.$this->pegawai->id, $data)
+            ->assertRedirect(route('admin.pegawai.index'));
+
+        $this->assertFalse(
+            $this->pegawai->refresh()->dihitung_pegawai,
+            'Mengosongkan centang harus mengeluarkan akun dari ringkasan pegawai.'
+        );
+
+        $this->actingAs($this->admin)
+            ->put('/admin/pegawai/'.$this->pegawai->id, [...$data, 'dihitung_pegawai' => '1'])
+            ->assertRedirect(route('admin.pegawai.index'));
+
+        $this->assertTrue(
+            $this->pegawai->refresh()->dihitung_pegawai,
+            'Mengcentang kembali harus memasukkan akun ke ringkasan pegawai.'
+        );
+    }
+
     public function test_pencarian_tidak_memperlukai_penggunaan_wildcard_like(): void
     {
         // "%" harus dicari apa adanya, bukan jadi pola LIKE yang
         // mengembalikan semua baris.
-        $res = $this->actingAs($this->admin)->get('/admin/pegawai?q=' . urlencode('%'));
+        $res = $this->actingAs($this->admin)->get('/admin/pegawai?q='.urlencode('%'));
 
         $res->assertStatus(200);
         $res->assertSee('Tidak ada pegawai yang cocok');
@@ -145,7 +205,7 @@ class KelolaPegawaiPenugasanTahunanTest extends TestCase
     // Komponen 1: penugasan per tahun
     // ====================
 
-    private function simpanPenugasan(int $tahun, array $pilihan = []): \Illuminate\Testing\TestResponse
+    private function simpanPenugasan(int $tahun, array $pilihan = []): TestResponse
     {
         $data = array_merge([
             'pemilik_risiko_id' => $this->admin->id,
@@ -339,7 +399,7 @@ class KelolaPegawaiPenugasanTahunanTest extends TestCase
     public function test_mengganti_gambar_latar_sub_bidang(): void
     {
         $awal = UploadedFile::fake()->image('awal.jpg');
-        $res = $this->actingAs($this->admin)->put('/bidang/sub-bidang/' . $this->subMenu->id, [
+        $res = $this->actingAs($this->admin)->put('/bidang/sub-bidang/'.$this->subMenu->id, [
             'bidang_id' => $this->subMenu->bidang_id,
             'nama_sub_menu' => 'Manajemen Risiko',
             'gambar_latar' => $awal,
@@ -354,7 +414,7 @@ class KelolaPegawaiPenugasanTahunanTest extends TestCase
 
         // Ganti dengan gambar lain: file lama harus ikut terhapus.
         $baru = UploadedFile::fake()->image('baru.jpg');
-        $this->actingAs($this->admin)->put('/bidang/sub-bidang/' . $this->subMenu->id, [
+        $this->actingAs($this->admin)->put('/bidang/sub-bidang/'.$this->subMenu->id, [
             'bidang_id' => $this->subMenu->bidang_id,
             'nama_sub_menu' => 'Manajemen Risiko',
             'gambar_latar' => $baru,
@@ -368,7 +428,7 @@ class KelolaPegawaiPenugasanTahunanTest extends TestCase
 
     public function test_menghapus_gambar_latar_sub_bidang(): void
     {
-        $this->actingAs($this->admin)->put('/bidang/sub-bidang/' . $this->subMenu->id, [
+        $this->actingAs($this->admin)->put('/bidang/sub-bidang/'.$this->subMenu->id, [
             'bidang_id' => $this->subMenu->bidang_id,
             'nama_sub_menu' => 'Manajemen Risiko',
             'gambar_latar' => UploadedFile::fake()->image('awal.jpg'),
@@ -377,7 +437,7 @@ class KelolaPegawaiPenugasanTahunanTest extends TestCase
         $this->subMenu->refresh();
         $pathLama = $this->subMenu->gambar_latar;
 
-        $this->actingAs($this->admin)->put('/bidang/sub-bidang/' . $this->subMenu->id, [
+        $this->actingAs($this->admin)->put('/bidang/sub-bidang/'.$this->subMenu->id, [
             'bidang_id' => $this->subMenu->bidang_id,
             'nama_sub_menu' => 'Manajemen Risiko',
             'hapus_gambar_latar' => 1,
@@ -390,7 +450,7 @@ class KelolaPegawaiPenugasanTahunanTest extends TestCase
 
     public function test_mengosongkan_kolom_gambar_tetap_mempertahankan_gambar_lama(): void
     {
-        $this->actingAs($this->admin)->put('/bidang/sub-bidang/' . $this->subMenu->id, [
+        $this->actingAs($this->admin)->put('/bidang/sub-bidang/'.$this->subMenu->id, [
             'bidang_id' => $this->subMenu->bidang_id,
             'nama_sub_menu' => 'Manajemen Risiko',
             'gambar_latar' => UploadedFile::fake()->image('awal.jpg'),
@@ -399,7 +459,7 @@ class KelolaPegawaiPenugasanTahunanTest extends TestCase
         $this->subMenu->refresh();
         $pathLama = $this->subMenu->gambar_latar;
 
-        $this->actingAs($this->admin)->put('/bidang/sub-bidang/' . $this->subMenu->id, [
+        $this->actingAs($this->admin)->put('/bidang/sub-bidang/'.$this->subMenu->id, [
             'bidang_id' => $this->subMenu->bidang_id,
             'nama_sub_menu' => 'Manajemen Risiko',
         ])->assertStatus(302);
@@ -411,7 +471,7 @@ class KelolaPegawaiPenugasanTahunanTest extends TestCase
 
     public function test_pratinjau_gambar_latar_ada_di_modal_ubah(): void
     {
-        $this->actingAs($this->admin)->put('/bidang/sub-bidang/' . $this->subMenu->id, [
+        $this->actingAs($this->admin)->put('/bidang/sub-bidang/'.$this->subMenu->id, [
             'bidang_id' => $this->subMenu->bidang_id,
             'nama_sub_menu' => 'Manajemen Risiko',
             'gambar_latar' => UploadedFile::fake()->image('awal.jpg'),
@@ -444,7 +504,7 @@ class KelolaPegawaiPenugasanTahunanTest extends TestCase
 
         $denganJson = [];
         foreach ($cocok[0] as $atribut) {
-            if (!str_contains($atribut, 'bukaModalSubBidang') && !str_contains($atribut, 'konfirmasiHapusSubBidang')) {
+            if (! str_contains($atribut, 'bukaModalSubBidang') && ! str_contains($atribut, 'konfirmasiHapusSubBidang')) {
                 continue;
             }
             if (str_contains($atribut, '{"') || str_contains($atribut, '{&quot;')) {
@@ -455,7 +515,7 @@ class KelolaPegawaiPenugasanTahunanTest extends TestCase
         $this->assertSame(
             [],
             $denganJson,
-            "Ada tombol yang menyisipkan JSON ke dalam onclick:\n" . implode("\n", $denganJson)
+            "Ada tombol yang menyisipkan JSON ke dalam onclick:\n".implode("\n", $denganJson)
         );
     }
 
@@ -465,7 +525,7 @@ class KelolaPegawaiPenugasanTahunanTest extends TestCase
 
         $res->assertStatus(200);
         // Data sub-bidang dibaca lewat dataset, bukan dari onclick.
-        $res->assertSee('data-sub-id="' . $this->subMenu->id . '"', false);
+        $res->assertSee('data-sub-id="'.$this->subMenu->id.'"', false);
         $res->assertSee('data-sub-nama="Manajemen Risiko"', false);
         $res->assertSee('bukaModalSubBidangSub', false);
     }

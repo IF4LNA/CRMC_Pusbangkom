@@ -55,7 +55,8 @@
              peran. Semua angka dibaca dari tabel `users` dan `penugasan_crmc`
              untuk tahun berjalan (lihat BidangController::ringkasanPersonel),
              jadi ikut terisi sendiri begitu admin menambah pegawai atau
-             mengubah penugasan.
+             mengubah penugasan. Akun tamu (yang tidak dicentang sebagai
+             pegawai terhitung) sengaja tidak menambah angka ini.
 
              Keterangan kecil di bawah angka sengaja tidak dipakai lagi.
              Supaya tinggi kartu tidak ikut menyusut, `min-h` dikunci pada

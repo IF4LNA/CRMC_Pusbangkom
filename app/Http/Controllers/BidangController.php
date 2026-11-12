@@ -150,9 +150,9 @@ class BidangController extends Controller
             'jumlahPemilikRisiko' => $jumlahPerPeran('pemilik_risiko'),
             'jumlahPengendaliMutu' => $jumlahPerPeran('pengendali_mutu'),
             'jumlahPengendaliRisiko' => $jumlahPerPeran('pengendali_risiko'),
-            'totalPengguna' => User::count(),
-            'totalAdmin' => User::where('role', 'admin')->count(),
-            'totalPegawai' => User::where('role', 'pegawai')->count(),
+            'totalPengguna' => User::dihitungPegawai()->count(),
+            'totalAdmin' => User::dihitungPegawai()->where('role', 'admin')->count(),
+            'totalPegawai' => User::dihitungPegawai()->where('role', 'pegawai')->count(),
         ];
     }
 

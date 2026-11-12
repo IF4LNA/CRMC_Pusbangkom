@@ -53,7 +53,7 @@
             <h2 class="card-title flex items-center gap-1.5">
                 <i data-lucide="list" class="w-4 h-4 text-slate-400"></i>
                 Daftar Seluruh Akun Pegawai
-                <span class="badge">{{ $users->count() }} dari {{ $totalPegawai }}</span>
+                <span class="badge">{{ $users->count() }} dari {{ $totalSemuaAkun }}</span>
             </h2>
 
             {{-- Pencarian dikirim lewat GET supaya bisa ditandai, dibagikan,
@@ -129,6 +129,9 @@
                             @else
                                 <span class="badge badge-info">Pegawai</span>
                             @endif
+                            @if(! $u->dihitung_pegawai)
+                                <span class="badge" title="Akun tamu: tidak dihitung dalam ringkasan pegawai">Tamu</span>
+                            @endif
                         </td>
                         <td>
                             @if($u->is_active)
@@ -160,6 +163,7 @@
                                     'email' => $u->email,
                                     'role' => $u->role,
                                     'is_active' => (bool) $u->is_active,
+                                    'dihitung_pegawai' => (bool) $u->dihitung_pegawai,
                                     'bidang_ids' => $u->bidang->pluck('id')->values(),
                                 ]) }})" class="icon-btn" title="Edit">
                                     <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
@@ -256,6 +260,13 @@
                     <div class="flex items-center gap-2 pt-6">
                         <input type="checkbox" name="is_active" id="tambahIsActive" value="1" checked class="rounded border-slate-300 text-blue-600 focus:ring-blue-500">
                         <label for="tambahIsActive" class="text-sm text-slate-700 cursor-pointer">Akun aktif (boleh login)</label>
+                    </div>
+                    <div class="flex items-start gap-2 pt-6">
+                        <input type="checkbox" name="dihitung_pegawai" id="tambahDihitungPegawai" value="1" checked class="mt-0.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500">
+                        <label for="tambahDihitungPegawai" class="text-sm text-slate-700 cursor-pointer leading-snug">
+                            Hitung dalam ringkasan pegawai
+                            <span class="block text-[11px] font-normal text-slate-400">Kosongkan untuk akun tamu, agar tidak menambah angka "Jumlah Pegawai" di dashboard.</span>
+                        </label>
                     </div>
                     <div>
                         <label class="label">Foto Profil (Opsional)</label>
@@ -357,6 +368,13 @@
                     <div class="flex items-center gap-2 pt-6">
                         <input type="checkbox" name="is_active" id="editIsActive" value="1" class="rounded border-slate-300 text-blue-600 focus:ring-blue-500">
                         <label for="editIsActive" class="text-sm text-slate-700 cursor-pointer">Akun aktif (boleh login)</label>
+                    </div>
+                    <div class="flex items-start gap-2 pt-6">
+                        <input type="checkbox" name="dihitung_pegawai" id="editDihitungPegawai" value="1" class="mt-0.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500">
+                        <label for="editDihitungPegawai" class="text-sm text-slate-700 cursor-pointer leading-snug">
+                            Hitung dalam ringkasan pegawai
+                            <span class="block text-[11px] font-normal text-slate-400">Kosongkan untuk akun tamu, agar tidak menambah angka "Jumlah Pegawai" di dashboard.</span>
+                        </label>
                     </div>
                     <div>
                         <label class="label">Foto Profil Baru (Opsional)</label>
@@ -484,6 +502,7 @@
         document.getElementById('editEmail').value = user.email;
         document.getElementById('editRole').value = user.role;
         document.getElementById('editIsActive').checked = !!user.is_active;
+        document.getElementById('editDihitungPegawai').checked = !!user.dihitung_pegawai;
 
         // Centang bidang yang memang sudah ditugaskan. Nilai dari server
         // berupa array id, jadi dibandingkan sebagai angka.
@@ -525,6 +544,7 @@
             document.getElementById('editEmail').value = @json(old('email'));
             document.getElementById('editRole').value = @json(old('role'));
             document.getElementById('editIsActive').checked = {{ old('is_active') ? 'true' : 'false' }};
+            document.getElementById('editDihitungPegawai').checked = {{ old('dihitung_pegawai') ? 'true' : 'false' }};
             var bidangLama = @json(array_map('intval', old('bidang_ids', [])));
             document.querySelectorAll('.checkbox-bidang-edit').forEach(function (checkbox) {
                 checkbox.checked = bidangLama.includes(Number(checkbox.value));

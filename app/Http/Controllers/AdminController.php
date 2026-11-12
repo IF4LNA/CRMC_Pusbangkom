@@ -34,9 +34,9 @@ class AdminController extends Controller
         }
 
         return view('admin.index', [
-            'totalPegawai' => User::count(),
-            'totalAdmin' => User::where('role', 'admin')->count(),
-            'totalPegawaiRole' => User::where('role', 'pegawai')->count(),
+            'totalPegawai' => User::dihitungPegawai()->count(),
+            'totalAdmin' => User::dihitungPegawai()->where('role', 'admin')->count(),
+            'totalPegawaiRole' => User::dihitungPegawai()->where('role', 'pegawai')->count(),
         ]);
     }
 
@@ -73,9 +73,10 @@ class AdminController extends Controller
             'daftarBidang' => Bidang::orderBy('id')->get(),
             'kataKunci' => $kataKunci,
             'peran' => $peran,
-            'totalPegawai' => User::count(),
-            'totalAdmin' => User::where('role', 'admin')->count(),
-            'totalPegawaiRole' => User::where('role', 'pegawai')->count(),
+            'totalPegawai' => User::dihitungPegawai()->count(),
+            'totalAdmin' => User::dihitungPegawai()->where('role', 'admin')->count(),
+            'totalPegawaiRole' => User::dihitungPegawai()->where('role', 'pegawai')->count(),
+            'totalSemuaAkun' => User::count(),
         ]);
     }
 
@@ -92,6 +93,7 @@ class AdminController extends Controller
             'email' => 'required|email|unique:users,email',
             'password' => 'required|string|min:8|max:64|regex:/[0-9]/|regex:/[^A-Za-z0-9]/',
             'role' => 'required|in:admin,pegawai',
+            'dihitung_pegawai' => 'nullable|boolean',
             'bidang_ids' => 'nullable|array',
             'bidang_ids.*' => 'integer|distinct|exists:bidang,id',
             'foto_profil' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:4096',
@@ -101,6 +103,7 @@ class AdminController extends Controller
         $data = $request->only(['name', 'nip', 'jabatan', 'email', 'role']);
         $data['password'] = Hash::make($request->input('password'));
         $data['is_active'] = $request->boolean('is_active', true);
+        $data['dihitung_pegawai'] = $request->boolean('dihitung_pegawai');
 
         // Foto hasil crop dikirim sebagai data URL (base64) dari modal
         // penyesuaian foto di frontend. Jika ada, gunakan hasil crop;
@@ -142,6 +145,7 @@ class AdminController extends Controller
             'email' => 'required|email|unique:users,email,'.$user->id,
             'password' => 'nullable|string|min:8|max:64|regex:/[0-9]/|regex:/[^A-Za-z0-9]/',
             'role' => 'required|in:admin,pegawai',
+            'dihitung_pegawai' => 'nullable|boolean',
             'bidang_ids' => 'nullable|array',
             'bidang_ids.*' => 'integer|distinct|exists:bidang,id',
             'foto_profil' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:4096',
@@ -150,6 +154,7 @@ class AdminController extends Controller
 
         $data = $request->only(['name', 'nip', 'jabatan', 'email', 'role']);
         $data['is_active'] = $request->boolean('is_active');
+        $data['dihitung_pegawai'] = $request->boolean('dihitung_pegawai');
 
         if ($request->filled('password')) {
             $data['password'] = Hash::make($request->input('password'));

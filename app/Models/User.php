@@ -32,6 +32,7 @@ class User extends Authenticatable
         'foto_profil',
         'role',
         'is_active',
+        'dihitung_pegawai',
     ];
 
     protected $hidden = [
@@ -45,6 +46,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'is_active' => 'boolean',
+            'dihitung_pegawai' => 'boolean',
         ];
     }
 
@@ -160,6 +162,17 @@ class User extends Authenticatable
     public function isPegawai(): bool
     {
         return $this->role === 'pegawai';
+    }
+
+    /**
+     * Batasi query pada akun yang ikut dihitung dalam ringkasan pegawai.
+     *
+     * Akun tamu tetap bisa login dan dipakai seperti akun lain, tetapi
+     * tidak menambah angka "Jumlah Pegawai" di dashboard.
+     */
+    public function scopeDihitungPegawai($query)
+    {
+        return $query->where('dihitung_pegawai', true);
     }
 
     public function penugasan()
