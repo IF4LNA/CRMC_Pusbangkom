@@ -1538,6 +1538,27 @@
                             <span class="badge badge-ok">Multi-Selection</span>
                         </div>
 
+                        {{-- Pegawai yang sudah dipilih ditampilkan terpisah
+                             (berjajar) di sini. Klik tombol X pada kotaknya
+                             untuk membatalkan pilihan. --}}
+                        <div class="mb-3">
+                            <div class="flex items-center justify-between mb-1.5">
+                                <label class="label !mb-0">Pegawai yang Terpilih (Lapis 3)</label>
+                                <span class="badge" id="hitungTerpilihPengendaliHeader"></span>
+                            </div>
+                            {{-- Beberapa alias id disediakan agar kompatibel
+                                 dengan berbagai penamaan yang mungkin dipakai. --}}
+                            <div id="pegawaiTerpilih" class="min-h-[3rem] p-2 rounded-lg border border-dashed border-blue-200 bg-blue-50/40">
+                                <div id="daftarPegawaiTerpilih">
+                                    <div id="terpilihPengendali" class="flex flex-wrap gap-2"></div>
+                                    <div id="pegawaiTerpilihPengendali" class="hidden"></div>
+                                </div>
+                                <p id="belumAdaTerpilih" class="text-xs text-slate-400 text-center py-1">
+                                    Belum ada pegawai yang dipilih.
+                                </p>
+                            </div>
+                        </div>
+
                         {{-- Pencarian HANYA untuk Lapis 3. Dua <select> di
                              atasnya dibiarkan utuh: masing-masing hanya
                              memilih satu orang, jadi tidak perlu menggulir
@@ -1571,10 +1592,12 @@
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-56 overflow-y-auto p-1 border border-slate-200 rounded-lg bg-slate-50"
                                  id="daftarTimPengendali">
                             @foreach($allUsers as $u)
+                            @php $isSelected = in_array($u->id, $selectedPengendaliIds); @endphp
                             <label data-cari="{{ $u->name }} {{ $u->jabatan }} {{ $u->nip }}"
+                                   style="{{ $isSelected ? 'display:none' : '' }}"
                                    class="flex items-center space-x-3 p-2.5 rounded-lg bg-white border border-slate-200 hover:border-blue-400 cursor-pointer transition select-none">
                                 <input type="checkbox" name="pengendali_risiko_ids[]" value="{{ $u->id }}"
-                                       {{ in_array($u->id, $selectedPengendaliIds) ? 'checked' : '' }}
+                                       {{ $isSelected ? 'checked' : '' }}
                                        class="w-4 h-4 rounded text-blue-600 focus:ring-blue-400 border-slate-300 shrink-0">
                                 <img src="{{ $u->foto_url }}" alt="{{ $u->name }}" class="w-8 h-8 rounded object-cover border border-slate-200 shrink-0">
                                 <div class="min-w-0 flex-1">
@@ -1639,6 +1662,9 @@
         const hitungTerpilih = document.getElementById('hitungTerpilihPengendali');
         const daftarTim = document.getElementById('daftarTimPengendali');
         const timKosong = document.getElementById('timPengendaliKosong');
+        const selectedContainer = document.getElementById('terpilihPengendali');
+        const belumAda = document.getElementById('belumAdaTerpilih');
+        const headerCount = document.getElementById('hitungTerpilihPengendaliHeader');
 
         if (!input || !daftarTim) return;
 
@@ -1649,42 +1675,58 @@
             return (teks || '').toLowerCase().indexOf(q) !== -1;
         }
 
-        /**
-         * Hitung berapa staf yang sudah dicentang, termasuk yang barisnya
-         * sedang tersembunyi karena tersaring.
-         *
-         * Angka ini yang membuktikan ke admin bahwa searching tidak
-         * menghapus pilihannya: sebelumnya tidak ada indikator apa pun,
-         * jadi pilihan yang hilang terlihat seperti "Multi-Selection"
-         * memang tidak pernah tersimpan.
-         */
         function perbaruiTerpilih() {
             if (!hitungTerpilih) return;
 
             const jumlah = daftarTim.querySelectorAll('input[type="checkbox"]:checked').length;
             hitungTerpilih.textContent = jumlah + ' staf dipilih';
             hitungTerpilih.classList.toggle('badge-ok', jumlah > 0);
+            if (headerCount) {
+                headerCount.textContent = jumlah + ' staf dipilih';
+                headerCount.classList.toggle('badge-ok', jumlah > 0);
+            }
         }
 
-        /**
-         * Saring daftar.
-         *
-         * Fungsi ini hanya mengubah TAMPILAN dan sama sekali tidak
-         * menyentuh centang checkbox.
-         *
-         * Sebelumnya baris yang tidak cocok disembunyikan BERSAMAAN dengan
-         * dikembalikan ke keadaan awal, sehingga begitu admin mengetik
-         * kata kunci, semua staf yang barusan ia centang untuk Tim
-         * Pengendali Risiko ikut ter-uncheck. Saat kata kunci dikosongkan
-         * lagi, "Multi-Selection" yang sudah disusun hilang begitu saja,
-         * dan admin tidak bisa mencari staf berikutnya tanpa kehilangan
-         * pilihan yang sudah dibuat.
-         *
-         * Menyembunyikan baris juga tidak perlu dikembalikan seperti itu:
-         * checkbox yang disembunyikan tetap ikut terkirim saat form
-         * disimpan, jadi justru inilah perilaku yang diinginkan -- admin
-         * boleh menyaring daftar tanpa takut pilihannya hilang.
-         */
+        // Tampilkan pegawai yang sudah dipilih sebagai kotak berjajar
+        // dengan tombol X di ujungnya untuk membatalkan pilihan.
+        function perbaruiChip() {
+            if (!selectedContainer) return;
+            selectedContainer.innerHTML = '';
+            let jumlah = 0;
+            labelTim.forEach(function (label) {
+                const cb = label.querySelector('input[type="checkbox"]');
+                if (!cb || !cb.checked) return;
+                jumlah++;
+                const img = label.querySelector('img');
+                const namaEl = label.querySelector('h6');
+                const jabatanEl = label.querySelector('p');
+                const nama = namaEl ? namaEl.textContent : '';
+                const jabatan = jabatanEl ? jabatanEl.textContent : '';
+                const foto = img ? img.getAttribute('src') : '';
+                const chip = document.createElement('div');
+                chip.className = 'inline-flex items-center gap-2 pl-1.5 pr-1 py-1 rounded-lg bg-white border border-blue-300 shadow-sm';
+                chip.innerHTML =
+                    '<img src="' + foto + '" alt="" class="w-7 h-7 rounded object-cover border border-slate-200 shrink-0">' +
+                    '<div class="min-w-0 flex-1">' +
+                        '<p class="text-xs font-semibold text-slate-900 truncate max-w-[10rem]">' + nama + '</p>' +
+                        '<p class="text-[10px] text-slate-500 truncate max-w-[10rem]">' + jabatan + '</p>' +
+                    '</div>' +
+                    '<button type="button" class="icon-btn !w-6 !h-6" data-hapus="' + cb.value + '" title="Batalkan pilihan">' +
+                        '<i data-lucide="x" class="w-3 h-3"></i>' +
+                    '</button>';
+                selectedContainer.appendChild(chip);
+                const btn = chip.querySelector('[data-hapus]');
+                if (btn) {
+                    btn.addEventListener('click', function () {
+                        const cb2 = label.querySelector('input[type="checkbox"]');
+                        if (cb2 && cb2.checked) cb2.click();
+                    });
+                }
+            });
+            if (belumAda) belumAda.classList.toggle('hidden', jumlah > 0);
+            if (window.lucide) lucide.createIcons();
+        }
+
         function terapkan() {
             const q = input.value.trim().toLowerCase();
 
@@ -1693,6 +1735,16 @@
             let jumlahCocok = 0;
 
             labelTim.forEach(function (l) {
+                const cb = l.querySelector('input[type="checkbox"]');
+                const selected = !!(cb && cb.checked);
+
+                // Pegawai yang sudah dipilih "pindah" ke layout terpisah,
+                // jadi tidak lagi tampil di daftar pencarian.
+                if (selected) {
+                    l.style.display = 'none';
+                    return;
+                }
+
                 const satuCocok = q === '' || cocok(l.dataset.cari, q);
 
                 // Ditulis sebagai style inline, bukan kelas `hidden`, supaya
@@ -1719,6 +1771,7 @@
             }
 
             perbaruiTerpilih();
+            perbaruiChip();
         }
 
         input.addEventListener('input', terapkan);
@@ -1732,7 +1785,11 @@
 
         // Centang berubah (dimasukkan lewat klik di label mana pun), bukan
         // hanya lewat kotak pencarian, jadi penghitung perlu ikutваются.
-        daftarTim.addEventListener('change', perbaruiTerpilih);
+        daftarTim.addEventListener('change', function () {
+            perbaruiTerpilih();
+            perbaruiChip();
+            terapkan();
+        });
 
         if (tombolBersihkan) {
             tombolBersihkan.addEventListener('click', function () {
