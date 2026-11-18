@@ -7,7 +7,9 @@ use App\Models\DokumenCrmc;
 use App\Models\LampiranCrmc;
 use App\Models\SubMenu;
 use App\Models\User;
+use App\Services\PemulihanDokumenService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
@@ -170,5 +172,48 @@ class PemulihanDokumenTest extends TestCase
         $response = $this->post(route('admin.pemulihan.recover'), ['paths' => ['../secret.txt']]);
         $response->assertRedirect(route('admin.pemulihan.index'));
         $this->assertDatabaseMissing('lampiran_crmc', ['file_path' => '../secret.txt']);
+    }
+
+    /**
+     * Data pendukung pemindaian (sub-bidang, bidang, dokumen, lampiran)
+     * dimuat sekali, jadi jumlah query tidak boleh bertambah seiring
+     * banyaknya berkas. Sebelumnya setiap berkas menjalankan query sendiri
+     * (N+1) sehingga halaman dengan ratusan berkas menjalankan ribuan query.
+     */
+    public function test_pindai_tidak_menjalankan_query_per_berkas(): void
+    {
+        for ($i = 0; $i < 15; $i++) {
+            $this->buatFile("berkas-{$i}.pdf");
+        }
+
+        DB::enableQueryLog();
+        app(PemulihanDokumenService::class)->pindai();
+        $jumlahQuery = count(DB::getQueryLog());
+        DB::disableQueryLog();
+
+        $this->assertLessThanOrEqual(
+            8,
+            $jumlahQuery,
+            "Pemindaian menjalankan {$jumlahQuery} query untuk 15 berkas; seharusnya tetap beberapa query saja."
+        );
+    }
+
+    /**
+     * Hasil pemindaian disimpan di cache, dan tombol "Pindai Ulang"
+     * (?refresh=1) yang membuangnya supaya berkas baru langsung terlihat.
+     */
+    public function test_pindai_ulang_membuang_cache_hasil_pemindaian(): void
+    {
+        $this->actingAs($this->admin);
+
+        // Permintaan pertama mengisi cache.
+        $this->get(route('admin.pemulihan.index'))->assertOk()->assertDontSee('baru.pdf');
+
+        // Berkas yang muncul setelah cache terbentuk belum ikut terbaca.
+        $this->buatFile('baru.pdf');
+        $this->get(route('admin.pemulihan.index'))->assertOk()->assertDontSee('baru.pdf');
+
+        // Memaksa pindai ulang membuat berkas baru terlihat.
+        $this->get(route('admin.pemulihan.index', ['refresh' => 1]))->assertOk()->assertSee('baru.pdf');
     }
 }

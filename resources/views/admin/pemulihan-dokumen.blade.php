@@ -18,7 +18,7 @@
             </p>
         </div>
         <div class="relative z-10 flex flex-wrap items-center gap-2 shrink-0">
-            <a href="{{ route('admin.pemulihan.index') }}" class="btn btn-outline shrink-0">
+            <a href="{{ route('admin.pemulihan.index', ['refresh' => 1]) }}" class="btn btn-outline shrink-0">
                 <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
                 <span>Pindai Ulang</span>
             </a>
@@ -151,8 +151,8 @@
                         <td class="font-semibold text-slate-900 break-all">{{ $item['nama_file'] }}</td>
                         <td>{{ $item['tahun'] ?? '-' }}</td>
                         <td>
-                            @if($item['sub_menu'])
-                                {{ $item['sub_menu']->nama_sub_menu }}
+                            @if($item['sub_menu_nama'])
+                                {{ $item['sub_menu_nama'] }}
                                 @if($item['bidang'])
                                     <span class="text-[10px] text-slate-400 block">{{ $item['bidang'] }}</span>
                                 @endif

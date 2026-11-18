@@ -4,7 +4,9 @@ namespace Tests\Feature;
 
 use App\Models\Bidang;
 use App\Models\SubMenu;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 /**
@@ -21,7 +23,7 @@ class NavigasiAktifTest extends TestCase
 {
     use RefreshDatabase;
 
-    private \App\Models\User $admin;
+    private User $admin;
 
     protected function setUp(): void
     {
@@ -30,7 +32,7 @@ class NavigasiAktifTest extends TestCase
         $bidang = Bidang::create(['nama_bidang' => 'Bagian Umum Program & Tata Usaha']);
         SubMenu::create(['bidang_id' => $bidang->id, 'nama_sub_menu' => 'Manajemen Risiko']);
 
-        $this->admin = \App\Models\User::create([
+        $this->admin = User::create([
             'name' => 'Admin Uji',
             'nip' => '199001012026011234',
             'jabatan' => 'Administrator',
@@ -171,6 +173,49 @@ class NavigasiAktifTest extends TestCase
             $nav,
             'Menu tab tidak boleh aktif di halaman Beranda.'
         );
+    }
+
+    // ====================
+    // Cache data navigasi
+    // ====================
+
+    /**
+     * Data navigasi dibaca di setiap halaman, jadi hasilnya di-cache.
+     * Permintaan kedua tidak boleh mengulang query ke tabel bidang.
+     */
+    public function test_data_navigasi_diambil_dari_cache_pada_permintaan_kedua(): void
+    {
+        // Permintaan pertama mengisi cache data navigasi.
+        $this->get('/')->assertOk();
+
+        DB::enableQueryLog();
+        $this->get('/')->assertOk();
+        $jumlahQueryBidang = collect(DB::getQueryLog())
+            ->filter(fn (array $entri) => str_contains($entri['query'], 'from "bidang"'))
+            ->count();
+        DB::disableQueryLog();
+
+        $this->assertSame(
+            0,
+            $jumlahQueryBidang,
+            'Data navigasi seharusnya dibaca dari cache pada permintaan berikutnya.'
+        );
+    }
+
+    /**
+     * Cache navigasi harus dibuang saat data sumbernya berubah, supaya
+     * bidang baru langsung muncul di navbar.
+     */
+    public function test_bidang_baru_langsung_muncul_walau_navigasi_di_cache(): void
+    {
+        $this->actingAs($this->admin)->get('/')->assertOk();
+
+        Bidang::create(['nama_bidang' => 'Bidang Baru Uji']);
+
+        $this->actingAs($this->admin)
+            ->get('/')
+            ->assertOk()
+            ->assertSee('Bidang Baru Uji');
     }
 
     /**

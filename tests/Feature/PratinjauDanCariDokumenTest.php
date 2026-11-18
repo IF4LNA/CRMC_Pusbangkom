@@ -8,6 +8,7 @@ use App\Models\LampiranCrmc;
 use App\Models\SubMenu;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 /**
@@ -185,5 +186,34 @@ class PratinjauDanCariDokumenTest extends TestCase
         $this->assertStringContainsString('data-src="'.$risiko->url.'#view=FitH"', $html);
         $this->assertStringContainsString('data-pratinjau-lazy="1"', $html);
         $this->assertStringContainsString('data-pratinjau-retry="1"', $html);
+    }
+
+    /**
+     * Partial kartu dokumen menampilkan tahun dokumen induk. Relasinya
+     * harus ikut di-eager load supaya tiap lampiran tidak menjalankan
+     * query dokumen sendiri-sendiri (N+1).
+     */
+    public function test_detail_komponen_tidak_menjalankan_query_dokumen_per_lampiran(): void
+    {
+        $subMenu = $this->buatSubBidang();
+
+        for ($i = 0; $i < 10; $i++) {
+            $this->buatLampiran($subMenu, 'sop', "sop-{$i}.pdf", "lampiran/sop-{$i}.pdf", 'pdf');
+        }
+
+        $user = $this->buatPengguna();
+
+        DB::enableQueryLog();
+        $this->actingAs($user)->get('/crmc/manajemen-risiko?tahun=2026')->assertOk();
+        $jumlahQueryDokumen = collect(DB::getQueryLog())
+            ->filter(fn (array $entri) => str_contains($entri['query'], 'from "dokumen_crmc"'))
+            ->count();
+        DB::disableQueryLog();
+
+        $this->assertLessThanOrEqual(
+            5,
+            $jumlahQueryDokumen,
+            "Halaman detail menjalankan {$jumlahQueryDokumen} query dokumen_crmc untuk 10 lampiran; relasi seharusnya di-eager load."
+        );
     }
 }

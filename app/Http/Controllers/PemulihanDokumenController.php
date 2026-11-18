@@ -22,6 +22,13 @@ class PemulihanDokumenController extends Controller
     {
         $this->wajibAdmin();
 
+        // Tombol "Pindai Ulang" mengirim ?refresh=1 supaya cache hasil
+        // pemindaian dibuang lebih dulu dan daftar benar-benar dibaca ulang
+        // dari storage.
+        if ($request->boolean('refresh')) {
+            $this->layanan->lupakanCache();
+        }
+
         $hasilPindai = $this->layanan->pindai();
         $items = collect($hasilPindai['items']);
 

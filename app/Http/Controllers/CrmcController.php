@@ -260,7 +260,10 @@ class CrmcController extends Controller
         $lampiranPerTahun = [];
 
         if ($subMenu) {
-            $dokumenTahun = DokumenCrmc::with('lampiran')
+            // Relasi dokumenCrmc ikut dimuat karena partial kartu dokumen
+            // menampilkan tahun induknya. Tanpa eager load, setiap lampiran
+            // menjalankan satu query dokumen (N+1).
+            $dokumenTahun = DokumenCrmc::with(['lampiran.dokumenCrmc'])
                 ->where('sub_menu_id', $subMenu->id)
                 ->orderByDesc('tahun_pelaksanaan')
                 ->get()
