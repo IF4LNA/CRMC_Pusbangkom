@@ -759,15 +759,6 @@
                         </div>
                     </div>
 
-                    <!-- RINGKASAN EVALUASI TERTYANGGI -->
-                    <div class="p-3.5 bg-slate-50 rounded-lg border border-slate-200/80 space-y-1.5">
-                        <span class="label">Ringkasan Evaluasi (tersimpan di Komponen 8)</span>
-                        @if(!empty($residuTerpilih['rangkumanEvaluasi']))
-                            <p class="text-xs text-slate-700 leading-relaxed font-medium whitespace-pre-line">{{ $residuTerpilih['rangkumanEvaluasi'] }}</p>
-                        @else
-                            <p class="text-[11px] text-slate-400 italic">Belum ada ringkasan evaluasi untuk tahun ini.</p>
-                        @endif
-                    </div>
                 </div>
             </div>
             <div class="px-4 sm:px-6 py-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
@@ -824,32 +815,6 @@
                     @endif
                 </div>
 
-                <!-- FORM RINGKASAN EVALUASI (data nyata, bukan dummy) -->
-                @if($isAdmin)
-                <form action="{{ route('crmc.update', $slug) }}" method="POST" class="space-y-2 pt-1">
-                    @csrf
-                    <input type="hidden" name="tahun_pelaksanaan" value="{{ $tahun8 }}">
-                    {{-- Kirimkan status residu apa adanya supaya menyimpan ringkasan
-                         evaluasi tidak ikut mengubah status yang sudah ditetapkan
-                         di Komponen 7 (status hanya boleh diubah dari sana). --}}
-                    <input type="hidden" name="residu" value="{{ $residu['kunci'] }}">
-
-                    <label class="label">Ringkasan Evaluasi Tahun {{ $tahun8 }}</label>
-                    <textarea name="evaluasi" rows="4"
-                              placeholder="Tulis hasil evaluasi dan rencana perbaikan tahun {{ $tahun8 }}. Kosongkan bila belum ada."
-                              class="input">{{ old('evaluasi', $residuTerpilih['rangkumanEvaluasi']) }}</textarea>
-                    <div class="flex justify-end">
-                        <button type="submit" class="btn btn-sm btn-dark">
-                            <i data-lucide="save" class="w-3.5 h-3.5"></i><span>Simpan Ringkasan</span>
-                        </button>
-                    </div>
-                </form>
-                @else
-                    <div class="pt-1">
-                        <span class="label">Ringkasan Evaluasi Tahun {{ $tahun8 }}</span>
-                        <p class="text-xs text-slate-700 leading-relaxed mt-1 whitespace-pre-line">{{ $residuTerpilih['rangkumanEvaluasi'] ?: 'Belum ada ringkasan evaluasi untuk tahun ini.' }}</p>
-                    </div>
-                @endif
 
                 <!-- DAFTAR DOKUMEN: partial yang sama dengan Komponen 1-6, jadi
                      behavior-nya ikut sama (satu file satu tampilan). -->
